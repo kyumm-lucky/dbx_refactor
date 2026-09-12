@@ -273,7 +273,7 @@ onUnmounted(() => document.removeEventListener("pointerdown", onDocumentPointerD
   height: 26px;
   align-items: center;
   gap: 6px;
-  border-radius: 3px;
+  border-radius: var(--dbx-radius-2xs);
   padding: 0 6px;
   text-align: left;
 }

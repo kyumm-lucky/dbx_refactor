@@ -66,11 +66,13 @@ describe("startup theme", () => {
   });
 
   it.each([
-    [null, "large"],
-    ["invalid", "large"],
-    ["none", "none"],
-    ["small", "small"],
-    ["large", "large"],
+    [null, "standard"],
+    ["invalid", "standard"],
+    ["compact", "compact"],
+    // The retired none/small/large values all mean the standard radius now.
+    ["none", "standard"],
+    ["small", "standard"],
+    ["large", "standard"],
   ])("normalizes the startup corner style %s to %s", (cornerStyle, expected) => {
     const { root } = runStartupTheme({ cornerStyle });
 
@@ -82,7 +84,7 @@ describe("startup theme", () => {
 
     expect(toggle).toHaveBeenCalledWith("dark", false);
     expect(root.style.colorScheme).toBe("light");
-    expect(root.dataset.cornerStyle).toBe("large");
+    expect(root.dataset.cornerStyle).toBe("standard");
   });
 
   it("falls back to light for an invalid persisted mode", () => {

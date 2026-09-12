@@ -1507,7 +1507,7 @@ function onKeydown(event: KeyboardEvent) {
     <LightTooltip :text="visibleLabel(node)" :disabled="isTooltipDisabled()" side="right" :side-offset="8" :delay="0" :close-delay="30" :surface="detailTooltip ? 'popover' : 'foreground'">
       <div
         ref="rowRef"
-        class="group flex cursor-default items-center gap-2 min-h-7 py-1 px-2 relative outline-none"
+        class="group flex cursor-default items-center gap-2 min-h-8 py-1 px-2 relative outline-none"
         style="contain: layout style"
         :class="[
           rowWidthClass,
@@ -1797,9 +1797,9 @@ function onKeydown(event: KeyboardEvent) {
 
 /* Plain (non-virtualized) renderer: database/schema container rows stick to
    the top of the tree scroller while their children scroll under them,
-   mirroring the overlay sticky header the virtual renderer uses. The row is
-   min-h-7, so a solid background guarantees no content shows through while
-   rows slide underneath. */
+   mirroring the overlay sticky header the virtual renderer uses. The row
+   fills its slot, so a solid background guarantees no content shows through
+   while rows slide underneath. */
 .sidebar-tree-item--sticky {
   position: sticky;
   top: 0;

@@ -24,7 +24,7 @@ const host = ref<HTMLElement | null>(null);
 let view: EditorView | null = null;
 let generation = 0;
 const settingsStore = useSettingsStore();
-const { isDark, themePalette } = useTheme();
+const { isDark } = useTheme();
 const setDecorations = StateEffect.define<DecorationSet>();
 
 function currentCustomThemeColors() {
@@ -89,7 +89,7 @@ async function mount() {
   const currentGeneration = ++generation;
   view?.destroy();
   view = null;
-  const [language, theme] = await Promise.all([loadNacosConfigLanguage(props.format), loadEditorTheme(settingsStore.editorSettings.theme, isDark.value ? "dark" : "light", currentCustomThemeColors(), themePalette.value)]);
+  const [language, theme] = await Promise.all([loadNacosConfigLanguage(props.format), loadEditorTheme(settingsStore.editorSettings.theme, isDark.value ? "dark" : "light", currentCustomThemeColors())]);
   if (currentGeneration !== generation || target !== host.value) return;
   const content = props.rows.map(lineContent).join("\n");
   const state = EditorState.create({

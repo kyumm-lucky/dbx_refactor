@@ -102,6 +102,7 @@ import {
   switchToTabIndexFromShortcut,
   tabSwitcherDirectionFromShortcut,
 } from "@/lib/editor/keyboardShortcuts";
+import { tabDisplayTitle } from "@/lib/tabs/tabPresentation";
 import { createTabNavigationHistory, moveInTabNavigationHistory, recordTabVisit } from "@/lib/tabs/tabNavigationHistory";
 import { initialTabSwitcherSelection, moveTabSwitcherSelection, tabSwitcherOrder } from "@/lib/tabs/tabSwitcher";
 import { createTabSwitcherKeyboardController } from "@/lib/tabs/tabSwitcherKeyboard";
@@ -408,6 +409,9 @@ const blockingAiRunCount = computed(() => (isDesktop ? blockingDesktopAiRunsForQ
 let aiRunsQuitConfirmed = false;
 
 const activeTab = computed(() => queryStore.tabs.find((t) => t.id === queryStore.activeTabId));
+// The detached window's header is the tab's only label, so it resolves the same
+// title the strip shows instead of the raw internal `query_N` placeholder.
+const activeTabDisplayTitle = computed(() => (activeTab.value ? tabDisplayTitle(activeTab.value, t, queryStore.tabs) : ""));
 const tabNavigationHistory = ref(createTabNavigationHistory());
 let pendingTabHistoryNavigationId: string | null = null;
 let detachedEventUnlisteners: Array<() => void> = [];
@@ -3605,7 +3609,7 @@ onUnmounted(() => {
               </AppTabBar>
               <DetachedTabHeader
                 v-else-if="activeTab"
-                :title="activeTab.title"
+                :title="activeTabDisplayTitle"
                 :dirty="queryStore.isTabDirty(activeTab)"
                 @return="requestDetachedReturn('return')"
                 @close="requestDetachedReturn('close')"

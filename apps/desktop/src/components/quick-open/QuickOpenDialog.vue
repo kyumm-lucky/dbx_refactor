@@ -209,7 +209,7 @@ watch(
 :deep(.bg-yellow-200),
 :deep(.dark .bg-yellow-800) {
   background-color: var(--warning-bg) !important;
-  border-radius: 0.1875rem;
+  border-radius: var(--dbx-radius-2xs);
   padding: 0 0.0625rem;
 }
 </style>

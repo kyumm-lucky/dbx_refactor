@@ -121,10 +121,15 @@ function specialPageTabClass(active: boolean): string[] {
   return ["h-7 rounded-md border", active ? "border-ring font-medium text-foreground" : "border-border/60 text-foreground/70 hover:border-border hover:text-foreground/90"];
 }
 
+/*
+ * The classic layout used to mark the active tab with an inline inset
+ * underline. The active tab is now a lifted block — white surface, 0.5px
+ * border, 1px shadow — which the stylesheet applies, so there is nothing left
+ * for an inline style to say. Only the vertical rail still needs one.
+ */
 function specialPageTabStyle(active: boolean) {
-  if (isVerticalLayout.value) return active ? { "--app-tab-background": "var(--accent)" } : undefined;
-  if (!isClassicLayout.value) return undefined;
-  return active ? { boxShadow: "inset 0 -2px 0 var(--ring)" } : undefined;
+  if (!isVerticalLayout.value) return undefined;
+  return active ? { "--app-tab-background": "var(--accent)" } : undefined;
 }
 const isVerticalLayout = computed(() => settingsStore.editorSettings.tabPlacement === "left" || settingsStore.editorSettings.tabPlacement === "right");
 const isWrapLayout = computed(() => !isVerticalLayout.value && settingsStore.editorSettings.tabLayout === "wrap");
@@ -210,7 +215,7 @@ const filteredGroupTabs = computed(() => {
   if (!query) {
     return props.tabs;
   }
-  return props.tabs.filter((tab) => tabDisplayTitle(tab, t).toLocaleLowerCase().includes(query) || tab.title.toLocaleLowerCase().includes(query));
+  return props.tabs.filter((tab) => tabDisplayTitle(tab, t, queryStore.tabs).toLocaleLowerCase().includes(query) || tab.title.toLocaleLowerCase().includes(query));
 });
 
 watch(tabOverflowOpen, (open) => {
@@ -356,7 +361,7 @@ function compareTabGroupKeys(left: string, right: string) {
 }
 
 function tabTitleText(tab: QueryTab) {
-  return tabDisplayTitle(tab, t);
+  return tabDisplayTitle(tab, t, queryStore.tabs);
 }
 
 function tabConnectionLabel(tab: QueryTab) {
@@ -805,7 +810,7 @@ type StripEntry = { kind: "header"; key: string; tab: QueryTab; pinned: boolean;
  * pills. Collapsed pills remain mounted so their visibility can animate.
  */
 function tabMatchesSearch(tab: QueryTab, query: string) {
-  const title = tabDisplayTitle(tab, t).toLocaleLowerCase();
+  const title = tabDisplayTitle(tab, t, queryStore.tabs).toLocaleLowerCase();
   return title.includes(query) || tab.title.toLocaleLowerCase().includes(query);
 }
 
@@ -1470,7 +1475,7 @@ watch([() => props.specialPageTabs?.settingsActive, () => props.specialPageTabs?
                             />
                             <span v-else-if="!isTabBarCollapsed" class="inline-flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden text-foreground">
                               <span v-if="isDirtyTab(entry.tab)" aria-hidden="true" class="dirty-tab-marker">*</span>
-                              <span class="min-w-0 flex-1 truncate" :style="tabTitleStyle(entry.tab)">{{ tabDisplayTitle(entry.tab, t) }}</span>
+                              <span class="min-w-0 flex-1 truncate" :style="tabTitleStyle(entry.tab)">{{ tabDisplayTitle(entry.tab, t, queryStore.tabs) }}</span>
                             </span>
                             <ReadOnlySessionControl v-if="!isTabBarCollapsed" :connection-id="entry.tab.connectionId" compact />
                             <button
@@ -1580,7 +1585,7 @@ watch([() => props.specialPageTabs?.settingsActive, () => props.specialPageTabs?
                 <div
                   class="group flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-left text-sm outline-hidden hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground"
                   :class="isTabActive(tab) ? 'bg-accent/70 text-accent-foreground' : ''"
-                  :title="tabDisplayTitle(tab, t)"
+                  :title="tabDisplayTitle(tab, t, queryStore.tabs)"
                   role="menuitem"
                   tabindex="0"
                   @click="
@@ -1598,7 +1603,7 @@ watch([() => props.specialPageTabs?.settingsActive, () => props.specialPageTabs?
                   </TabExecutionStatus>
                   <span class="inline-flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden">
                     <span v-if="isDirtyTab(tab)" aria-hidden="true" class="dirty-tab-marker">*</span>
-                    <span class="min-w-0 flex-1 truncate" :style="tabTitleStyle(tab)">{{ tabDisplayTitle(tab, t) }}</span>
+                    <span class="min-w-0 flex-1 truncate" :style="tabTitleStyle(tab)">{{ tabDisplayTitle(tab, t, queryStore.tabs) }}</span>
                   </span>
                   <ReadOnlySessionControl :connection-id="tab.connectionId" compact />
                   <Pin v-if="tab.pinned" class="h-3 w-3 shrink-0 fill-current text-primary" />

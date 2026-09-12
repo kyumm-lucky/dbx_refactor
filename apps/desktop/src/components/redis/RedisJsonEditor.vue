@@ -41,7 +41,7 @@ const emit = defineEmits<{
 
 const editorContainer = ref<HTMLElement>();
 const settingsStore = useSettingsStore();
-const { isDark, themePalette } = useTheme();
+const { isDark } = useTheme();
 
 const editor = useCellDetailEditor({
   language: "json",
@@ -60,7 +60,6 @@ const editor = useCellDetailEditor({
   },
   editorTheme: () => settingsStore.editorSettings.theme,
   appAppearance: () => (isDark.value ? "dark" : "light"),
-  appPalette: () => themePalette.value,
   fontSize: () => settingsStore.editorSettings.fontSize,
   fontFamily: () => settingsStore.editorSettings.fontFamily,
 });
@@ -114,7 +113,7 @@ defineExpose({ openSearch, selectRange });
 }
 
 .redis-json-editor--viewer :deep(.cm-foldGutter .cm-gutterElement) {
-  border-radius: 3px;
+  border-radius: var(--dbx-radius-2xs);
   color: var(--muted-foreground);
   cursor: pointer;
   transition:

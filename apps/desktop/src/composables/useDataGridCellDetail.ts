@@ -7,7 +7,7 @@ import type { DataGridCellDetail } from "@/lib/dataGrid/dataGridDetail";
 
 export function useDataGridCellDetail(options: { detail: Ref<DataGridCellDetail>; editValue: Ref<string>; onCancel: () => void }) {
   const settingsStore = useSettingsStore();
-  const { isDark, themePalette } = useTheme();
+  const { isDark } = useTheme();
   const geometryPreviewOpen = ref(false);
   const geometryCanvas = ref<HTMLCanvasElement | null>(null);
   const detailsEditorContainer = ref<HTMLElement>();
@@ -18,7 +18,6 @@ export function useDataGridCellDetail(options: { detail: Ref<DataGridCellDetail>
   const editorOptions = () => ({
     editorTheme: () => settingsStore.editorSettings.theme,
     appAppearance: () => (isDark.value ? "dark" : "light") as import("@/lib/app/appTheme").AppThemeAppearance,
-    appPalette: () => themePalette.value,
     fontSize: () => settingsStore.editorSettings.fontSize,
     fontFamily: () => settingsStore.editorSettings.tableFontFamily,
   });

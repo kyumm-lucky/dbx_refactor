@@ -32,7 +32,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
     v-bind="forwarded"
     :class="
       cn(
-        'dbx-switch data-checked:bg-primary data-unchecked:bg-input focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 dark:data-unchecked:bg-input/80 shrink-0 rounded-full border border-transparent focus-visible:ring-3 aria-invalid:ring-3 data-[size=default]:h-[18.4px] data-[size=default]:w-[32px] data-[size=sm]:h-[14px] data-[size=sm]:w-[24px] peer group/switch relative inline-flex items-center transition-colors outline-none after:absolute after:-inset-x-3 after:-inset-y-2 data-disabled:cursor-not-allowed data-disabled:opacity-50',
+        'dbx-switch data-checked:bg-primary data-unchecked:bg-input focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 dark:data-unchecked:bg-input/80 shrink-0 rounded-full border border-transparent focus-visible:ring-3 aria-invalid:ring-3 data-[size=default]:h-[22px] data-[size=default]:w-[38px] data-[size=sm]:h-[14px] data-[size=sm]:w-[24px] peer group/switch relative inline-flex items-center transition-colors outline-none after:absolute after:-inset-x-3 after:-inset-y-2 data-disabled:cursor-not-allowed data-disabled:opacity-50',
         props.class,
       )
     "
@@ -57,8 +57,8 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 }
 
 .dbx-switch[data-size="default"] {
-  width: 32px !important;
-  height: 18.4px !important;
+  width: 38px !important;
+  height: 22px !important;
 }
 
 .dbx-switch[data-size="sm"] {
@@ -75,8 +75,8 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 }
 
 .dbx-switch[data-size="default"] .dbx-switch-thumb {
-  width: 16px !important;
-  height: 16px !important;
+  width: 18px !important;
+  height: 18px !important;
 }
 
 .dbx-switch[data-size="sm"] .dbx-switch-thumb {
@@ -94,7 +94,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 .dbx-switch[data-size="default"][data-state="checked"] .dbx-switch-thumb,
 .dbx-switch[data-size="default"][data-checked] .dbx-switch-thumb,
 .dbx-switch[data-size="default"][aria-checked="true"] .dbx-switch-thumb {
-  transform: translateX(14px) !important;
+  transform: translateX(18px) !important;
 }
 
 .dbx-switch[data-size="sm"][data-state="checked"] .dbx-switch-thumb,

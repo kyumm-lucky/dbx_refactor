@@ -67,7 +67,7 @@ watch(
           >
             <DatabaseIcon :db-type="connectionIconType(connectionStore.getConfig(tab.connectionId))" class="h-4 w-4 shrink-0" />
             <div class="min-w-0 flex-1">
-              <div class="truncate text-sm font-medium">{{ tabDisplayTitle(tab, t) }}</div>
+              <div class="truncate text-sm font-medium">{{ tabDisplayTitle(tab, t, props.tabs) }}</div>
               <div class="truncate text-xs text-muted-foreground">
                 {{ connectionDisplayName(tab.connectionId) }}<template v-if="tab.database"> · {{ tab.database }}</template>
               </div>

@@ -6208,7 +6208,7 @@ onMounted(async () => {
   ];
 
   const initialSettings = settingsStore.editorSettings;
-  const theme = await loadEditorTheme(initialSettings.theme, editorThemeAppearance(), getCurrentCustomThemeColors(), themePalette.value);
+  const theme = await loadEditorTheme(initialSettings.theme, editorThemeAppearance(), getCurrentCustomThemeColors());
   if (initialSettings.vimModeEnabled) {
     await ensureCodeMirrorVim();
   }
@@ -6815,7 +6815,7 @@ onMounted(async () => {
     if (!view.value || !codeMirrorTheme) return;
     const settings = settingsStore.editorSettings;
     const themeColors = settings.theme === "custom" ? getCurrentCustomThemeColors() : settings.customThemeColors;
-    const themeExt = await loadEditorTheme(settings.theme, editorThemeAppearance(), themeColors, themePalette.value);
+    const themeExt = await loadEditorTheme(settings.theme, editorThemeAppearance(), themeColors);
     view.value.dispatch({
       effects: [codeMirrorTheme.reconfigure(themeExt)],
     });
@@ -7077,7 +7077,7 @@ async function applyEditorAppearance() {
   syncEditorFontCssVars(liveFontSize.value, ss.fontFamily);
   syncEditorDiagnosticCssVars();
   const themeColors = getCurrentCustomThemeColors();
-  const [themeExt] = await Promise.all([loadEditorTheme(ss.theme, editorThemeAppearance(), themeColors, themePalette.value), ss.vimModeEnabled ? ensureCodeMirrorVim() : Promise.resolve(false)]);
+  const [themeExt] = await Promise.all([loadEditorTheme(ss.theme, editorThemeAppearance(), themeColors), ss.vimModeEnabled ? ensureCodeMirrorVim() : Promise.resolve(false)]);
   if (!view.value || !codeMirrorTheme || !wordWrapComp || !lineNumbersComp || !vimModeComp || !closeBracketsComp || !runGutterComp || !runKeymapComp || !editorViewModule) {
     return;
   }
@@ -7496,7 +7496,7 @@ defineExpose({
 :deep(.cm-db-currentStatementFrame) {
   box-sizing: border-box;
   border: 1px solid rgb(34 197 94 / 0.75);
-  border-radius: 2px;
+  border-radius: var(--dbx-radius-2xs);
   pointer-events: none;
 }
 

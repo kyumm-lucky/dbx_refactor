@@ -1139,7 +1139,7 @@ onUnmounted(() => {
   content: "";
   width: 4px;
   height: 16px;
-  border-radius: 2px;
+  border-radius: var(--dbx-radius-2xs);
   background: var(--monitor-accent);
   box-shadow: 0 0 0 4px var(--monitor-accent-soft);
 }

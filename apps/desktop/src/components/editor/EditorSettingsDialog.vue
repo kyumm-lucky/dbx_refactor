@@ -199,7 +199,7 @@ import McpDatabaseScopePicker from "@/components/settings/McpDatabaseScopePicker
 import McpAuthorizationStepper from "@/components/settings/McpAuthorizationStepper.vue";
 import ScheduledDatabaseBackupSettings from "@/components/backup/ScheduledDatabaseBackupSettings.vue";
 import SqlFormatterSettingsPanel from "./SqlFormatterSettingsPanel.vue";
-import { APP_CUSTOM_UI_COLOR_DEFS, APP_THEME_PALETTES, type AppCornerStyle, type AppCustomUiColors, type AppThemeAppearance, type AppThemeMode, type AppThemePalette } from "@/lib/app/appTheme";
+import { APP_ACCENT_COLORS, APP_CUSTOM_UI_COLOR_DEFS, APP_THEME_PALETTES, type AppCornerStyle, type AppCustomUiColors, type AppThemeAppearance, type AppThemeMode, type AppThemePalette } from "@/lib/app/appTheme";
 import { BACKGROUND_IMAGE_DISPLAY_MODES, BACKGROUND_IMAGE_STORAGE_LIMIT_BYTES, defaultBackgroundImageSettings, normalizeBackgroundImageDisplayMode, type BackgroundImageSettings } from "@/lib/app/appBackgroundImage";
 import {
   editorSettingsDraftChanged,
@@ -255,7 +255,7 @@ const connectionStore = useConnectionStore();
 const savedSqlStore = useSavedSqlStore();
 const promptTemplateStore = usePromptTemplateStore();
 const tunnelProfileStore = useTunnelProfileStore();
-const { isDark, themeMode, themePalette, activeCustomUiColors, cornerStyle, setThemeMode, setThemePalette, previewThemePalette, clearThemePalettePreview, setCustomUiColors, resetCustomUiColors, setCornerStyle } = useTheme();
+const { isDark, themeMode, themePalette, accentColor, activeCustomUiColors, cornerStyle, setThemeMode, setThemePalette, previewThemePalette, clearThemePalettePreview, setAccentColor, setCustomUiColors, resetCustomUiColors, setCornerStyle } = useTheme();
 const { previewUiFontFamily, clearUiFontFamilyPreview } = useUiFontFamilyPreview();
 
 function updateCustomUiColor(key: keyof AppCustomUiColors, value: string) {
@@ -319,21 +319,24 @@ const appThemeModeOptions = computed(() => [
 ]);
 const appCornerStyleOptions = computed(() => [
   {
-    value: "none" as AppCornerStyle,
-    label: t("settings.cornerStyleNone"),
-    previewRadius: "0px",
+    value: "standard" as AppCornerStyle,
+    label: t("settings.cornerStyleStandard"),
+    previewRadius: "8px",
   },
   {
-    value: "small" as AppCornerStyle,
-    label: t("settings.cornerStyleSmall"),
+    value: "compact" as AppCornerStyle,
+    label: t("settings.cornerStyleCompact"),
     previewRadius: "4px",
   },
-  {
-    value: "large" as AppCornerStyle,
-    label: t("settings.cornerStyleLarge"),
-    previewRadius: "10px",
-  },
 ]);
+
+const appAccentColorOptions = computed(() =>
+  APP_ACCENT_COLORS.map((accent) => ({
+    value: accent.value,
+    label: t(accent.labelKey),
+    previewColor: accent.previewColor,
+  })),
+);
 
 const props = defineProps<{
   open?: boolean;
@@ -4901,7 +4904,7 @@ watch(
     const currentPreviewStatementFrameComp = currentStatementFrameComp;
     const currentEditorViewModule = editorViewModule;
 
-    const themeExt = await loadEditorTheme(ss.theme, ss.appAppearance, ss.customColors, ss.appPalette);
+    const themeExt = await loadEditorTheme(ss.theme, ss.appAppearance, ss.customColors);
     if (
       previewView.value !== currentPreviewView ||
       fontThemeComp !== currentFontThemeComp ||
@@ -5008,7 +5011,7 @@ watch(previewRef, async (el) => {
   previewSqlDiagnostics = previewDiagnosticsForSql(currentPreviewSql());
 
   const ss = previewSettings.value;
-  const themeExt = await loadEditorTheme(ss.theme, ss.appAppearance, ss.customColors, ss.appPalette);
+  const themeExt = await loadEditorTheme(ss.theme, ss.appAppearance, ss.customColors);
   if (!previewInitialized || previewRef.value !== previewHost) return;
   const previewBasicSetup = (basicSetup as readonly import("@codemirror/state").Extension[]).slice(2);
   const diagnosticTheme = EditorView.baseTheme({
@@ -5850,6 +5853,26 @@ onUnmounted(() => {
                     <Button v-if="themePalette === 'custom'" type="button" variant="outline" size="sm" class="h-8 shrink-0" @click="resetCustomUiColors">
                       {{ t("settings.customUiReset") }}
                     </Button>
+                  </div>
+                </div>
+
+                <div class="settings-appearance-field min-w-0">
+                  <div class="flex h-9 items-end">
+                    <Label class="whitespace-normal leading-tight">{{ t("settings.accentColor") }}</Label>
+                  </div>
+                  <div class="flex h-8 items-center gap-2">
+                    <button
+                      v-for="option in appAccentColorOptions"
+                      :key="option.value"
+                      type="button"
+                      class="dbx-accent-swatch"
+                      :class="{ 'dbx-accent-swatch--active': accentColor === option.value }"
+                      :style="{ '--dbx-swatch-color': option.previewColor }"
+                      :title="option.label"
+                      :aria-label="option.label"
+                      :aria-pressed="accentColor === option.value"
+                      @click="setAccentColor(option.value)"
+                    />
                   </div>
                 </div>
 

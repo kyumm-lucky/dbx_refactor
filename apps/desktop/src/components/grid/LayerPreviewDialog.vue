@@ -810,7 +810,7 @@ onBeforeUnmount(() => cleanupMap());
   font-size: 10px;
   line-height: 1.3;
   padding: 1px 5px;
-  border-radius: 3px;
+  border-radius: var(--dbx-radius-2xs);
   white-space: nowrap;
   pointer-events: none;
 }

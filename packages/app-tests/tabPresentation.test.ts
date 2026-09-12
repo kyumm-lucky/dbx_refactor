@@ -81,8 +81,8 @@ test("query tab display title uses custom title when present", () => {
   const t = (key: string) => key;
 
   try {
-    assert.equal(tabDisplayTitle(queryTab(), t), "Prod@app");
-    assert.equal(tabDisplayTitle(queryTab({ title: "Revenue checks", customTitle: true }), t), "Revenue checks");
+    assert.equal(tabDisplayTitle(queryTab(), t, []), "Prod@app");
+    assert.equal(tabDisplayTitle(queryTab({ title: "Revenue checks", customTitle: true }), t, []), "Revenue checks");
   } finally {
     restoreStorage();
   }
@@ -114,9 +114,9 @@ test("restored MQTT tab titles ignore legacy persisted text and follow the curre
   try {
     assert.ok(tab);
     await setLocale("en");
-    assert.equal(tabDisplayTitle(tab, translate), "test-mqtt - MQTT Console");
+    assert.equal(tabDisplayTitle(tab, translate, [tab]), "test-mqtt - MQTT Console");
     await setLocale("zh-CN");
-    assert.equal(tabDisplayTitle(tab, translate), "test-mqtt - MQTT 控制台");
+    assert.equal(tabDisplayTitle(tab, translate, [tab]), "test-mqtt - MQTT 控制台");
   } finally {
     await setLocale("en");
     restoreStorage();
@@ -148,6 +148,7 @@ test("jdbc tabs use the connection target when database is empty", () => {
           },
         }),
         t,
+        [],
       ),
       "DBX_JDBC_TEST@XE.SYSTEM",
     );
@@ -169,7 +170,7 @@ test("zookeeper tabs use key browser labels", () => {
 
   try {
     const tab = queryTab({ mode: "zookeeper", database: "", title: "ZooKeeper Keys" });
-    assert.equal(tabDisplayTitle(tab, t), "ZK Prod@keys");
+    assert.equal(tabDisplayTitle(tab, t, [tab]), "ZK Prod@keys");
     assert.equal(tabModeLabel(tab, t), "ZooKeeper");
   } finally {
     restoreStorage();
@@ -189,7 +190,7 @@ test("HBase tabs identify the table and namespace", () => {
 
   try {
     const tab = queryTab({ mode: "hbase", database: "analytics", title: "events", sql: "events" });
-    assert.equal(tabDisplayTitle(tab, t), "events@analytics");
+    assert.equal(tabDisplayTitle(tab, t, [tab]), "events@analytics");
     assert.equal(tabModeLabel(tab, t), "HBase");
   } finally {
     restoreStorage();
@@ -226,8 +227,8 @@ test("GridFS tabs use dedicated titles and labels", () => {
       mongoBucket: { bucketName: "NMDocumentData_acc001" },
     });
 
-    assert.equal(tabDisplayTitle(managerTab, t), "GridFS@amazon");
-    assert.equal(tabDisplayTitle(bucketTab, t), "NMDocumentData_acc001@amazon");
+    assert.equal(tabDisplayTitle(managerTab, t, [managerTab]), "GridFS@amazon");
+    assert.equal(tabDisplayTitle(bucketTab, t, [bucketTab]), "NMDocumentData_acc001@amazon");
     assert.equal(tabModeLabel(managerTab, t), "GridFS");
     assert.equal(tabModeLabel(bucketTab, t), "GridFS");
   } finally {

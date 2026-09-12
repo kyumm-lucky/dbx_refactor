@@ -597,7 +597,7 @@ async function mountConfigEditor() {
   ]);
   const editorSettings = settingsStore.editorSettings;
   configEditorFontSize.value = clampEditorFontSize(editorSettings.fontSize);
-  const theme = await loadEditorTheme(editorSettings.theme, editorThemeAppearance(), currentCustomThemeColors(), themePalette.value);
+  const theme = await loadEditorTheme(editorSettings.theme, editorThemeAppearance(), currentCustomThemeColors());
   if (generation !== configEditorGeneration || editorSessionId !== configEditorSessionId || host !== configEditorHost.value || configEditorView.value || !selectedConfig.value) return;
   const state = EditorState.create({
     doc: content,
@@ -2589,7 +2589,7 @@ watch(
   async ([settings]) => {
     const view = configEditorView.value;
     if (!view) return;
-    const [{ EditorView }, theme] = await Promise.all([import("@codemirror/view"), loadEditorTheme(settings.theme, editorThemeAppearance(), currentCustomThemeColors(), themePalette.value)]);
+    const [{ EditorView }, theme] = await Promise.all([import("@codemirror/view"), loadEditorTheme(settings.theme, editorThemeAppearance(), currentCustomThemeColors())]);
     if (configEditorView.value !== view) return;
     configEditorFontSize.value = clampEditorFontSize(settings.fontSize);
     view.dispatch({
@@ -3725,7 +3725,7 @@ useUpdateBlocker(() =>
 }
 
 .nacos-config-editor :deep(.cm-nacos-config-validation-error) {
-  border-radius: 2px;
+  border-radius: var(--dbx-radius-2xs);
   background: rgba(220, 38, 38, 0.16);
   color: var(--destructive);
   font-weight: 700;

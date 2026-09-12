@@ -73,15 +73,17 @@ describe("dataGridNavigation", () => {
   });
 
   describe.each([
-    ["DOM", 26],
+    ["DOM", 28],
     ["Canvas", CANVAS_DATA_GRID_ROW_HEIGHT],
   ])("%s PageUp/PageDown scrolling", (_renderMode, rowHeight) => {
     const maximumScrollTop = 100 * rowHeight - 260;
 
     it("keeps the focused row at the same viewport-relative position", () => {
-      expect(dataGridPageScrollTop({ previousRowIndex: 5, rowIndex: 15, rowHeight, currentScrollTop: 0, maximumScrollTop })).toBe(260);
+      // A ten-row page step moves the viewport by ten row heights, so the
+      // expected offsets scale with `rowHeight` rather than being fixed.
+      expect(dataGridPageScrollTop({ previousRowIndex: 5, rowIndex: 15, rowHeight, currentScrollTop: 0, maximumScrollTop })).toBe(10 * rowHeight);
       expect(dataGridPageScrollTop({ previousRowIndex: 15, rowIndex: 5, rowHeight, currentScrollTop: 260, maximumScrollTop })).toBe(0);
-      expect(dataGridPageScrollTop({ previousRowIndex: 10, rowIndex: 20, rowHeight, currentScrollTop: 117, maximumScrollTop })).toBe(377);
+      expect(dataGridPageScrollTop({ previousRowIndex: 10, rowIndex: 20, rowHeight, currentScrollTop: 117, maximumScrollTop })).toBe(117 + 10 * rowHeight);
     });
 
     it("clamps scrolling at the upper and lower boundaries", () => {

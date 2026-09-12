@@ -753,7 +753,7 @@ function blurValueRule(id: string) {
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--dbx-radius-2xs);
   background: var(--background);
   color: var(--muted-foreground);
   font-size: 12px;

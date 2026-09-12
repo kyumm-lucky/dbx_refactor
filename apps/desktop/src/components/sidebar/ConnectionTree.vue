@@ -2532,7 +2532,7 @@ defineExpose({ focusSearch, createNewGroup, collapseAllTreeNodes, locateTabInSid
             autocapitalize="off"
             autocorrect="off"
             spellcheck="false"
-            class="w-full h-6 pl-7 pr-[4.75rem] text-xs rounded border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+            class="w-full h-[26px] pl-7 pr-[4.75rem] text-xs rounded-[7px] border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
             :class="regexMode && compileSearchRegex(searchQuery).invalid ? 'border-destructive focus:ring-destructive' : 'border-border'"
             :aria-invalid="regexMode && compileSearchRegex(searchQuery).invalid ? 'true' : 'false'"
             :placeholder="t('grid.search')"
@@ -2880,12 +2880,13 @@ defineExpose({ focusSearch, createNewGroup, collapseAllTreeNodes, locateTabInSid
 .connection-tree-scroller :deep(.vue-recycle-scroller__item-view) {
   min-width: 100%;
   contain: style;
-  /* The virtual renderer positions rows at fixed item-size offsets (28px, see
-     SIDEBAR_TREE_ROW_HEIGHT). TreeItem rows only guarantee min-h-7, so rename
-     inputs or larger sidebar fonts could grow a row beyond 28px and overlap
-     the next row. Pin every materialized row to the fixed height and clip any
-     overflow instead of letting the layout drift. */
-  height: 28px;
+  /* The virtual renderer positions rows at fixed item-size offsets
+     (SIDEBAR_TREE_ROW_HEIGHT). TreeItem rows only guarantee a minimum height,
+     so rename inputs or larger sidebar fonts could grow a row beyond the
+     offset and overlap the next row. Pin every materialized row to the same
+     token the virtualizer uses and clip any overflow instead of letting the
+     layout drift. */
+  height: var(--dbx-row-tree);
   overflow: hidden;
 }
 

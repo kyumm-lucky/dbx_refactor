@@ -275,7 +275,7 @@ defineExpose({ expandAll, collapseAll, resetExpansion, refresh });
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  border-radius: 3px;
+  border-radius: var(--dbx-radius-2xs);
   color: var(--muted-foreground);
 }
 

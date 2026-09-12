@@ -525,9 +525,9 @@ function isRightItemVisible(key: string) {
   return !overflowedRightKeys.value.has(key);
 }
 
-const toolbarTextButtonClass = "h-8 px-2 text-xs gap-1 leading-none";
+const toolbarTextButtonClass = "px-2 text-xs gap-1 leading-none";
 const toolbarTextLabelClass = "inline-flex translate-y-px items-center leading-none";
-const toolbarDropdownTriggerClass = `inline-flex h-8 items-center gap-1 rounded-[6px] px-2 text-xs font-medium leading-none hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 transition-colors [&>span:first-child]:translate-y-px`;
+const toolbarDropdownTriggerClass = `inline-flex h-7 items-center gap-1 rounded-[6px] px-2 text-xs font-medium leading-none hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 transition-colors [&>span:first-child]:translate-y-px`;
 const toolbarStyle = computed(() => {
   if (!shouldReserveTrafficLightInset.value) return undefined;
   return {
@@ -537,10 +537,10 @@ const toolbarStyle = computed(() => {
 </script>
 
 <template>
-  <div ref="toolbarEl" class="app-toolbar h-10 flex items-center gap-1 px-2 border-b bg-muted/30 shrink-0 overflow-hidden" :style="toolbarStyle" data-tauri-drag-region @dblclick="onToolbarDblClick">
+  <div ref="toolbarEl" class="app-toolbar flex items-center gap-1 px-2 border-b shrink-0 overflow-hidden" :style="toolbarStyle" data-tauri-drag-region @dblclick="onToolbarDblClick">
     <Tooltip v-if="showSidebarExpand">
       <TooltipTrigger as-child>
-        <Button variant="ghost" size="icon" class="toolbar-action-button h-8 w-8 shrink-0" :aria-label="t('sidebar.expand')" @click="emit('expand-sidebar')">
+        <Button variant="ghost" size="icon" class="toolbar-action-button" :aria-label="t('sidebar.expand')" @click="emit('expand-sidebar')">
           <ChevronsRight class="h-4 w-4" />
         </Button>
       </TooltipTrigger>
@@ -604,7 +604,7 @@ const toolbarStyle = computed(() => {
       <template v-if="toolbarItems.checkUpdates">
         <Tooltip>
           <TooltipTrigger as-child>
-            <Button v-show="isRightItemVisible('checkUpdates')" data-toolbar-update-trigger variant="ghost" size="icon" class="toolbar-action-button relative h-8 w-8 shrink-0" @click="emit('check-updates')">
+            <Button v-show="isRightItemVisible('checkUpdates')" data-toolbar-update-trigger variant="ghost" size="icon" class="toolbar-action-button relative shrink-0" @click="emit('check-updates')">
               <ToolbarUpdateIcon />
               <span v-if="hasUpdateAvailable" class="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background" />
             </Button>
@@ -624,7 +624,7 @@ const toolbarStyle = computed(() => {
             data-sql-library-trigger
             variant="ghost"
             size="icon"
-            class="toolbar-action-button relative h-8 w-8 shrink-0"
+            class="toolbar-action-button relative shrink-0"
             :class="{ 'toolbar-action-button--active bg-accent': showSqlLibrary, 'sql-library-save-feedback': sqlLibrarySaveFeedbackActive }"
             @click="emit('toggle-sql-library')"
           >
@@ -656,7 +656,7 @@ const toolbarStyle = computed(() => {
 
       <Tooltip v-if="toolbarItems.sqlFileTree">
         <TooltipTrigger as-child>
-          <Button v-show="isRightItemVisible('sqlFileTree')" variant="ghost" size="icon" class="toolbar-action-button relative h-8 w-8 shrink-0" :class="{ 'toolbar-action-button--active bg-accent': showSqlFilePanel }" @click="emit('toggle-sql-file-panel')">
+          <Button v-show="isRightItemVisible('sqlFileTree')" variant="ghost" size="icon" class="toolbar-action-button relative shrink-0" :class="{ 'toolbar-action-button--active bg-accent': showSqlFilePanel }" @click="emit('toggle-sql-file-panel')">
             <FolderTree class="toolbar-action-icon h-4 w-4" :class="{ 'toolbar-action-icon--active': showSqlFilePanel }" />
             <span v-if="showSqlFilePanel" class="toolbar-panel-status" aria-hidden="true" />
           </Button>
@@ -666,7 +666,7 @@ const toolbarStyle = computed(() => {
 
       <Tooltip v-if="toolbarItems.history">
         <TooltipTrigger as-child>
-          <Button v-show="isRightItemVisible('history')" variant="ghost" size="icon" class="toolbar-action-button relative h-8 w-8 shrink-0" :class="{ 'toolbar-action-button--active bg-accent': showHistory }" @click="emit('toggle-history')">
+          <Button v-show="isRightItemVisible('history')" variant="ghost" size="icon" class="toolbar-action-button relative shrink-0" :class="{ 'toolbar-action-button--active bg-accent': showHistory }" @click="emit('toggle-history')">
             <History class="toolbar-action-icon h-4 w-4" :class="{ 'toolbar-action-icon--active': showHistory }" />
             <span v-if="showHistory" class="toolbar-panel-status" aria-hidden="true" />
           </Button>
@@ -676,7 +676,7 @@ const toolbarStyle = computed(() => {
 
       <Tooltip v-if="toolbarItems.ai">
         <TooltipTrigger as-child>
-          <Button v-show="isRightItemVisible('ai')" variant="ghost" size="icon" class="toolbar-action-button relative h-8 w-8 shrink-0" :class="{ 'toolbar-action-button--active bg-accent': showAiPanel }" @click="emit('toggle-ai')">
+          <Button v-show="isRightItemVisible('ai')" variant="ghost" size="icon" class="toolbar-action-button relative shrink-0" :class="{ 'toolbar-action-button--active bg-accent': showAiPanel }" @click="emit('toggle-ai')">
             <Bot class="toolbar-action-icon h-4 w-4" :class="{ 'toolbar-action-icon--active': showAiPanel }" />
             <span
               v-if="awaitingAiRunCount > 0"
@@ -697,7 +697,7 @@ const toolbarStyle = computed(() => {
 
       <Tooltip v-if="toolbarItems.theme">
         <TooltipTrigger as-child>
-          <Button v-show="isRightItemVisible('theme')" variant="ghost" size="icon" class="toolbar-action-button h-8 w-8 shrink-0" :aria-label="t('toolbar.theme')" @click="cycleThemeMode">
+          <Button v-show="isRightItemVisible('theme')" variant="ghost" size="icon" class="toolbar-action-button" :aria-label="t('toolbar.theme')" @click="cycleThemeMode">
             <component :is="themeTriggerIcon" :key="themeMode" class="toolbar-action-icon toolbar-theme-icon h-4 w-4" />
           </Button>
         </TooltipTrigger>
@@ -706,7 +706,7 @@ const toolbarStyle = computed(() => {
 
       <Tooltip v-if="toolbarItems.github">
         <TooltipTrigger as-child>
-          <Button v-show="isRightItemVisible('github')" variant="ghost" size="icon" class="toolbar-action-button h-8 w-8 shrink-0" @click="emit('open-github')">
+          <Button v-show="isRightItemVisible('github')" variant="ghost" size="icon" class="toolbar-action-button" @click="emit('open-github')">
             <svg class="toolbar-action-icon h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
               <path
                 d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12 24 5.37 18.627 0 12 0z"
@@ -721,7 +721,7 @@ const toolbarStyle = computed(() => {
 
     <Tooltip>
       <TooltipTrigger as-child>
-        <Button variant="ghost" size="icon" class="toolbar-action-button relative h-8 w-8 shrink-0" :class="{ 'toolbar-action-button--active bg-accent': showSettingsPage }" @click="emit('open-settings')">
+        <Button variant="ghost" size="icon" class="toolbar-action-button relative shrink-0" :class="{ 'toolbar-action-button--active bg-accent': showSettingsPage }" @click="emit('open-settings')">
           <Settings class="toolbar-action-icon h-4 w-4" :class="{ 'toolbar-action-icon--active': showSettingsPage }" />
           <span v-if="showSettingsPage" class="toolbar-panel-status" aria-hidden="true" />
           <span v-if="hasMcpUpdateAvailable" class="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background" :aria-label="t('toolbar.mcpUpdateAvailable')" :title="t('toolbar.mcpUpdateAvailable')" />

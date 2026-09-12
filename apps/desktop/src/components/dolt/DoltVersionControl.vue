@@ -1920,7 +1920,7 @@ onUnmounted(() => {
 .dolt-working-badge {
   flex-shrink: 0;
   border: 1px solid;
-  border-radius: 3px;
+  border-radius: var(--dbx-radius-2xs);
   padding: 0 4px;
   font-size: 10px;
   font-weight: 500;
@@ -1947,7 +1947,7 @@ onUnmounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: var(--dbx-radius-2xs);
   padding: 1px 5px;
   font-size: 10px;
   line-height: 15px;
@@ -1979,7 +1979,7 @@ onUnmounted(() => {
 .dolt-change-flag {
   min-width: 14px;
   border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
-  border-radius: 3px;
+  border-radius: var(--dbx-radius-2xs);
   padding: 0 3px;
   text-align: center;
 }

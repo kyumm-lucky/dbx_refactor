@@ -9,7 +9,9 @@ import type { RowStatus } from "@/lib/dataGrid/gridRowStatus";
 import { DATA_GRID_DARK_SEARCH_COLORS, dataGridTypeForeground, resolveDataGridPaintTheme, type DataGridPaintTheme } from "@/lib/dataGrid/dataGridPaintTheme";
 import type { CrosshairTarget } from "@/lib/dataGrid/crosshairHighlight";
 
-export const CANVAS_DATA_GRID_ROW_HEIGHT = 26;
+// Grid rows sit one step below the sidebar's 32px so a dense result set stays
+// scannable while still clearing the 28px control height.
+export const CANVAS_DATA_GRID_ROW_HEIGHT = 28;
 export const MAX_CANVAS_DATA_GRID_PIXEL_RATIO = 4;
 
 export interface CanvasDevicePixelSize {

@@ -2,14 +2,16 @@ import type { Theme } from "@tauri-apps/api/window";
 
 export const APP_THEME_STORAGE_KEY = "dbx-theme";
 export const APP_THEME_PALETTE_STORAGE_KEY = "dbx-theme-palette";
+export const APP_ACCENT_STORAGE_KEY = "dbx-accent";
 export const APP_CUSTOM_UI_STORAGE_KEY = "dbx-theme-custom-ui";
 export const APP_CUSTOM_UI_DARK_STORAGE_KEY = "dbx-theme-custom-ui-dark";
 export const APP_CORNER_STYLE_STORAGE_KEY = "dbx-corner-style";
 
 export type AppThemeMode = "light" | "dark" | "system";
 export type AppThemeAppearance = "light" | "dark";
-export type AppThemePalette = "pearl" | "mist" | "graphite" | "cobalt" | "sage" | "amber" | "blush" | "vscode" | "idea" | "xcode" | "jetbrains" | "cursor" | "claude" | "custom";
-export type AppCornerStyle = "none" | "small" | "large";
+export type AppThemePalette = "system" | "graphite" | "cobalt" | "amber" | "custom";
+export type AppAccentColor = "system" | "blue" | "purple" | "pink" | "orange" | "green" | "red";
+export type AppCornerStyle = "standard" | "compact";
 
 export interface AppCustomUiColors {
   background: string;
@@ -158,21 +160,42 @@ export type AppThemePaletteOption = {
   previewColor: string;
 };
 
+/*
+ * Five palettes: the default system surfaces, three alternates, and custom.
+ * The picker used to offer fourteen, of which nine differed only in a few grey
+ * steps or imitated an editor theme — noise that made the choice feel
+ * arbitrary. Palette now carries surfaces only; the accent is a separate
+ * setting, so switching palette no longer silently rewrites the accent colour.
+ */
 export const APP_THEME_PALETTES: AppThemePaletteOption[] = [
-  { value: "pearl", labelKey: "settings.themePalettePearl", className: null, previewColor: "#ffffff" },
-  { value: "mist", labelKey: "settings.themePaletteMist", className: "theme-soft", previewColor: "#e4eaf2" },
-  { value: "graphite", labelKey: "settings.themePaletteGraphite", className: "theme-graphite", previewColor: "#d8dce4" },
-  { value: "cobalt", labelKey: "settings.themePaletteCobalt", className: "theme-cobalt", previewColor: "#d8e6f7" },
-  { value: "sage", labelKey: "settings.themePaletteSage", className: "theme-sage", previewColor: "#dbe9e2" },
-  { value: "amber", labelKey: "settings.themePaletteAmber", className: "theme-amber", previewColor: "#f4e4b8" },
-  { value: "blush", labelKey: "settings.themePaletteBlush", className: "theme-blush", previewColor: "#f4d9e6" },
-  { value: "vscode", labelKey: "settings.themePaletteVscode", className: "theme-vscode", previewColor: "#007acc" },
-  { value: "idea", labelKey: "settings.themePaletteIdea", className: "theme-idea", previewColor: "#4b6eaf" },
-  { value: "xcode", labelKey: "settings.themePaletteXcode", className: "theme-xcode", previewColor: "#0a84ff" },
-  { value: "jetbrains", labelKey: "settings.themePaletteJetbrains", className: "theme-jetbrains", previewColor: "#7b61ff" },
-  { value: "cursor", labelKey: "settings.themePaletteCursor", className: "theme-cursor", previewColor: "#6ba4ff" },
-  { value: "claude", labelKey: "settings.themePaletteClaude", className: "theme-claude", previewColor: "#c47a50" },
-  { value: "custom", labelKey: "settings.themePaletteCustom", className: null, previewColor: "#171717" },
+  { value: "system", labelKey: "settings.themePaletteSystem", className: null, previewColor: "#ffffff" },
+  { value: "graphite", labelKey: "settings.themePaletteGraphite", className: "theme-graphite", previewColor: "#f0f0f2" },
+  { value: "cobalt", labelKey: "settings.themePaletteCobalt", className: "theme-cobalt", previewColor: "#eef4fc" },
+  { value: "amber", labelKey: "settings.themePaletteAmber", className: "theme-amber", previewColor: "#faf5eb" },
+  { value: "custom", labelKey: "settings.themePaletteCustom", className: null, previewColor: "#0071e3" },
+];
+
+export type AppAccentColorOption = {
+  value: AppAccentColor;
+  labelKey: string;
+  /** null means "no data-accent attribute" — the token default in tokens.css. */
+  className: string | null;
+  /** Light-mode swatch. Dark mode brightens to the same hue's macOS value. */
+  previewColor: string;
+};
+
+/*
+ * Mirrors macOS System Settings › Appearance › Accent colour. `system` is the
+ * token default (system blue) and carries no attribute.
+ */
+export const APP_ACCENT_COLORS: AppAccentColorOption[] = [
+  { value: "system", labelKey: "settings.accentSystem", className: null, previewColor: "#0071e3" },
+  { value: "blue", labelKey: "settings.accentBlue", className: "blue", previewColor: "#0071e3" },
+  { value: "purple", labelKey: "settings.accentPurple", className: "purple", previewColor: "#7847d6" },
+  { value: "pink", labelKey: "settings.accentPink", className: "pink", previewColor: "#ff2d55" },
+  { value: "orange", labelKey: "settings.accentOrange", className: "orange", previewColor: "#e08b00" },
+  { value: "green", labelKey: "settings.accentGreen", className: "green", previewColor: "#30a14e" },
+  { value: "red", labelKey: "settings.accentRed", className: "red", previewColor: "#e30000" },
 ];
 
 export const APP_THEME_PALETTE_CLASS_NAMES = APP_THEME_PALETTES.map((palette) => palette.className).filter((className): className is string => Boolean(className));
@@ -185,25 +208,38 @@ export function normalizeAppThemeMode(value: string | null): AppThemeMode {
   return "light";
 }
 
+/*
+ * Retired palette names. The mapping is explicit rather than a blanket
+ * "unknown → system" so that a user who had picked, say, `vscode` lands on the
+ * neutral surfaces they were actually after, while the warm and blue sets keep
+ * their hue.
+ */
+const LEGACY_PALETTE_MAP: Record<string, AppThemePalette> = {
+  system: "system",
+  pearl: "system",
+  mist: "graphite",
+  graphite: "graphite",
+  sage: "graphite",
+  vscode: "system",
+  idea: "cobalt",
+  xcode: "cobalt",
+  jetbrains: "cobalt",
+  cursor: "cobalt",
+  cobalt: "cobalt",
+  amber: "amber",
+  blush: "amber",
+  claude: "amber",
+  custom: "custom",
+};
+
 export function normalizeAppThemePalette(value: string | null): AppThemePalette {
-  if (
-    value === "mist" ||
-    value === "graphite" ||
-    value === "cobalt" ||
-    value === "sage" ||
-    value === "amber" ||
-    value === "blush" ||
-    value === "vscode" ||
-    value === "idea" ||
-    value === "xcode" ||
-    value === "jetbrains" ||
-    value === "cursor" ||
-    value === "claude" ||
-    value === "custom" ||
-    value === "pearl"
-  )
-    return value;
-  return "pearl";
+  if (value === null) return "system";
+  return LEGACY_PALETTE_MAP[value] ?? "system";
+}
+
+export function normalizeAppAccentColor(value: string | null): AppAccentColor {
+  if (value === "blue" || value === "purple" || value === "pink" || value === "orange" || value === "green" || value === "red" || value === "system") return value;
+  return "system";
 }
 
 export function normalizeAppCustomUiColors(value: unknown): AppCustomUiColors {
@@ -259,9 +295,16 @@ export function customUiAppearance(colors: AppCustomUiColors): AppThemeAppearanc
   return hexRelativeLuminance(colors.background) < 0.2 ? "dark" : "light";
 }
 
+/*
+ * Corner style is a two-way choice now: `standard` is the token default and
+ * needs no attribute, `compact` tightens every radius one step. The old
+ * none/small/large triple is collapsed because `none` (0px on everything)
+ * fought the control sizing and read as a bug, and `small`/`large` differed by
+ * a single pixel. Legacy values all resolve to `standard`.
+ */
 export function normalizeAppCornerStyle(value: string | null): AppCornerStyle {
-  if (value === "none" || value === "small") return value;
-  return "large";
+  if (value === "compact") return "compact";
+  return "standard";
 }
 
 export function getAppThemePaletteClass(palette: AppThemePalette): string | null {

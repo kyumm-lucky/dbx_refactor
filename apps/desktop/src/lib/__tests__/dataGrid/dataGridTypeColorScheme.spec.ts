@@ -17,16 +17,38 @@ import {
 } from "@/lib/dataGrid/dataGridTypeColorScheme";
 
 const globalStylesSource = readFileSync(new URL("../../../styles/globals.css", import.meta.url), "utf8");
+const tokenStylesSource = readFileSync(new URL("../../../styles/tokens.css", import.meta.url), "utf8");
 
-function cssBlockVariables(selector: string): Record<string, string> {
-  const start = globalStylesSource.indexOf(`${selector} {`);
-  expect(start).toBeGreaterThanOrEqual(0);
-  const block = globalStylesSource.slice(start, globalStylesSource.indexOf("}", start));
+function cssBlockVariables(selector: string, source = globalStylesSource, prefix = "--data-grid-type-"): Record<string, string> {
+  const start = source.indexOf(`${selector} {`);
+  expect(start, `${selector} block is missing`).toBeGreaterThanOrEqual(0);
+  const block = source.slice(start, source.indexOf("}", start));
   const found: Record<string, string> = {};
-  for (const [, name, value] of block.matchAll(/(--data-grid-type-[\w-]+):\s*([^;]+);/g)) {
+  for (const [, name, value] of block.matchAll(new RegExp(`(${prefix}[\\w-]+):\\s*([^;]+);`, "g"))) {
     found[name] = value.trim();
   }
   return found;
+}
+
+/*
+ * The nine type keys share four colours, declared once as `--cell-*` tokens in
+ * tokens.css and referenced from globals.css. Resolve that one level of
+ * indirection so this stays a real drift check on the shipped hex values
+ * rather than a check that a `var()` is spelled correctly.
+ */
+function resolveCellToken(value: string, selector: string): string {
+  const match = /^var\((--[\w-]+)\)$/.exec(value);
+  if (!match) return toHex(value);
+  const resolved = cssBlockVariables(selector, tokenStylesSource, "--cell-")[match[1]];
+  expect(resolved, `${match[1]} is missing from tokens.css`).toBeTruthy();
+  return toHex(resolved);
+}
+
+/** Tokens.css declares space-separated rgb(); the TS defaults are hex. */
+function toHex(value: string): string {
+  const match = /^rgb\((\d+)\s+(\d+)\s+(\d+)\)$/.exec(value.trim());
+  if (!match) return value.trim();
+  return `#${[match[1], match[2], match[3]].map((channel) => Number(channel).toString(16).padStart(2, "0")).join("")}`;
 }
 
 function scheme(id: string, overrides: Partial<Record<string, string>> = {}): DataGridTypeColorScheme {
@@ -40,13 +62,15 @@ describe("data grid type color keys", () => {
   });
 
   it("keeps the built-in palettes in sync with globals.css", () => {
-    // The stylesheet cannot import the TS defaults, so drift has to be caught here.
-    const light = cssBlockVariables(":root");
-    const dark = cssBlockVariables(":root.dark");
+    // The stylesheet cannot import the TS defaults, so drift has to be caught
+    // here. The type keys resolve through the shared `--cell-*` tokens, which
+    // is where light and dark actually diverge.
+    const typeVars = cssBlockVariables(":root");
 
     for (const key of DATA_GRID_TYPE_COLOR_KEYS) {
-      expect(light[dataGridTypeColorCssVar(key)]).toBe(DEFAULT_DATA_GRID_TYPE_COLORS_LIGHT[key]);
-      expect(dark[dataGridTypeColorCssVar(key)]).toBe(DEFAULT_DATA_GRID_TYPE_COLORS_DARK[key]);
+      const declaration = typeVars[dataGridTypeColorCssVar(key)];
+      expect(resolveCellToken(declaration, ":root")).toBe(DEFAULT_DATA_GRID_TYPE_COLORS_LIGHT[key]);
+      expect(resolveCellToken(declaration, ".dark")).toBe(DEFAULT_DATA_GRID_TYPE_COLORS_DARK[key]);
     }
   });
 

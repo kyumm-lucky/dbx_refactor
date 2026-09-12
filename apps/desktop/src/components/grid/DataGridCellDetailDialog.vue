@@ -18,7 +18,7 @@ import type { DatabaseType } from "@/types/database";
 
 const { t } = useI18n();
 const settingsStore = useSettingsStore();
-const { isDark, themePalette } = useTheme();
+const { isDark } = useTheme();
 
 const props = defineProps<{
   detail: DataGridCellDetail | null;
@@ -94,7 +94,6 @@ watch(jsonPreviewContainer, async (element) => {
       readOnly: true,
       editorTheme: () => settingsStore.editorSettings.theme,
       appAppearance: () => (isDark.value ? "dark" : "light"),
-      appPalette: () => themePalette.value,
       fontSize: () => settingsStore.editorSettings.fontSize,
       fontFamily: () => settingsStore.editorSettings.tableFontFamily,
     });

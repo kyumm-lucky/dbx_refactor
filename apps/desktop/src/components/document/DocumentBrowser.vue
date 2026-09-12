@@ -2991,7 +2991,7 @@ defineExpose({ focusSearch });
 }
 
 :deep(.document-search-match) {
-  border-radius: 2px;
+  border-radius: var(--dbx-radius-2xs);
   background: #fde68a;
   color: inherit;
   padding: 0;

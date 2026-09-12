@@ -492,8 +492,10 @@ describe("DataGridColumnHeader", () => {
     expect(String(tooltipType.props.class ?? "")).toContain("data-grid-type-string");
     const headerTypeLine = findOne(mounted.root, (node) => hostText(node) === "varchar(255)" && node.props["data-grid-header-type-line"] === "");
     expect(String(headerTypeLine.props.class)).toContain("data-grid-type-string");
-    // Softer dark-mode palette override for the tooltip container.
-    expect(globalsCss).toMatch(/\.dark \.dbx-column-info-tooltip \{[^}]*--data-grid-type-string-fg: #4ade80/);
+    // The tooltip shares the grid's four-group palette instead of re-deriving
+    // a softer nine-hue set: the quieter palette made the override redundant.
+    expect(globalsCss).not.toMatch(/\.dark \.dbx-column-info-tooltip \{/);
+    expect(globalsCss).toMatch(/--data-grid-type-string-fg: var\(--cell-string\)/);
   });
 
   it("cancels resize-handle clicks without leaking header click events", () => {

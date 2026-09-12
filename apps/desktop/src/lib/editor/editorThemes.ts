@@ -663,32 +663,18 @@ export function cellDetailActiveLineColor(): string {
   return colorMixValue("var(--accent)", "color-mix(in oklch, var(--foreground) 4%, transparent)");
 }
 
-/** Resolve the concrete CodeMirror theme used by the "Follow app theme" setting. */
-export function resolveEditorTheme(theme: EditorTheme, appAppearance: AppThemeAppearance, appPalette: AppThemePalette = "pearl"): Exclude<EditorTheme, "app"> {
-  if (theme === "app") {
-    switch (appPalette) {
-      case "vscode":
-        return appAppearance === "dark" ? "vscode-dark" : "vscode-light";
-      case "idea":
-        return appAppearance === "dark" ? "idea-dark" : "idea-light";
-      case "xcode":
-        return appAppearance === "dark" ? "xcode-dark" : "xcode";
-      case "jetbrains":
-        return appAppearance === "dark" ? "jetbrains-dark" : "jetbrains-light";
-      case "cursor":
-        return appAppearance === "dark" ? "cursor-dark" : "cursor-light";
-      case "claude":
-        return appAppearance === "dark" ? "claude-dark" : "claude-light";
-      case "custom":
-        // The custom UI palette routes the follow-app editor to verified,
-        // self-consistent themes. The caller derives appAppearance from the
-        // actual custom background luminance, so dark backgrounds pick the
-        // dark theme and light backgrounds the light theme.
-        return appAppearance === "dark" ? "one-dark" : "vscode-light";
-      default:
-        return appAppearance === "dark" ? "one-dark" : "vscode-light";
-    }
-  }
+/**
+ * Resolve the concrete CodeMirror theme used by the "Follow app theme" setting.
+ *
+ * The app palette no longer picks the syntax theme. It used to: the
+ * vscode/idea/xcode/jetbrains/cursor/claude palettes each implied their own
+ * editor colours, which is why the palette picker doubled as an editor-theme
+ * picker and why the two settings could contradict each other. Palettes now
+ * carry surfaces only; the editor follows the app's light/dark appearance, and
+ * the editor-imitating themes remain available as explicit editor themes.
+ */
+export function resolveEditorTheme(theme: EditorTheme, appAppearance: AppThemeAppearance): Exclude<EditorTheme, "app"> {
+  if (theme === "app") return appAppearance === "dark" ? "one-dark" : "vscode-light";
   return theme;
 }
 
@@ -714,8 +700,8 @@ export function editorDiagnosticColors(appearance: AppThemeAppearance): { error:
 }
 
 /** Load a CodeMirror theme extension by theme name. */
-export async function loadEditorTheme(theme: EditorTheme, appAppearance: AppThemeAppearance = "dark", customColors?: CustomThemeColors, appPalette: AppThemePalette = "pearl"): Promise<Extension> {
-  const resolvedTheme = resolveEditorTheme(theme, appAppearance, appPalette);
+export async function loadEditorTheme(theme: EditorTheme, appAppearance: AppThemeAppearance = "dark", customColors?: CustomThemeColors): Promise<Extension> {
+  const resolvedTheme = resolveEditorTheme(theme, appAppearance);
   switch (resolvedTheme) {
     case "one-dark":
       return (await import("@codemirror/theme-one-dark")).oneDark;

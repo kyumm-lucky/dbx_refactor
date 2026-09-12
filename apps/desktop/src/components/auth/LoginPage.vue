@@ -70,7 +70,7 @@ async function submit() {
   <div class="flex items-center justify-center h-screen bg-gradient-to-br from-background via-background to-blue-950/20">
     <div class="w-[360px] space-y-8">
       <div class="flex flex-col items-center gap-4">
-        <AppLogo class="w-20 h-20 rounded-2xl shadow-lg shadow-blue-500/20" />
+        <AppLogo class="w-14 h-14 rounded-2xl shadow-lg shadow-blue-500/20" />
         <div class="text-center">
           <h1 class="text-2xl font-bold tracking-tight">DBX</h1>
           <p class="text-sm text-muted-foreground mt-1">
@@ -86,14 +86,14 @@ async function submit() {
         </div>
         <div class="relative">
           <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <PasswordInput v-model="password" :placeholder="setupMode ? t('auth.newPassword') : t('auth.enterPassword')" inputClass="pl-10 h-11" autocomplete="off" autofocus />
+          <PasswordInput v-model="password" :placeholder="setupMode ? t('auth.newPassword') : t('auth.enterPassword')" inputClass="pl-10 h-8" autocomplete="off" autofocus />
         </div>
         <div v-if="setupMode" class="relative">
           <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <PasswordInput v-model="confirmPassword" :placeholder="t('auth.confirmPassword')" inputClass="pl-10 h-11" autocomplete="off" />
+          <PasswordInput v-model="confirmPassword" :placeholder="t('auth.confirmPassword')" inputClass="pl-10 h-8" autocomplete="off" />
         </div>
         <p v-if="error" class="text-sm text-destructive text-center">{{ error }}</p>
-        <Button type="submit" class="w-full h-11 text-sm font-medium" :disabled="loading || !password || (setupMode && !confirmPassword)">
+        <Button type="submit" class="w-full h-8 text-sm font-medium" :disabled="loading || !password || (setupMode && !confirmPassword)">
           <Loader2 v-if="loading" class="w-4 h-4 animate-spin mr-2" />
           {{ loading ? t("auth.processing") : setupMode ? t("auth.setPassword") : t("auth.login") }}
         </Button>

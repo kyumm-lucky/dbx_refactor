@@ -396,7 +396,14 @@ describe("EditorGroupTabBar group behavior", () => {
         expect(entries).toHaveLength(8);
         for (const entry of entries) {
           const row = tabLayout === "wrap" && groupMode !== "none" ? entry.querySelector<HTMLElement>(".tab-group-tab")! : entry;
-          expect(getComputedStyle(row).height).toBe(tabLayout === "wrap" ? "32px" : "100%");
+          if (tabLayout === "wrap") {
+            // Wrapped rows are pinned to the tab-height token rather than to a
+            // literal, so assert the declaration instead of a computed height
+            // this DOM shim cannot resolve through var().
+            expect(sharedStyles).toMatch(new RegExp(String.raw`\.app-tab-scroll\.wrap-mode[^{]*\.app-tab-pill\s*\{[^}]*height:\s*var\(--dbx-tab-h\)`));
+          } else {
+            expect(getComputedStyle(row).height).toBe("100%");
+          }
         }
       } finally {
         app.unmount();
@@ -748,7 +755,9 @@ describe("EditorGroupTabBar special page navigation", () => {
       expect(host.querySelector(".app-tab-bar")?.classList.contains("vertical-tab-layout")).toBe(vertical);
       const special = host.querySelector<HTMLElement>("[data-settings-page-tab]")!;
       expect(special.classList.contains("h-8")).toBe(vertical);
-      expect(special.style.boxShadow).toBe(vertical ? "" : layout === "classic" ? "inset 0 -2px 0 var(--ring)" : "");
+      // No inline shadow in any layout: the classic block treatment and the
+      // vertical rail both come from the stylesheet.
+      expect(special.style.boxShadow).toBe("");
     }
     app.unmount();
     host.remove();

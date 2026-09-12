@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import { aiConfigToItem, generateId, getConfigKey } from "@/lib/ai/aiConfigList";
-import { DEFAULT_DATA_GRID_FONT_FAMILY, DEFAULT_UI_FONT_FAMILY } from "@/lib/app/appFonts";
+import { DEFAULT_DATA_GRID_FONT_FAMILY, DEFAULT_EDITOR_FONT_FAMILY, DEFAULT_UI_FONT_FAMILY, normalizeDataGridFontFamily, normalizeEditorFontFamily, normalizeUiFontFamily } from "@/lib/app/appFonts";
 import { defaultBackgroundImageSettings, normalizeBackgroundImageSettings, type BackgroundImageSettings } from "@/lib/app/appBackgroundImage";
 import * as api from "@/lib/backend/api";
 import { setDebugLoggingEnabled } from "@/lib/backend/debugLog";
@@ -660,7 +660,7 @@ const MULTI_STATEMENT_DEFAULT_VIEWS = ["result", "summary"] as const;
 export type MultiStatementDefaultView = (typeof MULTI_STATEMENT_DEFAULT_VIEWS)[number];
 export const TABLE_FONT_SIZE_MIN = 8;
 export const TABLE_FONT_SIZE_MAX = 16;
-export const TABLE_FONT_SIZE_DEFAULT = 13;
+export const TABLE_FONT_SIZE_DEFAULT = 12;
 export const SIDEBAR_FONT_SIZE_MIN = 9;
 export const SIDEBAR_FONT_SIZE_MAX = 24;
 export const SIDEBAR_FONT_SIZE_DEFAULT = 14;
@@ -988,7 +988,7 @@ export const COLUMN_HEADER_METADATA_MIGRATION_VERSION = 1;
 export const EDITOR_DEFAULTS_MIGRATION_VERSION = 1;
 
 export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
-  fontFamily: "'Fira Code', 'Cascadia Code', 'Cascadia Mono', 'JetBrains Mono', monospace",
+  fontFamily: DEFAULT_EDITOR_FONT_FAMILY,
   fontSize: 13,
   uiFontFamily: DEFAULT_UI_FONT_FAMILY,
   uiScale: 1,
@@ -1167,6 +1167,24 @@ function normalizeFontFamily(value: unknown, fallback: string): string {
   if (typeof value !== "string") return fallback;
   const trimmed = value.trim();
   return trimmed || fallback;
+}
+
+/**
+ * Font settings persisted before the SF redesign hold the old bundled faces
+ * (Geist for the UI, Apple Braille for the grid). Those are remapped to the
+ * new defaults rather than kept, because the user never chose them — they were
+ * simply what the app shipped. An explicitly chosen font is left alone.
+ */
+function normalizePersistedUiFontFamily(value: unknown): string {
+  return normalizeUiFontFamily(normalizeFontFamily(value, DEFAULT_EDITOR_SETTINGS.uiFontFamily));
+}
+
+function normalizePersistedTableFontFamily(value: unknown): string {
+  return normalizeDataGridFontFamily(normalizeFontFamily(value, DEFAULT_EDITOR_SETTINGS.tableFontFamily));
+}
+
+function normalizePersistedEditorFontFamily(value: unknown): string {
+  return normalizeEditorFontFamily(normalizeFontFamily(value, DEFAULT_EDITOR_SETTINGS.fontFamily));
 }
 
 function normalizeDrawerWidth(value: unknown, min: number, fallback: number): number {
@@ -1419,9 +1437,9 @@ export function normalizeEditorSettings(settings: Partial<EditorSettings>, exist
   const isLegacyExtractorOptions = typeof savedExtractorMigrationVersion !== "number" || savedExtractorMigrationVersion < DATA_GRID_EXTRACTOR_OPTIONS_MIGRATION_VERSION;
   const dataGridExtractorOptions = isLegacyExtractorOptions && normalizedExtractorOptions.dsv.nullText === "NULL" ? { ...normalizedExtractorOptions, dsv: { ...normalizedExtractorOptions.dsv, nullText: "" } } : normalizedExtractorOptions;
   return {
-    fontFamily: normalizeFontFamily(settings.fontFamily, DEFAULT_EDITOR_SETTINGS.fontFamily),
+    fontFamily: normalizePersistedEditorFontFamily(settings.fontFamily),
     fontSize: settings.fontSize ?? DEFAULT_EDITOR_SETTINGS.fontSize,
-    uiFontFamily: normalizeFontFamily(settings.uiFontFamily, DEFAULT_EDITOR_SETTINGS.uiFontFamily),
+    uiFontFamily: normalizePersistedUiFontFamily(settings.uiFontFamily),
     uiScale: normalizeUiScale(settings.uiScale),
     theme: settings.theme && EDITOR_THEME_VALUES.has(settings.theme) ? settings.theme : DEFAULT_EDITOR_SETTINGS.theme,
     customThemeColors: {
@@ -1539,7 +1557,7 @@ export function normalizeEditorSettings(settings: Partial<EditorSettings>, exist
     dataGridHideNullColumns: settings.dataGridHideNullColumns === true,
     dataGridBooleanDisplayMode: settings.dataGridBooleanDisplayMode === "checkbox" ? "checkbox" : "dropdown",
     numericColumnRightAlign: typeof settings.numericColumnRightAlign === "boolean" ? settings.numericColumnRightAlign : DEFAULT_EDITOR_SETTINGS.numericColumnRightAlign,
-    tableFontFamily: normalizeFontFamily(settings.tableFontFamily, DEFAULT_EDITOR_SETTINGS.tableFontFamily),
+    tableFontFamily: normalizePersistedTableFontFamily(settings.tableFontFamily),
     tableFontSize: normalizeTableFontSize(settings.tableFontSize),
     structureEditorDensity: normalizeStructureEditorDensity(settings.structureEditorDensity),
     tableInfoActiveTab: normalizeTableInfoTab(settings.tableInfoActiveTab),
@@ -2183,9 +2201,9 @@ export const useSettingsStore = defineStore("settings", () => {
   });
 
   function applyEditorSettingsPatch(partial: Partial<EditorSettings>) {
-    if (partial.fontFamily !== undefined) editorSettings.value.fontFamily = normalizeFontFamily(partial.fontFamily, DEFAULT_EDITOR_SETTINGS.fontFamily);
+    if (partial.fontFamily !== undefined) editorSettings.value.fontFamily = normalizePersistedEditorFontFamily(partial.fontFamily);
     if (partial.fontSize !== undefined) editorSettings.value.fontSize = partial.fontSize;
-    if (partial.uiFontFamily !== undefined) editorSettings.value.uiFontFamily = normalizeFontFamily(partial.uiFontFamily, DEFAULT_EDITOR_SETTINGS.uiFontFamily);
+    if (partial.uiFontFamily !== undefined) editorSettings.value.uiFontFamily = normalizePersistedUiFontFamily(partial.uiFontFamily);
     if (partial.uiScale !== undefined) editorSettings.value.uiScale = normalizeUiScale(partial.uiScale);
     if (partial.backgroundImage !== undefined) editorSettings.value.backgroundImage = normalizeBackgroundImageSettings(partial.backgroundImage);
     if (partial.theme !== undefined) editorSettings.value.theme = partial.theme;
@@ -2298,7 +2316,7 @@ export const useSettingsStore = defineStore("settings", () => {
     if (partial.dataGridHideNullColumns !== undefined) editorSettings.value.dataGridHideNullColumns = partial.dataGridHideNullColumns === true;
     if (partial.dataGridBooleanDisplayMode !== undefined) editorSettings.value.dataGridBooleanDisplayMode = partial.dataGridBooleanDisplayMode === "dropdown" ? "dropdown" : "checkbox";
     if (partial.numericColumnRightAlign !== undefined) editorSettings.value.numericColumnRightAlign = partial.numericColumnRightAlign === true;
-    if (partial.tableFontFamily !== undefined) editorSettings.value.tableFontFamily = normalizeFontFamily(partial.tableFontFamily, DEFAULT_EDITOR_SETTINGS.tableFontFamily);
+    if (partial.tableFontFamily !== undefined) editorSettings.value.tableFontFamily = normalizePersistedTableFontFamily(partial.tableFontFamily);
     if (partial.tableFontSize !== undefined) editorSettings.value.tableFontSize = normalizeTableFontSize(partial.tableFontSize);
     if (partial.structureEditorDensity !== undefined) editorSettings.value.structureEditorDensity = normalizeStructureEditorDensity(partial.structureEditorDensity);
     if (partial.tableInfoActiveTab !== undefined) editorSettings.value.tableInfoActiveTab = normalizeTableInfoTab(partial.tableInfoActiveTab);

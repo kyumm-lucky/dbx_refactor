@@ -1,5 +1,6 @@
 import { computed, ref } from "vue";
 import {
+  APP_ACCENT_STORAGE_KEY,
   APP_CORNER_STYLE_STORAGE_KEY,
   APP_CUSTOM_UI_COLOR_DEFS,
   APP_CUSTOM_UI_DARK_STORAGE_KEY,
@@ -15,11 +16,13 @@ import {
   getAppThemePaletteClass,
   getTauriThemeForMode,
   isSystemAppThemeMode,
+  normalizeAppAccentColor,
   normalizeAppCustomUiColors,
   normalizeAppThemeMode,
   normalizeAppCornerStyle,
   normalizeAppThemePalette,
   resolveAppThemeAppearance,
+  type AppAccentColor,
   type AppCustomUiColors,
   type AppThemeMode,
   type AppThemePalette,
@@ -53,8 +56,11 @@ const customUiColorsDark = ref<AppCustomUiColors>(parseStoredCustomUiColors(safe
 const activeCustomUiColors = computed<AppCustomUiColors>(() => (isDark.value ? customUiColorsDark.value : customUiColors.value));
 const savedCornerStyle = safeLocalStorageGet(APP_CORNER_STYLE_STORAGE_KEY);
 const cornerStyle = ref<AppCornerStyle>(normalizeAppCornerStyle(savedCornerStyle));
+const savedAccentColor = safeLocalStorageGet(APP_ACCENT_STORAGE_KEY);
+const accentColor = ref<AppAccentColor>(normalizeAppAccentColor(savedAccentColor));
 if (savedThemeMode && savedThemeMode !== themeMode.value) safeLocalStorageSet(APP_THEME_STORAGE_KEY, themeMode.value);
 if (savedCornerStyle && savedCornerStyle !== cornerStyle.value) safeLocalStorageSet(APP_CORNER_STYLE_STORAGE_KEY, cornerStyle.value);
+if (savedAccentColor && savedAccentColor !== accentColor.value) safeLocalStorageSet(APP_ACCENT_STORAGE_KEY, accentColor.value);
 const systemPrefersDark = ref(readSystemPrefersDark());
 const isDark = computed(() => resolveAppThemeAppearance(themeMode.value, systemPrefersDark.value) === "dark");
 
@@ -86,7 +92,21 @@ function applyThemePalette() {
   for (const className of APP_THEME_PALETTE_CLASS_NAMES) doc.classList.remove(className);
   const paletteClass = getAppThemePaletteClass(themePalette.value);
   if (paletteClass) doc.classList.add(paletteClass);
+  applyAccentColor();
   applyCustomUiColors();
+}
+
+/*
+ * The accent rides on a data attribute rather than a class so it can coexist
+ * with the palette class and the `dark` class without any ordering rules. The
+ * `system` value removes the attribute, handing control back to the token
+ * default in tokens.css.
+ */
+function applyAccentColor() {
+  if (typeof document === "undefined") return;
+  const doc = document.documentElement;
+  if (accentColor.value === "system") doc.removeAttribute("data-accent");
+  else doc.setAttribute("data-accent", accentColor.value);
 }
 
 function applyTheme() {
@@ -199,6 +219,12 @@ function setCornerStyle(style: AppCornerStyle) {
   applyTheme();
 }
 
+function setAccentColor(accent: AppAccentColor) {
+  accentColor.value = normalizeAppAccentColor(accent);
+  safeLocalStorageSet(APP_ACCENT_STORAGE_KEY, accentColor.value);
+  applyAccentColor();
+}
+
 export function useTheme() {
   setupSystemThemeListener();
 
@@ -206,5 +232,24 @@ export function useTheme() {
     setThemeMode(isDark.value ? "light" : "dark");
   }
 
-  return { isDark, themeMode, themePalette, customUiColors, customUiColorsDark, activeCustomUiColors, cornerStyle, applyTheme, setThemeMode, setThemePalette, previewThemePalette, clearThemePalettePreview, setCustomUiColors, resetCustomUiColors, setCornerStyle, toggleTheme };
+  return {
+    isDark,
+    themeMode,
+    themePalette,
+    accentColor,
+    customUiColors,
+    customUiColorsDark,
+    activeCustomUiColors,
+    cornerStyle,
+    applyTheme,
+    setThemeMode,
+    setThemePalette,
+    previewThemePalette,
+    clearThemePalettePreview,
+    setAccentColor,
+    setCustomUiColors,
+    resetCustomUiColors,
+    setCornerStyle,
+    toggleTheme,
+  };
 }

@@ -168,26 +168,114 @@ describe("query result grid identity", () => {
   });
 });
 
+describe("query tab sequence numbering", () => {
+  function namedConnection() {
+    useConnectionStore().connections = [{ id: "ifindcrm-local", name: "ifindcrm-local", db_type: "postgres", driver_profile: "postgres", database: "postcrm" } as ConnectionConfig];
+  }
+
+  function sequenceTab(id: string, createdAt: number, overrides: Partial<QueryTab> = {}): QueryTab {
+    return queryTab({ id, createdAt, connectionId: "ifindcrm-local", database: "postcrm", mode: "query", ...overrides });
+  }
+
+  it("numbers later SQL query tabs of one connection and leaves the first unnamed", () => {
+    namedConnection();
+    const first = sequenceTab("t1", 100);
+    const second = sequenceTab("t2", 200);
+    const third = sequenceTab("t3", 300);
+    const siblings = [first, second, third];
+
+    const titles = siblings.map((tab) => tabDisplayTitle(tab, translate, siblings));
+
+    expect(titles).toEqual(["ifindcrm-local@postcrm", "ifindcrm-local@postcrm-1", "ifindcrm-local@postcrm-2"]);
+  });
+
+  it("keeps one series per connection and per database", () => {
+    namedConnection();
+    useConnectionStore().connections = [...useConnectionStore().connections, { id: "shop-demo", name: "shop-demo", db_type: "sqlite", driver_profile: "sqlite", database: "main" } as ConnectionConfig];
+    const first = sequenceTab("t1", 100);
+    const sameDatabase = sequenceTab("t2", 200);
+    const otherConnection = queryTab({ id: "t3", createdAt: 300, connectionId: "shop-demo", database: "main", mode: "query" });
+    const otherDatabase = sequenceTab("t4", 400, { database: "other" });
+    const siblings = [first, sameDatabase, otherConnection, otherDatabase];
+
+    const titles = siblings.map((tab) => tabDisplayTitle(tab, translate, siblings));
+
+    expect(titles).toEqual(["ifindcrm-local@postcrm", "ifindcrm-local@postcrm-1", "shop-demo@main", "ifindcrm-local@other"]);
+  });
+
+  it("numbers by creation order, not by the order tabs sit in the strip", () => {
+    namedConnection();
+    const first = sequenceTab("t1", 100);
+    const second = sequenceTab("t2", 200);
+    // The user dragged the older tab to the end; the number follows the tab.
+    const siblings = [second, first];
+
+    expect(tabDisplayTitle(second, translate, siblings)).toBe("ifindcrm-local@postcrm-1");
+    expect(tabDisplayTitle(first, translate, siblings)).toBe("ifindcrm-local@postcrm");
+  });
+
+  it("leaves tabs that carry their own name unnumbered", () => {
+    namedConnection();
+    const unnamed = sequenceTab("t1", 100);
+    const saved = sequenceTab("t2", 200, { title: "Revenue checks", customTitle: true });
+    const objectSource = sequenceTab("t3", 300, { title: "fn_total", objectSource: { name: "fn_total", objectType: "FUNCTION" } });
+    const siblings = [unnamed, saved, objectSource];
+
+    expect(tabDisplayTitle(saved, translate, siblings)).toBe("Revenue checks");
+    expect(tabDisplayTitle(objectSource, translate, siblings)).toBe("fn_total");
+    // A named tab does not consume a number, so the next unnamed one is still first.
+    expect(tabDisplayTitle(unnamed, translate, siblings)).toBe("ifindcrm-local@postcrm");
+  });
+
+  it("renumbers the survivors when an earlier tab closes", () => {
+    namedConnection();
+    const first = sequenceTab("t1", 100);
+    const second = sequenceTab("t2", 200);
+    const third = sequenceTab("t3", 300);
+
+    expect(tabDisplayTitle(second, translate, [second, third])).toBe("ifindcrm-local@postcrm");
+    expect(tabDisplayTitle(third, translate, [second, third])).toBe("ifindcrm-local@postcrm-1");
+    expect(tabDisplayTitle(first, translate, [first, second, third])).toBe("ifindcrm-local@postcrm");
+  });
+
+  it("does not produce a negative suffix when the tab is missing from the list", () => {
+    namedConnection();
+    const orphan = sequenceTab("t9", 900);
+
+    expect(tabDisplayTitle(orphan, translate, [])).toBe("ifindcrm-local@postcrm");
+  });
+
+  it("orders same-millisecond creations deterministically", () => {
+    namedConnection();
+    const left = sequenceTab("aaa", 100);
+    const right = sequenceTab("bbb", 100);
+    const siblings = [right, left];
+
+    expect(tabDisplayTitle(left, translate, siblings)).toBe("ifindcrm-local@postcrm");
+    expect(tabDisplayTitle(right, translate, siblings)).toBe("ifindcrm-local@postcrm-1");
+  });
+});
+
 describe("tab group presentation", () => {
   it("does not expose the internal objects mode in object browser tab titles", () => {
     const store = useConnectionStore();
     store.connections = [{ id: "conn-1", name: "PostgreSQL", db_type: "postgres", driver_profile: "postgres", database: "app" } as ConnectionConfig];
 
-    expect(tabDisplayTitle(queryTab({ mode: "objects", title: "app objects" }), translate)).toBe("db");
-    expect(tabDisplayTitle(queryTab({ mode: "objects", title: "public objects", objectBrowser: { schema: "public" } }), translate)).toBe("public@db");
+    expect(tabDisplayTitle(queryTab({ mode: "objects", title: "app objects" }), translate, [])).toBe("db");
+    expect(tabDisplayTitle(queryTab({ mode: "objects", title: "public objects", objectBrowser: { schema: "public" } }), translate, [])).toBe("public@db");
   });
 
   it("uses the selected MySQL event name for event editor tabs", () => {
-    expect(tabDisplayTitle(queryTab({ mode: "objects", objectBrowser: { objectType: "tables", initialObjectFilter: "events", eventName: "cleanup_sessions" } }), translate)).toBe("cleanup_sessions@db");
-    expect(tabDisplayTitle(queryTab({ mode: "objects", objectBrowser: { objectType: "tables", initialObjectFilter: "events" } }), translate)).toBe("Events@db");
+    expect(tabDisplayTitle(queryTab({ mode: "objects", objectBrowser: { objectType: "tables", initialObjectFilter: "events", eventName: "cleanup_sessions" } }), translate, [])).toBe("cleanup_sessions@db");
+    expect(tabDisplayTitle(queryTab({ mode: "objects", objectBrowser: { objectType: "tables", initialObjectFilter: "events" } }), translate, [])).toBe("Events@db");
   });
 
   it("uses the live database and branch context for Dolt version control tabs", () => {
     const store = useConnectionStore();
     store.connections = [{ id: "conn-1", name: "Production Dolt", db_type: "mysql", driver_profile: "dolt", database: "app" } as ConnectionConfig];
 
-    expect(tabDisplayTitle(queryTab({ mode: "dolt-version-control", title: "Dolt Version Control", workspaceBranch: "feature/orders" }), translate)).toBe("Production Dolt VCS@db.feature/orders");
-    expect(tabDisplayTitle(queryTab({ mode: "dolt-version-control", title: "Dolt Version Control" }), translate)).toBe("Production Dolt VCS@db");
+    expect(tabDisplayTitle(queryTab({ mode: "dolt-version-control", title: "Dolt Version Control", workspaceBranch: "feature/orders" }), translate, [])).toBe("Production Dolt VCS@db.feature/orders");
+    expect(tabDisplayTitle(queryTab({ mode: "dolt-version-control", title: "Dolt Version Control" }), translate, [])).toBe("Production Dolt VCS@db");
   });
 
   it("adds the full, live group path to tab tooltips", () => {
@@ -448,8 +536,8 @@ describe("shared tab presentation helpers", () => {
   it("uses logical Redis database labels instead of the connection title", () => {
     const connectionStore = useConnectionStore();
     connectionStore.connections = [{ id: "redis-1", name: "Redis", db_type: "redis", driver_profile: "redis", color: "" } as ConnectionConfig];
-    expect(tabDisplayTitle(queryTab({ connectionId: "redis-1", database: "0", mode: "redis", sql: "" }), translate)).toBe("db0");
-    expect(tabDisplayTitle(queryTab({ connectionId: "redis-1", database: "1", mode: "redis", sql: "" }), translate)).toBe("db1");
+    expect(tabDisplayTitle(queryTab({ connectionId: "redis-1", database: "0", mode: "redis", sql: "" }), translate, [])).toBe("db0");
+    expect(tabDisplayTitle(queryTab({ connectionId: "redis-1", database: "1", mode: "redis", sql: "" }), translate, [])).toBe("db1");
   });
 
   it("keeps source tab colors aligned with the sidebar object palette", () => {
@@ -469,8 +557,11 @@ describe("shared tab presentation helpers", () => {
   });
 
   it("builds active/inactive color styles for classic and non-classic layouts", () => {
-    const activeClassic = tabColorStyle(queryTab({}), true, true);
-    expect(activeClassic?.boxShadow).toContain("var(--foreground)");
+    // An uncoloured connection needs no inline style in the classic layout:
+    // the active tab is a lifted block that appTabBar.css styles.
+    expect(tabColorStyle(queryTab({}), true, true)).toBeUndefined();
+    // The non-classic layout still rings the active tab inline.
+    expect(tabColorStyle(queryTab({}), true, false)?.borderColor).toBe("var(--ring)");
     const inactiveModern = tabColorStyle(queryTab({}), false, false);
     expect(inactiveModern?.borderColor).toBeUndefined();
   });

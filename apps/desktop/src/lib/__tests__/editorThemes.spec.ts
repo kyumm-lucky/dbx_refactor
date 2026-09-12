@@ -1,19 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { buildEditorFontThemeRules, buildSqlCompletionThemeRules, editorDiagnosticColors, editorThemeAppearanceFor, resolveCustomThemeBackgrounds, resolveEditorTheme, SQL_BUILTIN_HIGHLIGHT_TAG } from "@/lib/editor/editorThemes";
-import { DEFAULT_APP_CUSTOM_UI_COLORS, wcagContrastRatio, type AppThemePalette } from "@/lib/app/appTheme";
+import { DEFAULT_APP_CUSTOM_UI_COLORS, wcagContrastRatio } from "@/lib/app/appTheme";
 import type { EditorTheme } from "@/stores/settingsStore";
 import { createDbxCodeMirrorSqlDialect } from "@/lib/editor/codemirrorSqlDialect";
 import * as langSql from "@codemirror/lang-sql";
 
 describe("resolveEditorTheme", () => {
-  it("maps only the follow-app editor theme to application IDE palettes", () => {
-    expect(resolveEditorTheme("app", "light", "xcode")).toBe("xcode");
-    expect(resolveEditorTheme("app", "dark", "xcode")).toBe("xcode-dark");
-    expect(resolveEditorTheme("app", "light", "cursor")).toBe("cursor-light");
-    expect(resolveEditorTheme("app", "dark", "cursor")).toBe("cursor-dark");
+  it("resolves the follow-app editor theme from appearance alone", () => {
+    // The app palette no longer implies a syntax theme: the vscode/idea/xcode/
+    // jetbrains/cursor/claude palettes that used to do so are gone, so
+    // "follow app theme" resolves to the neutral pair for the appearance and
+    // the editor-imitating themes stay reachable as explicit choices.
+    expect(resolveEditorTheme("app", "dark")).toBe("one-dark");
+    expect(resolveEditorTheme("app", "light")).toBe("vscode-light");
   });
 
-  it("keeps explicit editor themes unchanged across application palettes", () => {
+  it("keeps explicit editor themes unchanged", () => {
     const explicitThemes: Array<Exclude<EditorTheme, "app">> = [
       "one-dark",
       "vscode-dark",
@@ -35,13 +37,9 @@ describe("resolveEditorTheme", () => {
       "claude-dark",
       "custom",
     ];
-    const appPalettes: AppThemePalette[] = ["pearl", "vscode", "idea", "xcode", "jetbrains", "cursor", "claude"];
-
     for (const theme of explicitThemes) {
-      for (const palette of appPalettes) {
-        expect(resolveEditorTheme(theme, "dark", palette)).toBe(theme);
-        expect(resolveEditorTheme(theme, "light", palette)).toBe(theme);
-      }
+      expect(resolveEditorTheme(theme, "dark")).toBe(theme);
+      expect(resolveEditorTheme(theme, "light")).toBe(theme);
     }
   });
 });
@@ -73,9 +71,11 @@ describe("custom editor theme backgrounds", () => {
   });
 
   it("routes the custom UI palette to verified dark/light editor themes by appearance", () => {
-    expect(resolveEditorTheme("app", "dark", "custom")).toBe("one-dark");
-    expect(resolveEditorTheme("app", "light", "custom")).toBe("vscode-light");
-    expect(resolveEditorTheme("one-dark", "light", "custom")).toBe("one-dark");
+    // The custom palette only changes the resolved appearance (see
+    // editorThemeAppearanceFor below); the theme name comes from appearance.
+    expect(resolveEditorTheme("app", "dark")).toBe("one-dark");
+    expect(resolveEditorTheme("app", "light")).toBe("vscode-light");
+    expect(resolveEditorTheme("one-dark", "light")).toBe("one-dark");
   });
 
   it("derives the follow-app editor appearance from the custom background at light/dark extremes", () => {
@@ -84,7 +84,7 @@ describe("custom editor theme backgrounds", () => {
     expect(editorThemeAppearanceFor("light", "custom", darkBg)).toBe("dark");
     expect(editorThemeAppearanceFor("dark", "custom", lightBg)).toBe("light");
     // Setting off or fixed palettes keep the previous mode-based behavior unchanged.
-    expect(editorThemeAppearanceFor("dark", "pearl")).toBe("dark");
+    expect(editorThemeAppearanceFor("dark", "system")).toBe("dark");
     expect(editorThemeAppearanceFor("light", "cobalt")).toBe("light");
     expect(editorThemeAppearanceFor("light", "custom", undefined)).toBe("light");
   });

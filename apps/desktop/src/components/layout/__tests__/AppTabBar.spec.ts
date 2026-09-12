@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const tabBarSource = readFileSync(new URL("../AppTabBar.vue", import.meta.url), "utf8");
 const groupTabBarSource = readFileSync(new URL("../EditorGroupTabBar.vue", import.meta.url), "utf8");
+const appTabBarCss = readFileSync(new URL("../appTabBar.css", import.meta.url), "utf8");
 const groupSource = readFileSync(new URL("../EditorGroup.vue", import.meta.url), "utf8");
 
 describe("AppTabBar shared group navigation", () => {
@@ -55,7 +56,7 @@ describe("AppTabBar close confirmation layout", () => {
     const end = tabBarSource.indexOf("</PopoverContent>", start);
     expect(start).toBeGreaterThanOrEqual(0);
     expect(end).toBeGreaterThan(start);
-    expect(tabBarSource.slice(start, end)).toContain("tabDisplayTitle(tab, t)");
+    expect(tabBarSource.slice(start, end)).toContain("tabDisplayTitle(tab, t, queryStore.tabs)");
   });
 });
 
@@ -84,7 +85,10 @@ describe("Group strip special page tabs", () => {
     expect(groupTabBarSource).toContain("return !specialPageActive.value && tab.id === props.activeTabId;");
     expect(groupTabBarSource).toContain("specialPageTabClass(!!specialPageTabs?.settingsActive)");
     expect(groupTabBarSource).toContain("specialPageTabClass(!!specialPageTabs?.driverStoreActive)");
-    expect(groupTabBarSource).toContain('return active ? { boxShadow: "inset 0 -2px 0 var(--ring)" } : undefined;');
+    // The active tab is styled as a lifted block by appTabBar.css, so the
+    // component must not inject an inline indicator that would win over it.
+    expect(groupTabBarSource).not.toContain("inset 0 -2px 0");
+    expect(appTabBarCss).toContain(".app-tab-pill[data-active-tab=" + '"true"]');
     expect(groupTabBarSource).toContain('import "./appTabBar.css"');
     expect(groupTabBarSource).toContain("dirty-tab-marker");
     expect(groupTabBarSource).toContain("dirtyTabTitleStyle");

@@ -30,28 +30,35 @@ export function cloneDataGridTypeColorSchemes(schemes: readonly DataGridTypeColo
 
 // Keep these in sync with the :root / :root.dark blocks in styles/globals.css.
 // dataGridTypeColorScheme.spec.ts asserts the two stay identical.
+/*
+ * Four colour groups, not nine. The nine keys stay because the type system
+ * still distinguishes a UUID from a blob, but the palette assigns them to
+ * number / text / temporal / muted so a result grid reads as data instead of
+ * as a rainbow. These literals must stay in sync with the `--data-grid-type-*`
+ * declarations in globals.css (enforced by dataGridTypeColorScheme.spec.ts).
+ */
 export const DEFAULT_DATA_GRID_TYPE_COLORS_LIGHT: DataGridTypeColors = {
-  integer: "#1d4ed8",
-  numeric: "#0e7490",
-  string: "#166534",
-  boolean: "#c2410c",
-  temporal: "#7e22ce",
-  structured: "#be185d",
-  identifier: "#92400e",
-  binary: "#b91c1c",
-  spatial: "#047857",
+  integer: "#0b6bcb",
+  numeric: "#0b6bcb",
+  string: "#1d1d1f",
+  boolean: "#86868b",
+  temporal: "#8e44ad",
+  structured: "#1d1d1f",
+  identifier: "#1d1d1f",
+  binary: "#1d1d1f",
+  spatial: "#1d1d1f",
 };
 
 export const DEFAULT_DATA_GRID_TYPE_COLORS_DARK: DataGridTypeColors = {
-  integer: "#93c5fd",
-  numeric: "#67e8f9",
-  string: "#86efac",
-  boolean: "#fdba74",
-  temporal: "#d8b4fe",
-  structured: "#f9a8d4",
-  identifier: "#fcd34d",
-  binary: "#fca5a5",
-  spatial: "#6ee7b7",
+  integer: "#64b5f6",
+  numeric: "#64b5f6",
+  string: "#f5f5f7",
+  boolean: "#98989d",
+  temporal: "#c79bf2",
+  structured: "#f5f5f7",
+  identifier: "#f5f5f7",
+  binary: "#f5f5f7",
+  spatial: "#f5f5f7",
 };
 
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;

@@ -7,6 +7,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DBX</title>
     <style>
+      /*
+       * Pre-mount paint, before tokens.css has been applied. Kept in step with
+       * the `--background` token in styles/tokens.css so the first frame does
+       * not flash a different window colour than the app settles on.
+       */
       html,
       body,
       #root {
@@ -16,7 +21,7 @@
       html.dark,
       html.dark body,
       html.dark #root {
-        background-color: rgb(19 20 22);
+        background-color: rgb(30 30 32);
       }
     </style>
     <script data-dbx-startup-theme>
@@ -43,7 +48,8 @@
         }
 
         root.classList.toggle("dark", dark);
-        root.dataset.cornerStyle = cornerStyle === "none" || cornerStyle === "small" ? cornerStyle : "large";
+        // Two-way choice now: anything unrecognised (including the retired none/small/large) means the standard radius.
+        root.dataset.cornerStyle = cornerStyle === "compact" ? "compact" : "standard";
         root.style.colorScheme = dark ? "dark" : "light";
       })();
     </script>

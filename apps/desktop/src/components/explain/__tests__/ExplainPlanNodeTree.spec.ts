@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { readCascadeCss } from "../../../styles/__tests__/cascadeCss";
+import { APP_THEME_PALETTES } from "@/lib/app/appTheme";
 
 const nodeTreeSource = readFileSync(new URL("../ExplainPlanNodeTree.vue", import.meta.url), "utf8");
 const globalStyles = readCascadeCss();
@@ -99,7 +100,12 @@ describe("ExplainPlanNodeTree interactions", () => {
   });
 
   it("keeps foreground-based tree metadata readable in every application palette", () => {
-    expect(themeColors).toHaveLength(26);
+    // The cascade contributes the base `:root` and `.dark` pair plus one light
+    // and one dark block per installable palette that carries a CSS class
+    // (`system` and `custom` have none). Deriving the count keeps this guard
+    // honest when the palette list changes instead of freezing a magic number.
+    const classPalettes = APP_THEME_PALETTES.filter((palette) => palette.className !== null).length;
+    expect(themeColors).toHaveLength(classPalettes * 2 + 2);
 
     for (const theme of themeColors) {
       expect(contrastRatio(blend(theme.foreground, theme.background, 0.8), theme.background), theme.selector).toBeGreaterThanOrEqual(4.5);

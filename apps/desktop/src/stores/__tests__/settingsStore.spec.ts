@@ -1,6 +1,7 @@
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { isProxy } from "vue";
+import { DEFAULT_DATA_GRID_FONT_FAMILY, DEFAULT_EDITOR_FONT_FAMILY, DEFAULT_UI_FONT_FAMILY } from "@/lib/app/appFonts";
 import {
   AI_PROVIDER_PRESETS,
   DEFAULT_EDITOR_SETTINGS,
@@ -443,10 +444,19 @@ describe("normalizeEditorSettings", () => {
   });
 
   it("defaults the data grid font and preserves a custom font family", () => {
-    const defaultFontFamily = `'Apple Braille', monospace`;
-    expect(normalizeEditorSettings({}).tableFontFamily).toBe(defaultFontFamily);
+    expect(normalizeEditorSettings({}).tableFontFamily).toBe(DEFAULT_DATA_GRID_FONT_FAMILY);
     expect(normalizeEditorSettings({ tableFontFamily: "'IBM Plex Mono', monospace" }).tableFontFamily).toBe("'IBM Plex Mono', monospace");
-    expect(normalizeEditorSettings({ tableFontFamily: "   " }).tableFontFamily).toBe(defaultFontFamily);
+    expect(normalizeEditorSettings({ tableFontFamily: "   " }).tableFontFamily).toBe(DEFAULT_DATA_GRID_FONT_FAMILY);
+  });
+
+  it("migrates fonts persisted before the SF redesign onto the new defaults", () => {
+    // These were the shipped defaults, not deliberate choices, so an existing
+    // install that never opened the font picker should follow the redesign.
+    expect(normalizeEditorSettings({ uiFontFamily: `"Geist Variable", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif` }).uiFontFamily).toBe(DEFAULT_UI_FONT_FAMILY);
+    expect(normalizeEditorSettings({ tableFontFamily: `'Apple Braille', monospace` }).tableFontFamily).toBe(DEFAULT_DATA_GRID_FONT_FAMILY);
+    expect(normalizeEditorSettings({ fontFamily: `'Fira Code', 'Cascadia Code', 'Cascadia Mono', 'JetBrains Mono', monospace` }).fontFamily).toBe(DEFAULT_EDITOR_FONT_FAMILY);
+    // An explicit pick is left alone.
+    expect(normalizeEditorSettings({ fontFamily: `'Fira Code', monospace` }).fontFamily).toBe(`'Fira Code', monospace`);
   });
 
   it("shows cell detail metadata by default and preserves collapsed state", () => {

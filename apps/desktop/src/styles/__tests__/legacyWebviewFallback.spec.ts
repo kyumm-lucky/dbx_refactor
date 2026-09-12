@@ -211,8 +211,14 @@ describe("legacy WebView CSS fallbacks", () => {
   });
 
   it("keeps primary alpha utilities readable in legacy WebViews", () => {
-    expect(globalsCss).toContain("--dbx-primary-rgb: 23, 23, 23;");
-    expect(globalsCss).toContain("--dbx-primary-rgb: 46, 95, 166;");
+    // Both appearances must declare the triplet: the legacy rgba() fallbacks
+    // below resolve through it, and a missing dark value would leave every
+    // primary-tinted surface transparent in a legacy dark WebView.
+    expect(globalsCss).toContain("--dbx-primary-rgb: 0, 113, 227;");
+    expect(globalsCss).toContain("--dbx-primary-rgb: 10, 132, 255;");
+    // The triplet has to match --primary, since the two are declared apart.
+    expect(globalsCss).toContain("--primary: rgb(0 113 227);");
+    expect(globalsCss).toContain("--primary: rgb(10 132 255);");
     expect(globalsCss).toContain(".bg-primary\\/10");
     expect(globalsCss).toContain("background-color: rgba(var(--dbx-primary-rgb), 0.1) !important;");
     expect(globalsCss).toContain(".border-primary\\/30");

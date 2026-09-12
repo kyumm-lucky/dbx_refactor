@@ -217,22 +217,30 @@ describe("data grid paint theme", () => {
     const light = resolveDataGridPaintTheme({ getVar: emptyCssVariable, isDark: false });
     const dark = resolveDataGridPaintTheme({ getVar: emptyCssVariable, isDark: true });
 
-    expect(light.typeForegrounds.integer).toBe("#1d4ed8");
-    expect(light.typeForegrounds.boolean).toBe("#c2410c");
-    expect(dark.typeForegrounds.integer).toBe("#93c5fd");
-    expect(dark.typeForegrounds.boolean).toBe("#fdba74");
+    expect(light.typeForegrounds.integer).toBe("#0b6bcb");
+    expect(light.typeForegrounds.boolean).toBe("#86868b");
+    expect(dark.typeForegrounds.integer).toBe("#64b5f6");
+    expect(dark.typeForegrounds.boolean).toBe("#98989d");
     expect(light.typeForegrounds.unknown).toBe(light.foreground);
     expect(dark.typeForegrounds.unknown).toBe(dark.foreground);
 
+    /*
+     * Boolean/NULL is a deliberately de-emphasised group: it reads as "no
+     * value here", so it holds the 3:1 non-critical-text floor rather than the
+     * 4.5:1 body-text floor the value-bearing groups must clear.
+     */
+    const BOOLEAN_FLOOR = 3;
     for (const [kind, color] of Object.entries(light.typeForegrounds)) {
       if (kind === "unknown") continue;
-      expect(contrastRatio(color, "#ffffff")).toBeGreaterThanOrEqual(4.5);
-      expect(contrastRatio(color, "#f0f0f0")).toBeGreaterThanOrEqual(4.5);
+      const floor = kind === "boolean" ? BOOLEAN_FLOOR : 4.5;
+      expect(contrastRatio(color, "#ffffff"), `light ${kind}`).toBeGreaterThanOrEqual(floor);
+      expect(contrastRatio(color, "#f0f0f0"), `light ${kind}`).toBeGreaterThanOrEqual(floor);
     }
     for (const [kind, color] of Object.entries(dark.typeForegrounds)) {
       if (kind === "unknown") continue;
-      expect(contrastRatio(color, "#131416")).toBeGreaterThanOrEqual(4.5);
-      expect(contrastRatio(color, "#28282b")).toBeGreaterThanOrEqual(4.5);
+      const floor = kind === "boolean" ? BOOLEAN_FLOOR : 4.5;
+      expect(contrastRatio(color, "#131416"), `dark ${kind}`).toBeGreaterThanOrEqual(floor);
+      expect(contrastRatio(color, "#28282b"), `dark ${kind}`).toBeGreaterThanOrEqual(floor);
     }
   });
 

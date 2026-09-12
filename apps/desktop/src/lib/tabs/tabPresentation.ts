@@ -76,7 +76,55 @@ export function isEventObjectBrowserTab(tab: QueryTab): boolean {
   return tab.mode === "objects" && (tab.objectBrowser?.initialObjectFilter === "events" || tab.objectBrowser?.eventName !== undefined || tab.objectBrowser?.eventCreateRequestId !== undefined);
 }
 
-export function tabDisplayTitle(tab: QueryTab, t: Translate): string {
+/**
+ * Visible title for a tab in the strip.
+ *
+ * `siblingTabs` is the set of every open tab, not just the tabs of one editor
+ * group: the same connection opened in two groups must still produce one
+ * continuing number series rather than two tabs that both read `conn` and
+ * `conn-1`.
+ */
+export function tabDisplayTitle(tab: QueryTab, t: Translate, siblingTabs: readonly QueryTab[]): string {
+  const title = baseTabDisplayTitle(tab, t);
+  // The oldest same-named tab keeps the bare name; each later one takes the
+  // next number, so the second is `name-1` and the third is `name-2`.
+  const ordinal = queryTabSequenceOrdinal(tab, siblingTabs);
+  return ordinal > 0 ? `${title}-${ordinal}` : title;
+}
+
+/**
+ * Position of an unnamed SQL query tab among the tabs it would otherwise share
+ * a name with: 0 for the oldest, 1 for the next, and so on.
+ *
+ * Ordering is by creation time, so the number identifies the tab even after
+ * the user drags it elsewhere in the strip or moves it to another group.
+ * Tabs that carry a name of their own — saved queries, object sources, or any
+ * non-query mode — return 0 and keep that name, because those names already
+ * distinguish them.
+ */
+function queryTabSequenceOrdinal(tab: QueryTab, siblingTabs: readonly QueryTab[]): number {
+  if (tab.mode !== "query" || queryTitle(tab)) return 0;
+  const compact = useSettingsStore().editorSettings.compactTabTitle;
+  // An unnamed query tab is titled from its connection (plus the database
+  // unless titles are compact), so those two fields decide which tabs collide.
+  const peers = siblingTabs.filter((other) => other.mode === "query" && !queryTitle(other) && other.connectionId === tab.connectionId && (compact || other.database === tab.database));
+  const ordered = [...peers].sort(compareTabCreationOrder);
+  const index = ordered.findIndex((other) => other.id === tab.id);
+  // A caller that passes a partial list (or a tab that is mid-removal) must not
+  // produce a negative suffix.
+  return index < 0 ? 0 : index;
+}
+
+function compareTabCreationOrder(a: QueryTab, b: QueryTab): number {
+  const left = a.createdAt ?? 0;
+  const right = b.createdAt ?? 0;
+  if (left !== right) return left - right;
+  // Same-millisecond creations would otherwise order by array position, which
+  // changes when the user drags a tab.
+  return a.id.localeCompare(b.id);
+}
+
+function baseTabDisplayTitle(tab: QueryTab, t: Translate): string {
   const database = databaseDisplayNameForTab(tab.connectionId, tab.database, t);
   const settingsStore = useSettingsStore();
   const compact = settingsStore.editorSettings.compactTabTitle;
@@ -538,20 +586,25 @@ export function tabIconClass(tab: QueryTab): string {
   return "text-blue-600 dark:text-blue-400";
 }
 
+/**
+ * Per-tab colour tint, keyed to the connection's colour label.
+ *
+ * The classic (Xcode-style) layout marks the active tab as a lifted block —
+ * white surface, 0.5px border, 1px shadow — so it no longer takes the inline
+ * inset underline it used to, and an uncoloured tab needs no inline style at
+ * all. A tab whose connection carries a colour still tints, because that tint
+ * is the only place the colour appears in the strip.
+ */
 export function tabColorStyle(tab: QueryTab, active: boolean, isClassic: boolean): CSSProperties | undefined {
-  const activeIndicator = "inset 0 -2px 0 color-mix(in srgb, var(--foreground) 72%, transparent)";
   const color = connectionColor(tab.connectionId);
   if (!color) {
-    if (isClassic) {
-      return active ? { "--app-tab-background": "color-mix(in srgb, var(--foreground) 18%, var(--background))", boxShadow: activeIndicator } : undefined;
-    }
+    if (isClassic) return undefined;
     return active ? { "--app-tab-background": "color-mix(in srgb, var(--foreground) 18%, var(--background))", borderColor: "var(--ring)" } : undefined;
   }
   if (isClassic) {
     return {
       "--app-tab-background": hexToRgba(color, active ? 0.24 : 0.07),
       "--app-tab-hover-background": hexToRgba(color, 0.14),
-      boxShadow: active ? activeIndicator : undefined,
     };
   }
   return {

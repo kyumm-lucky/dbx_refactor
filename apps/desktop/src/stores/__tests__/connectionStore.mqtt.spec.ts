@@ -93,14 +93,14 @@ describe("connectionStore MQTT sidebar tree", () => {
     const originalTab = queryStore.tabs.find((candidate) => candidate.id === originalTabId);
 
     expect(originalTab?.title).toBe("connection.mqttConsoleTitle");
-    expect(originalTab && tabDisplayTitle(originalTab, translate)).toBe("test-mqtt - MQTT Console");
+    expect(originalTab && tabDisplayTitle(originalTab, translate, [originalTab])).toBe("test-mqtt - MQTT Console");
 
     await setLocale("zh-CN");
     const reusedTabId = queryStore.openMqttAdmin("mqtt-1");
 
     expect(reusedTabId).toBe(originalTabId);
     expect(queryStore.tabs).toHaveLength(1);
-    expect(originalTab && tabDisplayTitle(originalTab, translate)).toBe("test-mqtt - MQTT 控制台");
+    expect(originalTab && tabDisplayTitle(originalTab, translate, [originalTab])).toBe("test-mqtt - MQTT 控制台");
 
     queryStore.closeTab(originalTabId, { force: true });
     const reopenedTabId = queryStore.openMqttAdmin("mqtt-1");
@@ -108,6 +108,6 @@ describe("connectionStore MQTT sidebar tree", () => {
 
     expect(reopenedTabId).not.toBe(originalTabId);
     expect(reopenedTab?.title).toBe("connection.mqttConsoleTitle");
-    expect(reopenedTab && tabDisplayTitle(reopenedTab, translate)).toBe("test-mqtt - MQTT 控制台");
+    expect(reopenedTab && tabDisplayTitle(reopenedTab, translate, [reopenedTab])).toBe("test-mqtt - MQTT 控制台");
   });
 });

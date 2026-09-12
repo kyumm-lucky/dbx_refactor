@@ -530,24 +530,26 @@ test("sidebar target lookup only uses the current flat visible tree", () => {
   assert.equal(findSidebarNodeForActiveTab(tab, [flat(collapsedParentOnly)]), null);
 });
 
+// The 32px row height is the sidebar source-list rhythm; the sticky header
+// occlusion is one row tall, so both values move together with the token.
 test("sidebar node scrolling keeps visible rows in place and reveals hidden rows", () => {
   assert.equal(scrollTopForSidebarNode({ index: 2, currentScrollTop: 0, viewportHeight: 140 }), 0);
-  assert.equal(scrollTopForSidebarNode({ index: 20, currentScrollTop: 0, viewportHeight: 140 }), 448);
-  assert.equal(scrollTopForSidebarNode({ index: 1, currentScrollTop: 280, viewportHeight: 140 }), 28);
-  assert.equal(scrollTopForSidebarNode({ index: 11, currentScrollTop: 300, viewportHeight: 140, topOcclusionHeight: 28 }), 280);
+  assert.equal(scrollTopForSidebarNode({ index: 20, currentScrollTop: 0, viewportHeight: 140 }), 532);
+  assert.equal(scrollTopForSidebarNode({ index: 1, currentScrollTop: 280, viewportHeight: 140 }), 32);
+  assert.equal(scrollTopForSidebarNode({ index: 11, currentScrollTop: 300, viewportHeight: 140, topOcclusionHeight: 32 }), 300);
 });
 
 test("sidebar node scrolling supports top and smart locate alignment", () => {
-  assert.equal(scrollTopForSidebarNode({ index: 20, currentScrollTop: 0, viewportHeight: 140, align: "top" }), 560);
-  assert.equal(scrollTopForSidebarNode({ index: 20, currentScrollTop: 0, viewportHeight: 140, align: "smart" }), 523);
-  assert.equal(scrollTopForSidebarNode({ index: 11, currentScrollTop: 300, viewportHeight: 140, topOcclusionHeight: 28, align: "smart" }), 252);
-  assert.equal(scrollTopForSidebarNode({ index: 0, currentScrollTop: 300, viewportHeight: 140, topOcclusionHeight: 28, align: "smart" }), 0);
+  assert.equal(scrollTopForSidebarNode({ index: 20, currentScrollTop: 0, viewportHeight: 140, align: "top" }), 640);
+  assert.equal(scrollTopForSidebarNode({ index: 20, currentScrollTop: 0, viewportHeight: 140, align: "smart" }), 604);
+  assert.equal(scrollTopForSidebarNode({ index: 11, currentScrollTop: 300, viewportHeight: 140, topOcclusionHeight: 32, align: "smart" }), 295);
+  assert.equal(scrollTopForSidebarNode({ index: 0, currentScrollTop: 300, viewportHeight: 140, topOcclusionHeight: 32, align: "smart" }), 0);
 });
 
 test("sidebar node scrolling centers explicit tab locate with sticky and boundary clamping", () => {
-  assert.equal(scrollTopForSidebarNode({ index: 20, currentScrollTop: 0, viewportHeight: 140, align: "center" }), 504);
-  assert.equal(scrollTopForSidebarNode({ index: 11, currentScrollTop: 0, viewportHeight: 140, topOcclusionHeight: 28, align: "center" }), 238);
-  assert.equal(scrollTopForSidebarNode({ index: 0, currentScrollTop: 300, viewportHeight: 140, topOcclusionHeight: 28, align: "center" }), 0);
+  assert.equal(scrollTopForSidebarNode({ index: 20, currentScrollTop: 0, viewportHeight: 140, align: "center" }), 586);
+  assert.equal(scrollTopForSidebarNode({ index: 11, currentScrollTop: 0, viewportHeight: 140, topOcclusionHeight: 32, align: "center" }), 282);
+  assert.equal(scrollTopForSidebarNode({ index: 0, currentScrollTop: 300, viewportHeight: 140, topOcclusionHeight: 32, align: "center" }), 0);
   assert.equal(scrollTopForSidebarNode({ index: 20, currentScrollTop: 0, viewportHeight: 140, scrollHeight: 588, align: "center" }), 448);
 });
 

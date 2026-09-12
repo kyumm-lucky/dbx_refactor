@@ -380,7 +380,7 @@ async function changeCatalog(selectedCatalog: string) {
 </script>
 
 <template>
-  <div ref="toolbarRootRef" class="app-editor-toolbar h-9 shrink-0 border-b bg-background/80 px-3 flex items-center gap-1 text-xs text-muted-foreground relative z-10 overflow-hidden" :style="toolbarStyle">
+  <div ref="toolbarRootRef" class="app-editor-toolbar shrink-0 border-b bg-background/80 px-3 flex items-center gap-1 text-xs text-muted-foreground relative z-10 overflow-hidden" :style="toolbarStyle">
     <div class="flex items-center gap-0.5">
       <Tooltip>
         <TooltipTrigger as-child>

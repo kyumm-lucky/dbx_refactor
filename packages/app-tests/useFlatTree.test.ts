@@ -119,8 +119,10 @@ test("shouldVirtualizeFlatTree keeps small/medium trees on the plain renderer", 
 });
 
 test("sidebar virtual tree keeps enough buffered rows for fast scrolling", () => {
-  assert.equal(SIDEBAR_TREE_ROW_HEIGHT, 28);
-  assert.equal(SIDEBAR_TREE_SCROLL_BUFFER, 600);
+  assert.equal(SIDEBAR_TREE_ROW_HEIGHT, 32);
+  assert.equal(SIDEBAR_TREE_SCROLL_BUFFER, 640);
+  // The buffer is a pixel budget, so it has to scale with the row height to
+  // keep covering the same number of rows of overscan.
   assert.ok(SIDEBAR_TREE_SCROLL_BUFFER >= SIDEBAR_TREE_ROW_HEIGHT * 20);
 });
 

@@ -20,7 +20,7 @@ const props = withDefaults(
 
 const host = ref<HTMLElement | null>(null);
 const settingsStore = useSettingsStore();
-const { isDark, themePalette } = useTheme();
+const { isDark } = useTheme();
 let view: EditorView | null = null;
 let generation = 0;
 
@@ -38,7 +38,7 @@ async function mount() {
   view?.destroy();
   view = null;
   const format = resolveNacosConfigFormat(props.format, props.dataId);
-  const [language, theme] = await Promise.all([loadNacosConfigLanguage(format), loadEditorTheme(settingsStore.editorSettings.theme, isDark.value ? "dark" : "light", currentCustomThemeColors(), themePalette.value)]);
+  const [language, theme] = await Promise.all([loadNacosConfigLanguage(format), loadEditorTheme(settingsStore.editorSettings.theme, isDark.value ? "dark" : "light", currentCustomThemeColors())]);
   if (currentGeneration !== generation || target !== host.value) return;
   const state = EditorState.create({
     doc: props.content,

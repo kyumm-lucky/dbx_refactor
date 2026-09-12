@@ -5755,7 +5755,6 @@ let valueDetailEditor: UseCellDetailEditorReturn | null = null;
 
 const editorThemeAccessor = () => settingsStore.editorSettings.theme;
 const editorAppAppearance = () => (isDark.value ? "dark" : "light") as import("@/lib/app/appTheme").AppThemeAppearance;
-const editorAppPalette = () => themePalette.value;
 const editorFontSize = () => settingsStore.editorSettings.fontSize;
 const detailEditorFontFamily = () => tableFontFamily.value;
 const SIDE_DETAIL_EDITOR_MIN_HEIGHT = 160;
@@ -5785,7 +5784,6 @@ watch(valueEditorContainer, async (el) => {
       },
       editorTheme: editorThemeAccessor,
       appAppearance: editorAppAppearance,
-      appPalette: editorAppPalette,
       fontSize: editorFontSize,
       fontFamily: detailEditorFontFamily,
     });
@@ -6226,8 +6224,8 @@ function dataGridRowStyle(item: RowItem): CSSProperties {
             ? "rgb(51, 51, 55)"
             : "rgb(243, 243, 243)"
           : dark
-            ? "rgb(19, 20, 22)"
-            : "rgb(255, 255, 255)";
+            ? "var(--dbx-content, rgb(30, 30, 32))"
+            : "var(--background, rgb(255, 255, 255))";
   const rowNumberBg =
     item.status === "new"
       ? dark
@@ -8282,7 +8280,7 @@ function currentSelectedCellPosition() {
   return { rowIndex: range.startRow, colIndex: range.startCol };
 }
 
-const DOM_DATA_GRID_ROW_HEIGHT = 26;
+const DOM_DATA_GRID_ROW_HEIGHT = 28;
 
 function scrollCellIntoView(rowIndex: number, colIndex: number, block: DataGridScrollAlignment = "nearest", previousPageRowIndex?: number) {
   if (isTransposeMode.value) {
@@ -8477,7 +8475,7 @@ function moveSelectedCell(rowDelta: number, colDelta: number, extend = false): b
 
 // Rows moved by a single PageUp/PageDown, i.e. one viewport worth of rows.
 // Canvas mode computes this from its fixed row height; the DOM virtual scroller reuses the same
-// approximate row height (26px) that scrollGridRowIntoView relies on.
+// approximate row height (28px) that scrollGridRowIntoView relies on.
 function gridPageRowCount(): number {
   const canvasMode = useCanvasGridRows.value;
   const scroller = canvasMode ? canvasScrollerElement() : gridScrollerElement();
@@ -11873,7 +11871,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                           autocapitalize="off"
                           autocorrect="off"
                           spellcheck="false"
-                          class="cell-edit-input absolute inset-0 bg-background border-2 border-primary px-1.5 py-0 leading-[26px] outline-none z-10"
+                          class="cell-edit-input absolute inset-0 bg-background border-2 border-primary px-1.5 py-0 leading-[28px] outline-none z-10"
                           @blur="commitEditFromCellBlur"
                           @click.stop
                           @input="onCellEditTextareaInput"
@@ -12647,7 +12645,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                 >
                   <template #default="{ item }">
                     <div
-                      class="data-grid-row flex border-b border-border h-6.5 w-(--total-w)"
+                      class="data-grid-row flex border-b border-border h-7 w-(--total-w)"
                       :class="{
                         'data-grid-row--deleted opacity-70': item.isDeleted,
                         'data-grid-row--new': item.isNew && !isRowActive(item.displayIndex),
@@ -13527,7 +13525,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
   --data-grid-scrollbar-thumb: rgb(82, 82, 91);
   --data-grid-scrollbar-thumb-hover: rgb(113, 113, 122);
   --data-grid-scrollbar-track: rgb(24, 24, 27);
-  background-color: rgb(19, 20, 22);
+  background-color: var(--dbx-content);
 }
 
 [data-grid-root].data-grid--dark.data-grid--has-save-error,
@@ -13578,6 +13576,26 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
 
 .data-grid-header-cell {
   background-color: rgb(239, 239, 239);
+}
+
+/*
+ * Column headers are metadata: 24px tall at 11px/600 in the weak text colour,
+ * so the data below owns the contrast. Scoped to the column header row rather
+ * than to `.data-grid-header-cell` alone, because the transpose header reuses
+ * that class for record labels and keeps its own sizing.
+ */
+.data-grid-header-row {
+  color: var(--muted-foreground);
+}
+
+.data-grid-header-row .data-grid-header-cell {
+  box-sizing: border-box;
+  display: flex;
+  height: 24px;
+  align-items: center;
+  padding-block: 0;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 [data-grid-root].data-grid--dark .data-grid-header-cell,
@@ -13751,12 +13769,12 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
 
 [data-grid-root].data-grid--dark .canvas-grid-scroller,
 :global(.dark) [data-grid-root] .canvas-grid-scroller {
-  background-color: rgb(19, 20, 22) !important;
+  background-color: var(--dbx-content) !important;
 }
 
 [data-grid-root].data-grid--dark .canvas-grid-scroller.has-horizontal-scrollbar,
 :global(.dark) [data-grid-root] .canvas-grid-scroller.has-horizontal-scrollbar {
-  box-shadow: 0 10px 0 0 rgb(19, 20, 22);
+  box-shadow: 0 10px 0 0 var(--dbx-content);
 }
 
 .data-grid-scroller.has-horizontal-scrollbar:not(.canvas-grid-scroller) {
@@ -13769,7 +13787,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
 
 [data-grid-root].data-grid--dark .data-grid-scroller:not(.canvas-grid-scroller),
 :global(.dark) [data-grid-root] .data-grid-scroller:not(.canvas-grid-scroller) {
-  background-color: rgb(19, 20, 22) !important;
+  background-color: var(--dbx-content) !important;
 }
 
 .data-grid-scroller:not(.canvas-grid-scroller) :deep(.vue-recycle-scroller__item-wrapper),
@@ -13781,7 +13799,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
 [data-grid-root].data-grid--dark .data-grid-scroller:not(.canvas-grid-scroller) :deep(.vue-recycle-scroller__item-view),
 :global(.dark) [data-grid-root] .data-grid-scroller:not(.canvas-grid-scroller) :deep(.vue-recycle-scroller__item-wrapper),
 :global(.dark) [data-grid-root] .data-grid-scroller:not(.canvas-grid-scroller) :deep(.vue-recycle-scroller__item-view) {
-  background-color: rgb(19, 20, 22) !important;
+  background-color: var(--dbx-content) !important;
 }
 
 .data-grid-scroller :deep(.vue-recycle-scroller__item-wrapper) {
@@ -13791,7 +13809,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
 
 [data-grid-root].data-grid--dark .data-grid-scroller :deep(.vue-recycle-scroller__item-wrapper),
 [data-grid-root].data-grid--dark .data-grid-scroller :deep(.vue-recycle-scroller__item-view) {
-  background-color: rgb(19, 20, 22) !important;
+  background-color: var(--dbx-content) !important;
 }
 
 .data-grid-scroller :deep(.vue-recycle-scroller__item-view) {
@@ -13827,7 +13845,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
 
 [data-grid-root].data-grid--dark .data-grid-horizontal-scrollbar,
 :global(.dark) [data-grid-root] .data-grid-horizontal-scrollbar {
-  background-color: rgb(19, 20, 22) !important;
+  background-color: var(--dbx-content) !important;
 }
 
 .data-grid-horizontal-scrollbar::before {
@@ -13895,7 +13913,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
 }
 
 :global(.dark) [data-grid-root] .data-grid-vertical-scrollbar {
-  background-color: rgb(19, 20, 22);
+  background-color: var(--dbx-content);
 }
 
 .data-grid-vertical-scrollbar__thumb {
@@ -14250,7 +14268,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
 }
 
 .ddl-code :deep(.ddl-search-match) {
-  border-radius: 2px;
+  border-radius: var(--dbx-radius-2xs);
   background: var(--data-grid-cell-search-bg);
   color: inherit;
   padding: 0;

@@ -1,7 +1,13 @@
 import type { TreeNode, TreeNodeType } from "@/types/database";
 
-export const SIDEBAR_TREE_ROW_HEIGHT = 28;
-export const SIDEBAR_TREE_SCROLL_BUFFER = 600;
+// Sidebar rows follow the macOS source-list rhythm (32px, 16px indent).
+// Scroll offsets, sticky headers and the virtualizer all derive from this, so
+// it stays the single source for row geometry.
+export const SIDEBAR_TREE_ROW_HEIGHT = 32;
+// Sized in pixels against the row height so the buffer always covers about
+// twenty rows of overscan; it is what keeps fast wheel scrolling from showing
+// blank rows before the virtualizer catches up.
+export const SIDEBAR_TREE_SCROLL_BUFFER = 640;
 export const SIDEBAR_TREE_PRERENDER_COUNT = 48;
 
 /**

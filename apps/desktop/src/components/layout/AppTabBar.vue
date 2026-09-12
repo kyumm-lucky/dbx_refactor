@@ -67,7 +67,7 @@ const showCloseConfirmBulkActions = computed(() => closeConfirmDirtyCount.value 
 const closeConfirmDirtyTabs = computed(() => queryStore.closeConfirmDirtyTabIds.map((id) => queryStore.tabs.find((tab) => tab.id === id)).filter((tab): tab is NonNullable<ReturnType<typeof queryStore.tabs.find>> => !!tab));
 const closeConfirmCurrentTitle = computed(() => {
   const focusedTab = closeConfirmDirtyTabs.value.find((tab) => tab.id === queryStore.pendingCloseTabId) ?? closeConfirmDirtyTabs.value[0];
-  return focusedTab ? tabDisplayTitle(focusedTab, t) : "";
+  return focusedTab ? tabDisplayTitle(focusedTab, t, queryStore.tabs) : "";
 });
 const closeConfirmMessage = computed(() => {
   const params = {
@@ -235,7 +235,7 @@ function handleCancelClose() {
               <div v-for="tab in closeConfirmDirtyTabs" :key="tab.id" class="flex min-w-0 items-center gap-2 rounded-[6px] px-2 py-1.5 text-sm" :class="tab.id === queryStore.pendingCloseTabId ? 'bg-muted text-foreground' : 'text-muted-foreground'">
                 <span class="h-1.5 w-1.5 shrink-0 rounded-full" :class="tab.id === queryStore.pendingCloseTabId ? 'bg-foreground' : 'bg-muted-foreground/50'" />
                 <span class="min-w-0 truncate">
-                  {{ tabDisplayTitle(tab, t) }}
+                  {{ tabDisplayTitle(tab, t, queryStore.tabs) }}
                 </span>
               </div>
             </div>
