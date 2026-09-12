@@ -134,6 +134,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.rel.outputs.tag }}
+          TAG_EXISTS: ${{ steps.rel.outputs.exists }}
           VERSION: ${{ steps.ver.outputs.version }}
         shell: bash
         run: |
@@ -181,6 +182,16 @@ jobs:
               notes = notes.replace(token, value)
           path.write_text(notes, encoding="utf-8")
           PY
+          # A release does not reliably create a missing tag, and the later
+          # upload/edit steps resolve the release by tag name, so create the tag
+          # explicitly when the manual run named a new one.
+          if [ "${TAG_EXISTS}" = "true" ]; then
+            echo "Tag ${TAG} already exists."
+          else
+            echo "Creating tag ${TAG} at ${GITHUB_SHA}."
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f "ref=refs/tags/${TAG}" -f "sha=${GITHUB_SHA}" >/dev/null
+          fi
           if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
             echo "Release ${TAG} already exists; the dmg asset will be replaced."
           else
