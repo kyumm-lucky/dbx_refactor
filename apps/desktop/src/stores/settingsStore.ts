@@ -763,6 +763,7 @@ export interface EditorSettings {
   showStatementRunButtons: boolean;
   showLineNumbers: boolean;
   showCurrentStatementFrame: boolean;
+  editorDefaultsMigrationVersion: number;
   showInsertValueHints: boolean;
   autoAliasTables: boolean;
   insertSpaceAfterCompletion: boolean;
@@ -800,6 +801,7 @@ export interface EditorSettings {
   mongoViewMode: "document" | "table";
   showColumnCommentsInHeader: boolean;
   showColumnTypesInHeader: boolean;
+  columnHeaderMetadataMigrationVersion: number;
   dataGridShowTransposeFieldMetadata: boolean;
   colorizeDataGridCellTypes: boolean;
   dataGridTypeColorSchemes: DataGridTypeColorScheme[];
@@ -978,6 +980,12 @@ const EDITOR_THEME_VALUES = new Set<EditorTheme>(EDITOR_THEMES.map((theme) => th
 
 export const EXECUTE_MODE_CURRENT_DEFAULT_VERSION = 1;
 export const SIDEBAR_BROWSE_OBJECTS_MIGRATION_VERSION = 1;
+// 表头默认只显示字段名：旧配置里已持久化的“显示类型/注释”在此版本一次性对齐，
+// 用户之后仍可在设置中重新打开。
+export const COLUMN_HEADER_METADATA_MIGRATION_VERSION = 1;
+// 编辑器外观默认值（当前语句绿色边框默认关闭、关键字默认小写）在此版本一次性对齐，
+// 用户之后仍可在设置里改回来。
+export const EDITOR_DEFAULTS_MIGRATION_VERSION = 1;
 
 export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
   fontFamily: "'Fira Code', 'Cascadia Code', 'Cascadia Mono', 'JetBrains Mono', monospace",
@@ -1000,8 +1008,9 @@ export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
   showExecutionTargetPicker: false,
   showStatementRunButtons: true,
   showLineNumbers: true,
-  showCurrentStatementFrame: true,
+  showCurrentStatementFrame: false,
   showInsertValueHints: true,
+  editorDefaultsMigrationVersion: EDITOR_DEFAULTS_MIGRATION_VERSION,
   autoAliasTables: true,
   insertSpaceAfterCompletion: true,
   sortCompletionColumnsAlphabetically: true,
@@ -1035,8 +1044,9 @@ export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
   regexMaxMatchCount: 1000,
   autoCalculateTotalRows: false,
   mongoViewMode: "document",
-  showColumnCommentsInHeader: true,
-  showColumnTypesInHeader: true,
+  showColumnCommentsInHeader: false,
+  showColumnTypesInHeader: false,
+  columnHeaderMetadataMigrationVersion: COLUMN_HEADER_METADATA_MIGRATION_VERSION,
   dataGridShowTransposeFieldMetadata: false,
   colorizeDataGridCellTypes: false,
   dataGridTypeColorSchemes: [],
@@ -1066,7 +1076,7 @@ export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
   numericColumnRightAlign: true,
   tableFontFamily: DEFAULT_DATA_GRID_FONT_FAMILY,
   tableFontSize: TABLE_FONT_SIZE_DEFAULT,
-  structureEditorDensity: "compact",
+  structureEditorDensity: "standard",
   tableInfoActiveTab: "ddl",
   tableInfoDrawerPinned: false,
   tableInfoDrawerWidth: 320,
@@ -1075,7 +1085,8 @@ export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
   cellDetailJsonFormatted: false,
   cellDetailMetadataCollapsed: false,
   shortcuts: normalizeShortcutSettings(),
-  sqlFormatter: normalizeSqlFormatterSettings(DEFAULT_SQL_FORMATTER_SETTINGS),
+  // 应用默认用小写关键字（库内不传设置时的兜底仍是大写）。
+  sqlFormatter: { ...normalizeSqlFormatterSettings(DEFAULT_SQL_FORMATTER_SETTINGS), keywordCase: "lower" },
   sidebarActivation: "single",
   sidebarConnectionSortMode: "manual",
   sidebarObjectDisplay: "grouped",
@@ -1392,6 +1403,10 @@ export function normalizeEditorSettings(settings: Partial<EditorSettings>, exist
   const legacyTimeoutSettings = settings as Partial<EditorSettings> & { queryTimeoutSecs?: unknown; queryTimeoutInheritanceMigrationVersion?: unknown };
   const legacySidebarOpenDatabaseOnSingleClick = (settings as Partial<EditorSettings> & { sidebarOpenDatabaseOnSingleClick?: unknown }).sidebarOpenDatabaseOnSingleClick;
   const legacyDataGridAutoHideFilterBuilder = (settings as Partial<EditorSettings> & { dataGridAutoHideFilterBuilder?: unknown }).dataGridAutoHideFilterBuilder;
+  const savedEditorDefaultsMigrationVersion = settings.editorDefaultsMigrationVersion;
+  const needsEditorDefaultsMigration = typeof savedEditorDefaultsMigrationVersion !== "number" || savedEditorDefaultsMigrationVersion < EDITOR_DEFAULTS_MIGRATION_VERSION;
+  const savedColumnHeaderMetadataMigrationVersion = settings.columnHeaderMetadataMigrationVersion;
+  const needsColumnHeaderMetadataMigration = typeof savedColumnHeaderMetadataMigrationVersion !== "number" || savedColumnHeaderMetadataMigrationVersion < COLUMN_HEADER_METADATA_MIGRATION_VERSION;
   const hasDataGridKeepFilterEditorExpanded = Object.prototype.hasOwnProperty.call(settings, "dataGridKeepFilterEditorExpanded");
   const sqlSemanticDiagnosticsMode = normalizeSqlSemanticDiagnosticsMode(settings.sqlSemanticDiagnosticsMode, settings.sqlSemanticDiagnosticsEnabled);
   const savedExecuteModeDefaultVersion = settings.executeModeDefaultVersion;
@@ -1458,7 +1473,8 @@ export function normalizeEditorSettings(settings: Partial<EditorSettings>, exist
     showExecutionTargetPicker: settings.showExecutionTargetPicker ?? DEFAULT_EDITOR_SETTINGS.showExecutionTargetPicker,
     showStatementRunButtons: typeof settings.showStatementRunButtons === "boolean" ? settings.showStatementRunButtons : DEFAULT_EDITOR_SETTINGS.showStatementRunButtons,
     showLineNumbers: typeof settings.showLineNumbers === "boolean" ? settings.showLineNumbers : DEFAULT_EDITOR_SETTINGS.showLineNumbers,
-    showCurrentStatementFrame: typeof settings.showCurrentStatementFrame === "boolean" ? settings.showCurrentStatementFrame : DEFAULT_EDITOR_SETTINGS.showCurrentStatementFrame,
+    showCurrentStatementFrame: needsEditorDefaultsMigration ? false : typeof settings.showCurrentStatementFrame === "boolean" ? settings.showCurrentStatementFrame : DEFAULT_EDITOR_SETTINGS.showCurrentStatementFrame,
+    editorDefaultsMigrationVersion: EDITOR_DEFAULTS_MIGRATION_VERSION,
     showInsertValueHints: typeof settings.showInsertValueHints === "boolean" ? settings.showInsertValueHints : DEFAULT_EDITOR_SETTINGS.showInsertValueHints,
     autoAliasTables: settings.autoAliasTables ?? DEFAULT_EDITOR_SETTINGS.autoAliasTables,
     insertSpaceAfterCompletion: typeof settings.insertSpaceAfterCompletion === "boolean" ? settings.insertSpaceAfterCompletion : DEFAULT_EDITOR_SETTINGS.insertSpaceAfterCompletion,
@@ -1493,8 +1509,9 @@ export function normalizeEditorSettings(settings: Partial<EditorSettings>, exist
     regexMaxMatchCount: typeof settings.regexMaxMatchCount === "number" && Number.isFinite(settings.regexMaxMatchCount) && settings.regexMaxMatchCount >= 100 && settings.regexMaxMatchCount <= 10000 ? Math.round(settings.regexMaxMatchCount) : DEFAULT_EDITOR_SETTINGS.regexMaxMatchCount,
     autoCalculateTotalRows: settings.autoCalculateTotalRows ?? DEFAULT_EDITOR_SETTINGS.autoCalculateTotalRows,
     mongoViewMode: settings.mongoViewMode === "table" ? "table" : DEFAULT_EDITOR_SETTINGS.mongoViewMode,
-    showColumnCommentsInHeader: settings.showColumnCommentsInHeader ?? DEFAULT_EDITOR_SETTINGS.showColumnCommentsInHeader,
-    showColumnTypesInHeader: settings.showColumnTypesInHeader ?? DEFAULT_EDITOR_SETTINGS.showColumnTypesInHeader,
+    showColumnCommentsInHeader: needsColumnHeaderMetadataMigration ? false : (settings.showColumnCommentsInHeader ?? DEFAULT_EDITOR_SETTINGS.showColumnCommentsInHeader),
+    showColumnTypesInHeader: needsColumnHeaderMetadataMigration ? false : (settings.showColumnTypesInHeader ?? DEFAULT_EDITOR_SETTINGS.showColumnTypesInHeader),
+    columnHeaderMetadataMigrationVersion: COLUMN_HEADER_METADATA_MIGRATION_VERSION,
     dataGridShowTransposeFieldMetadata: settings.dataGridShowTransposeFieldMetadata === true,
     colorizeDataGridCellTypes: settings.colorizeDataGridCellTypes ?? DEFAULT_EDITOR_SETTINGS.colorizeDataGridCellTypes,
     dataGridTypeColorSchemes,
@@ -1533,7 +1550,7 @@ export function normalizeEditorSettings(settings: Partial<EditorSettings>, exist
     cellDetailJsonFormatted: typeof settings.cellDetailJsonFormatted === "boolean" ? settings.cellDetailJsonFormatted : DEFAULT_EDITOR_SETTINGS.cellDetailJsonFormatted,
     cellDetailMetadataCollapsed: typeof settings.cellDetailMetadataCollapsed === "boolean" ? settings.cellDetailMetadataCollapsed : DEFAULT_EDITOR_SETTINGS.cellDetailMetadataCollapsed,
     shortcuts: normalizeShortcutSettings(settings.shortcuts),
-    sqlFormatter: normalizeSqlFormatterSettings(settings.sqlFormatter),
+    sqlFormatter: needsEditorDefaultsMigration ? { ...normalizeSqlFormatterSettings(settings.sqlFormatter), keywordCase: "lower" } : normalizeSqlFormatterSettings(settings.sqlFormatter),
     sidebarActivation: settings.sidebarActivation === "single" || settings.sidebarActivation === "double" ? settings.sidebarActivation : DEFAULT_EDITOR_SETTINGS.sidebarActivation,
     sidebarConnectionSortMode: normalizeConnectionListSortMode(settings.sidebarConnectionSortMode),
     sidebarObjectDisplay: settings.sidebarObjectDisplay === "simple" || settings.sidebarObjectDisplay === "grouped" ? settings.sidebarObjectDisplay : DEFAULT_EDITOR_SETTINGS.sidebarObjectDisplay,

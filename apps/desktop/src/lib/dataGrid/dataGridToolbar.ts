@@ -4,7 +4,7 @@ const DATA_GRID_COMPACT_TOPBAR_VIEWPORT_RATIO = 0.75;
 const DATA_GRID_TOOLBAR_ACTION_COLLAPSE_STEP = 40;
 export const DATA_GRID_CONDITION_TOOLBAR_MIN_WIDTH = DATA_GRID_COMPACT_TOPBAR_MAX_WIDTH;
 
-export const DATA_GRID_TOOLBAR_ACTION_COLLAPSE_ORDER = ["refresh", "autoRefresh", "navigation", "copyData", "addRow", "deleteRow", "exportData", "transpose", "tableInfo", "layerPreview", "preview", "save", "rollback"] as const;
+export const DATA_GRID_TOOLBAR_ACTION_COLLAPSE_ORDER = ["refresh", "navigation", "copyData", "addRow", "deleteRow", "exportData", "transpose", "tableInfo", "layerPreview", "preview", "save", "rollback"] as const;
 
 export type DataGridToolbarActionKey = (typeof DATA_GRID_TOOLBAR_ACTION_COLLAPSE_ORDER)[number];
 
@@ -95,21 +95,6 @@ export interface DataGridToolbarAddRowCapability {
   onSelect: (value: string) => void | Promise<void>;
 }
 
-export interface DataGridToolbarAutoRefreshCapability {
-  label: string;
-  shortLabel: string;
-  startLabel: string;
-  stopLabel: string;
-  visible?: boolean;
-  disabled?: boolean;
-  enabled: boolean;
-  intervalSeconds: number;
-  intervalOptions: readonly number[];
-  intervalLabel: (seconds: number) => string;
-  onToggle: () => void | Promise<void>;
-  onSelectInterval: (seconds: number) => void | Promise<void>;
-}
-
 export function isDataGridToolbarCapabilityVisible(capability: { visible?: boolean } | undefined): boolean {
   return !!capability && capability.visible !== false;
 }
@@ -121,24 +106,6 @@ export function isDataGridToolbarCapabilityDisabled(capability: { disabled?: boo
 export async function triggerDataGridToolbarAction(capability: DataGridToolbarActionCapability | undefined): Promise<boolean> {
   if (!capability || !isDataGridToolbarCapabilityVisible(capability) || isDataGridToolbarCapabilityDisabled(capability)) return false;
   await capability.onTrigger();
-  return true;
-}
-
-export function dataGridToolbarIntervalOptions(intervalOptions: readonly number[], currentIntervalSeconds: number): number[] {
-  // Keep a persisted custom interval selectable even when it is not in today's preset list.
-  return [...new Set([...intervalOptions, currentIntervalSeconds].filter((seconds) => Number.isInteger(seconds) && seconds > 0))].sort((left, right) => left - right);
-}
-
-export async function toggleDataGridToolbarAutoRefresh(capability: DataGridToolbarAutoRefreshCapability | undefined): Promise<boolean> {
-  if (!capability || !isDataGridToolbarCapabilityVisible(capability) || isDataGridToolbarCapabilityDisabled(capability)) return false;
-  await capability.onToggle();
-  return true;
-}
-
-export async function selectDataGridToolbarAutoRefreshInterval(capability: DataGridToolbarAutoRefreshCapability | undefined, seconds: number): Promise<boolean> {
-  if (!capability || !isDataGridToolbarCapabilityVisible(capability) || isDataGridToolbarCapabilityDisabled(capability)) return false;
-  if (!dataGridToolbarIntervalOptions(capability.intervalOptions, capability.intervalSeconds).includes(seconds)) return false;
-  await capability.onSelectInterval(seconds);
   return true;
 }
 

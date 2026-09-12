@@ -1082,6 +1082,9 @@ export interface TableNameFilter {
 
 export type TableInfoTab = "columns" | "indexes" | "foreignKeys" | "constraints" | "triggers" | "ddl";
 
+/** Top-level view of a data-table tab: the editable structure surface or the row grid. */
+export type DataTableTabView = "structure" | "data";
+
 export interface TableStructureEditorTarget {
   kind: "column" | "index";
   name: string;
@@ -1312,6 +1315,8 @@ export interface QueryTab {
   structureInitialTabRequestId?: number;
   structureInitialTarget?: TableStructureEditorTarget;
   structureDraft?: TableStructureEditorDraft;
+  /** Data-table tabs only: which top-level view is showing. Undefined means the default (structure). */
+  tableView?: DataTableTabView;
   objectBrowser?: {
     catalog?: string;
     schema?: string;

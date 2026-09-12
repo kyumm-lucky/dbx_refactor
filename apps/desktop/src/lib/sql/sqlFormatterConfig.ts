@@ -65,6 +65,8 @@ export interface SqlFormatterConfigFile {
 
 export type SqlFormatterConfigParseResult = { ok: true; settings: SqlFormatterSettings } | { ok: false; message: string };
 
+// 库内不传设置时的兜底：保持历史上的大写关键字。
+// 应用侧默认值见 settingsStore 的 DEFAULT_EDITOR_SETTINGS.sqlFormatter（小写）。
 export const DEFAULT_SQL_FORMATTER_SETTINGS: SqlFormatterSettings = {
   keywordCase: "upper",
   dataTypeCase: "preserve",

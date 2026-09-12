@@ -31,6 +31,13 @@ function functionBody(source: string, name: string, nextName: string): string {
   return start >= 0 && end > start ? source.slice(start, end) : "";
 }
 
+/** Row-detail dialog table: from the row table up to the column-detail dialog. */
+function rowDetailTableSource(): string {
+  const start = detailDialogsSource.indexOf('<table class="w-full min-w-[560px] text-xs">');
+  const end = detailDialogsSource.indexOf('<Dialog v-model:open="columnOpen">', start);
+  return start >= 0 && end > start ? detailDialogsSource.slice(start, end) : "";
+}
+
 describe("DataGrid detail navigation index", () => {
   it("follows the supplied displayed order instead of deriving neighboring ids", () => {
     const displayedRows = [42, 7, 99];
@@ -128,5 +135,37 @@ describe("DataGrid detail keyboard safety", () => {
     expect(detailDialogsSource).toContain('@open-auto-focus="focusDetailDialogContentOnOpen"');
     expect(detailDialogsSource).toContain('tabindex="-1"');
     expect(detailDialogsSource).toContain("function focusDetailDialogContentOnOpen(event: Event) {");
+  });
+});
+
+describe("DataGrid row detail list layout", () => {
+  it("keeps the row-detail list to the two agreed columns", () => {
+    const rowTable = rowDetailTableSource();
+    expect(rowTable).not.toBe("");
+
+    expect(rowTable.match(/<th\b/g)).toHaveLength(2);
+    expect(rowTable).toContain('t("grid.columnName")');
+    expect(rowTable).toContain('t("grid.cellValue")');
+    // 序号、字段类型、长度/NULL 元信息、独立的复制列都不再出现在行详情里。
+    expect(rowTable).not.toContain('t("grid.fieldIndex")');
+    expect(rowTable).not.toContain("typeColorClass");
+    expect(rowTable).not.toContain('t("grid.valueLength")');
+    expect(rowTable).not.toContain('t("grid.nullValue")');
+    expect(rowTable).not.toContain("tabular-nums");
+  });
+
+  it("keeps the value column borderless and drops the per-field copy button", () => {
+    const rowTable = rowDetailTableSource();
+
+    // 单字段复制按钮已去掉（复制整行仍走底部按钮）。
+    expect(rowTable).not.toContain('@click="copyRowDetailFieldValue(field)"');
+    expect(rowTable).not.toContain("group-hover/row-detail");
+    // 值直接显示，不加边框/底色。
+    expect(rowTable).not.toContain("border-input");
+    expect(rowTable).not.toMatch(/class="dbx-data-grid-value-font[^"]*\bborder\b/);
+    // 值列仍保留大值预览截断提示、格式化 JSON 与图片预览。
+    expect(rowTable).toContain("field.rawValuePreview");
+    expect(rowTable).toContain("field.formattedJson");
+    expect(rowTable).toContain("field.imagePreviewUrl");
   });
 });

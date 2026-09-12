@@ -76,38 +76,36 @@ function onColumnDetailKeydown(event: KeyboardEvent) {
         <span class="whitespace-nowrap">{{ t("grid.columnsCount", { count: rowDetail.fields.length }) }}</span>
         <div class="relative ml-auto w-56 max-w-full"><Search class="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" /><Input v-model="rowSearch" :placeholder="t('grid.detailSearchPlaceholder')" class="h-7 pl-7 text-xs" /></div>
       </div>
+      <!-- 行详情只保留“字段名 / 字段值”两列（不显示序号、类型、长度/NULL 元信息），
+           其余细节（类型、长度、NULL）可回到网格或列详情查看，保持列表简洁。 -->
       <div class="min-h-0 flex-1 overflow-auto rounded border">
-        <table class="w-full min-w-[640px] text-xs">
+        <table class="w-full min-w-[560px] text-xs">
           <thead class="sticky top-0 z-10 bg-muted text-muted-foreground">
             <tr class="border-b">
-              <th class="w-16 px-3 py-2 text-left font-medium">{{ t("grid.fieldIndex") }}</th>
-              <th class="w-56 px-3 py-2 text-left font-medium">{{ t("grid.columnName") }}</th>
+              <th class="w-[280px] px-3 py-2 text-left font-medium">{{ t("grid.columnName") }}</th>
               <th class="px-3 py-2 text-left font-medium">{{ t("grid.cellValue") }}</th>
-              <th class="w-10 px-2 py-2" />
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(field, index) in filteredRowFields" :key="`${field.colIndex}:${field.column}`" class="border-b align-top last:border-b-0">
-              <td class="px-3 py-2 text-muted-foreground tabular-nums">{{ index + 1 }}</td>
+            <tr v-for="field in filteredRowFields" :key="`${field.colIndex}:${field.column}`" class="border-b align-top last:border-b-0">
               <td class="px-3 py-2">
-                <div class="font-medium break-words">{{ field.column }}</div>
-                <div :class="field.type ? typeColorClass(field.type) : 'text-muted-foreground'" class="mt-1 text-[11px]">{{ field.type || "-" }}</div>
-                <div v-if="field.comment" class="mt-1 text-[11px] text-muted-foreground whitespace-pre-wrap">{{ field.comment }}</div>
+                <div class="break-words font-medium">{{ field.column }}</div>
+                <div v-if="field.comment" class="mt-0.5 text-[11px] text-muted-foreground whitespace-pre-wrap">{{ field.comment }}</div>
               </td>
               <td class="w-full max-w-0 px-3 py-2">
-                <div class="mb-1 text-[11px] text-muted-foreground">{{ (field.isNull ?? field.value === null) ? t("grid.nullValue") : t("grid.valueLength") }}: {{ (field.isNull ?? field.value === null) ? "true" : field.length }}</div>
                 <a v-if="field.imagePreviewUrl" :href="field.imagePreviewUrl" role="button" class="mb-2 block max-h-48 overflow-hidden rounded border bg-muted/20" @click.prevent="openImagePreview(field.imagePreviewUrl, field.column)"
                   ><img :src="field.imagePreviewUrl" :alt="field.column" loading="lazy" decoding="async" referrerpolicy="no-referrer" class="max-h-48 w-full object-contain"
                 /></a>
-                <pre class="dbx-data-grid-value-font max-h-44 overflow-auto rounded border bg-muted/20 p-2 text-xs whitespace-pre-wrap break-words" :class="{ 'italic text-muted-foreground': field.isNull ?? field.value === null }">{{ field.rawValuePreview }}</pre>
+                <pre
+                  class="dbx-data-grid-value-font max-h-[120px] overflow-auto text-xs whitespace-pre-wrap break-words"
+                  :class="{ 'italic text-muted-foreground': field.isNull ?? field.value === null }"
+                  >{{ field.rawValuePreview }}</pre
+                >
                 <div v-if="field.isValuePreviewTruncated" class="mt-1 text-[11px] text-muted-foreground">{{ t("grid.largeValuePreviewHint", { count: field.rawValuePreview.length }) }}</div>
                 <div v-if="field.formattedJson" class="mt-2 space-y-1">
                   <div class="text-muted-foreground">{{ t("grid.formattedJson") }}</div>
-                  <pre class="dbx-data-grid-value-font max-h-44 overflow-auto rounded border bg-muted/20 p-2 text-xs whitespace-pre-wrap break-words">{{ field.formattedJson }}</pre>
+                  <pre class="dbx-data-grid-value-font max-h-36 overflow-auto text-xs whitespace-pre-wrap break-words">{{ field.formattedJson }}</pre>
                 </div>
-              </td>
-              <td class="px-2 py-2">
-                <Button variant="ghost" size="icon" class="h-6 w-6" :title="t('grid.copyValue')" @click="copyRowDetailFieldValue(field)"><Copy class="h-3 w-3" /></Button>
               </td>
             </tr>
           </tbody>

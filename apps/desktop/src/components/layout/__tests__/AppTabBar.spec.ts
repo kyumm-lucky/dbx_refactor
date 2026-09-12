@@ -12,7 +12,7 @@ describe("AppTabBar shared group navigation", () => {
     expect(tabBarSource).toContain(':data-special-page-tab-target="group.id"');
     expect(tabBarSource).not.toContain("overlayReturnTabs");
     expect(tabBarSource).not.toContain("data-return-tab");
-    expect(tabBarSource).not.toContain("createRenameDuplicateTabItems");
+    expect(tabBarSource).not.toContain("function getTabMenuItems");
     expect(groupSource).toContain("<Teleport defer");
     expect(groupSource).toContain("if (!tabBarPortal?.active.value) return undefined;");
     expect(groupSource).toContain(':disabled="!tabBarPortal?.active.value || !tabBarTarget"');
@@ -88,6 +88,6 @@ describe("Group strip special page tabs", () => {
     expect(groupTabBarSource).toContain('import "./appTabBar.css"');
     expect(groupTabBarSource).toContain("dirty-tab-marker");
     expect(groupTabBarSource).toContain("dirtyTabTitleStyle");
-    expect(groupTabBarSource).toContain("createRenameDuplicateTabItems");
+    expect(groupTabBarSource).toContain("function getTabMenuItems");
   });
 });

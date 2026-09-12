@@ -53,7 +53,8 @@ test("query result toolbar reuses the production icon contract", () => {
   assert.match(contentArea, /<ChevronDown class="h-3\.5 w-3\.5"/);
   assert.match(viewSwitcher, /import \{ BarChart3, ListChecks, MessageSquareText \} from "@lucide\/vue"/);
   assert.match(toolbarActions, /import \{ GitBranch, Gauge, Loader2, Upload \} from "@lucide\/vue"/);
-  assert.match(editorToolbar, /@click="emit\('importResultArchive'\)"[\s\S]{0,100}<Download/);
+  // 导入结果归档已从编辑器工具栏移入“更多操作”菜单，图标契约不变。
+  assert.match(editorToolbar, /@select="emit\('importResultArchive'\)"[\s\S]{0,120}<Download/);
   assert.match(toolbarActions, /@click="emit\('exportArchive'\)"[\s\S]{0,200}<Upload v-else/);
   assert.match(dataGrid, /return \{ label: t\("grid\.export"\), icon: Upload, children: items \};/);
   assert.match(dataGridExportMenu, /:trigger-icon="Upload"/);

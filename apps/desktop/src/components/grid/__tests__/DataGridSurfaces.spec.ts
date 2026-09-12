@@ -1014,7 +1014,6 @@ describe("DataGridQueryControls", () => {
     });
     mounted = mountComponent(DataGridQueryControls, {
       whereInput: "",
-      orderByInput: "",
       columns: ["id"],
       conditionColumns: ["id"],
       historyScope: {},
@@ -1033,8 +1032,6 @@ describe("DataGridQueryControls", () => {
       modeOptions: [{ value: "equals", labelKey: "equals" }],
       columnSearch: "",
       applyWhere: vi.fn(),
-      applyOrderBy: vi.fn(),
-      clearOrderBy: vi.fn(),
       onEnsureRule: ensureRule,
     });
 
@@ -1057,7 +1054,6 @@ describe("DataGridQueryControls", () => {
     });
     mounted = mountComponent(DataGridQueryControls, {
       whereInput: "id = 1",
-      orderByInput: "",
       columns: ["id"],
       conditionColumns: ["id"],
       historyScope: {},
@@ -1076,8 +1072,6 @@ describe("DataGridQueryControls", () => {
       modeOptions: [{ value: "equals", labelKey: "equals" }],
       columnSearch: "",
       applyWhere: vi.fn(),
-      applyOrderBy: vi.fn(),
-      clearOrderBy: vi.fn(),
       onEnsureRule: ensureRule,
     });
 
@@ -1093,7 +1087,6 @@ describe("DataGridQueryControls", () => {
   it("gives filter rules enough horizontal space for longer column names", () => {
     const mounted = mountComponent(DataGridQueryControls, {
       whereInput: "",
-      orderByInput: "",
       columns: ["appointmentStatusWithAnExceptionallyLongName"],
       conditionColumns: ["appointmentStatusWithAnExceptionallyLongName"],
       historyScope: {},
@@ -1112,8 +1105,6 @@ describe("DataGridQueryControls", () => {
       modeOptions: [{ value: "equals", labelKey: "equals" }],
       columnSearch: "",
       applyWhere: vi.fn(),
-      applyOrderBy: vi.fn(),
-      clearOrderBy: vi.fn(),
     });
     const popoverContent = findOne(mounted.root, (node) => node.props["data-stub"] === "PopoverContent");
 
@@ -1132,7 +1123,6 @@ describe("DataGridQueryControls", () => {
     const resetFilters = vi.fn();
     const mounted = mountComponent(DataGridQueryControls, {
       whereInput: "id = 1",
-      orderByInput: "",
       columns: ["id"],
       conditionColumns: ["id"],
       historyScope: {},
@@ -1151,8 +1141,6 @@ describe("DataGridQueryControls", () => {
       modeOptions: [{ value: "equals", labelKey: "equals" }],
       columnSearch: "",
       applyWhere: vi.fn(),
-      applyOrderBy: vi.fn(),
-      clearOrderBy: vi.fn(),
       onAddRule: addRule,
       onClearFilters: clearFilters,
       onApplyFilters: applyFilters,
@@ -1192,7 +1180,6 @@ describe("DataGridQueryControls", () => {
     const ensureRule = vi.fn();
     const mounted = mountComponent(DataGridQueryControls, {
       whereInput: "",
-      orderByInput: "",
       columns: ["id"],
       conditionColumns: ["id"],
       historyScope: {},
@@ -1211,8 +1198,6 @@ describe("DataGridQueryControls", () => {
       modeOptions: [{ value: "equals", labelKey: "equals" }],
       columnSearch: "",
       applyWhere: vi.fn(),
-      applyOrderBy: vi.fn(),
-      clearOrderBy: vi.fn(),
       "onUpdate:filterBuilderOpen": updateFilterBuilderOpen,
       onEnsureRule: ensureRule,
     });

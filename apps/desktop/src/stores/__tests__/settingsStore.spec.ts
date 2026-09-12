@@ -4,6 +4,7 @@ import { isProxy } from "vue";
 import {
   AI_PROVIDER_PRESETS,
   DEFAULT_EDITOR_SETTINGS,
+  EDITOR_DEFAULTS_MIGRATION_VERSION,
   EXECUTE_MODE_CURRENT_DEFAULT_VERSION,
   SIDEBAR_BROWSE_OBJECTS_MIGRATION_VERSION,
   enforceRightSidebarPanelExclusivity,
@@ -17,6 +18,7 @@ import {
 } from "@/stores/settingsStore";
 import type { AiConfigItem } from "@/types/ai";
 import { DATA_GRID_EXTRACTOR_OPTIONS_MIGRATION_VERSION } from "@/lib/dataGrid/dataGridCopyExtractor";
+import { DEFAULT_SQL_FORMATTER_SETTINGS } from "@/lib/sql/sqlFormatterConfig";
 
 describe("normalizeEditorSettings", () => {
   it("keeps automatic DDL refresh disabled unless explicitly enabled", () => {
@@ -24,6 +26,14 @@ describe("normalizeEditorSettings", () => {
     expect(normalizeEditorSettings({ refreshDdlOnOpen: true }).refreshDdlOnOpen).toBe(true);
     expect(normalizeEditorSettings({ refreshDdlOnOpen: false }).refreshDdlOnOpen).toBe(false);
     expect(normalizeEditorSettings({ refreshDdlOnOpen: "true" } as any).refreshDdlOnOpen).toBe(false);
+  });
+
+  it("defaults the table-structure density to standard for new and unknown settings", () => {
+    expect(normalizeEditorSettings({}).structureEditorDensity).toBe("standard");
+    expect(normalizeEditorSettings({}).columnWidthDensity).toBe("standard");
+    expect(normalizeEditorSettings({ structureEditorDensity: "compact" }).structureEditorDensity).toBe("compact");
+    expect(normalizeEditorSettings({ structureEditorDensity: "comfortable" }).structureEditorDensity).toBe("comfortable");
+    expect(normalizeEditorSettings({ structureEditorDensity: "huge" } as any).structureEditorDensity).toBe("standard");
   });
 
   it("keeps table-info drawer pinning disabled unless explicitly enabled", () => {
@@ -231,12 +241,20 @@ describe("normalizeEditorSettings", () => {
     expect(normalizeEditorSettings({ showLineNumbers: "false" } as any).showLineNumbers).toBe(true);
   });
 
-  it("shows the current statement frame by default", () => {
-    expect(normalizeEditorSettings({}).showCurrentStatementFrame).toBe(true);
+  it("keeps the current statement frame off by default", () => {
+    expect(normalizeEditorSettings({}).showCurrentStatementFrame).toBe(false);
+    expect(normalizeEditorSettings({ showCurrentStatementFrame: true }).showCurrentStatementFrame).toBe(false);
+    // 一次性对齐后，用户在设置里重新打开的状态会被保留。
+    expect(normalizeEditorSettings({ showCurrentStatementFrame: true, editorDefaultsMigrationVersion: EDITOR_DEFAULTS_MIGRATION_VERSION } as never).showCurrentStatementFrame).toBe(true);
   });
 
-  it("preserves disabled current statement frames", () => {
-    expect(normalizeEditorSettings({ showCurrentStatementFrame: false }).showCurrentStatementFrame).toBe(false);
+  it("defaults generated SQL keywords to lowercase", () => {
+    expect(DEFAULT_EDITOR_SETTINGS.sqlFormatter.keywordCase).toBe("lower");
+    expect(normalizeEditorSettings({}).sqlFormatter.keywordCase).toBe("lower");
+    expect(normalizeEditorSettings({ sqlFormatter: { ...DEFAULT_SQL_FORMATTER_SETTINGS, keywordCase: "upper" } } as never).sqlFormatter.keywordCase).toBe("lower");
+    // 用户在设置里改回大写后保留其选择。
+    const optedIn = normalizeEditorSettings({ sqlFormatter: { ...DEFAULT_SQL_FORMATTER_SETTINGS, keywordCase: "upper" }, editorDefaultsMigrationVersion: EDITOR_DEFAULTS_MIGRATION_VERSION } as never);
+    expect(optedIn.sqlFormatter.keywordCase).toBe("upper");
   });
 
   it("shows INSERT value column hints by default", () => {
@@ -425,7 +443,7 @@ describe("normalizeEditorSettings", () => {
   });
 
   it("defaults the data grid font and preserves a custom font family", () => {
-    const defaultFontFamily = `"Geist Variable Tabular", "Geist Variable", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif`;
+    const defaultFontFamily = `'Apple Braille', monospace`;
     expect(normalizeEditorSettings({}).tableFontFamily).toBe(defaultFontFamily);
     expect(normalizeEditorSettings({ tableFontFamily: "'IBM Plex Mono', monospace" }).tableFontFamily).toBe("'IBM Plex Mono', monospace");
     expect(normalizeEditorSettings({ tableFontFamily: "   " }).tableFontFamily).toBe(defaultFontFamily);

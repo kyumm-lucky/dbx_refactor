@@ -30,7 +30,7 @@ const TAB_DRAG_HORIZONTAL_THRESHOLD = 24;
 import { computed, nextTick, onUnmounted, ref, watch } from "vue";
 import type { CSSProperties } from "vue";
 import { useI18n } from "vue-i18n";
-import { ArrowDown, ArrowDownUp, ArrowRight, ChevronDown, ChevronsDownUp, ChevronsLeft, ChevronsRight, ChevronsUpDown, Copy, ListFilter, Maximize2, Minimize2, Package, PanelTop, Pencil, Pin, RotateCcw, RotateCw, Search, Settings, X } from "@lucide/vue";
+import { ArrowDownUp, ArrowLeftToLine, ArrowRightToLine, ChevronDown, ChevronsDownUp, ChevronsLeft, ChevronsRight, ChevronsUpDown, Crosshair, ListFilter, Maximize2, Minimize2, Package, PanelTop, Pencil, Pin, Plus, RotateCcw, Search, Settings, X } from "@lucide/vue";
 import CustomContextMenu, { type ContextMenuItem } from "@/components/ui/CustomContextMenu.vue";
 import LightDropdown from "@/components/ui/LightDropdown.vue";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -49,9 +49,7 @@ import type { EditorSettings } from "@/stores/settingsStore";
 import { useTabScroll } from "@/composables/useTabScroll";
 import { useToast } from "@/composables/useToast";
 import { hexToRgba } from "@/lib/common/color";
-import { copyToClipboard } from "@/lib/common/clipboard";
 import { parseTabDragPayload, serializeTabDragPayload } from "@/lib/tabs/tabDrag";
-import { createCloseAllTabMenuItem, createCloseLeftTabMenuItem, createCloseOtherTabMenuItem, createCloseRightTabMenuItem, createCloseTabMenuItem, createLocateTabMenuItem, createPinTabMenuItem, createRenameDuplicateTabItems } from "@/lib/tabs/tabMenu";
 import { connectionColor, dirtyTabTitleStyle, tabColorStyle as sharedTabColorStyle, tabDatabaseIconType, tabDisplayTitle, tabIconClass, tabTooltipLines } from "@/lib/tabs/tabPresentation";
 import { activeTabSidebarTarget } from "@/lib/sidebar/sidebarActiveTabTarget";
 import "./appTabBar.css";
@@ -83,6 +81,7 @@ const emit = defineEmits<{
   "close-settings": [];
   "activate-driver-store": [];
   "close-driver-store": [];
+  "new-query": [];
 }>();
 
 const { t } = useI18n();
@@ -145,10 +144,6 @@ const tabBarCollapseIcon = computed(() => {
 });
 const tabBarCollapseLabel = computed(() => t(props.tabBarCollapsed ? "tabs.expandTabBar" : "tabs.collapseTabBar"));
 const verticalTabToolbarButtonClass = "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-transparent text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const groupCapacityReached = computed(() => queryStore.groups.length >= 4);
-const splitUnavailable = computed(() => groupCapacityReached.value || queryStore.tabs.length <= 1);
-const canChangeOrientation = computed(() => queryStore.groups.length >= 2);
-const isSecondaryGroup = computed(() => queryStore.groups[0]?.id !== props.groupId);
 const compactTabTitle = computed({
   get: () => settingsStore.editorSettings.compactTabTitle,
   set: (checked: boolean | "indeterminate") => {
@@ -982,10 +977,6 @@ function canRenameTab(tab: QueryTab) {
   return tab.mode === "query";
 }
 
-function isDetachableTab(tab: QueryTab) {
-  return tab.mode === "query" || tab.mode === "data";
-}
-
 function startRenameTab(tab: QueryTab) {
   if (!canRenameTab(tab)) {
     return;
@@ -1047,123 +1038,53 @@ function hasTabsToLeft(tab: QueryTab) {
   return tabsToLeftInDisplayOrder(tab).length > 0;
 }
 
+// 标签页右键菜单固定为以下 6 项；其余项（重命名/复制名称/新窗口打开/标签栏位置/
+// 分组方式/排序方式/固定/拆分/关闭本组/关闭当前）一律不再出现在这里。
+// 菜单样式由 CustomContextMenu 统一（灰色 11px 文字 + 图标）。
 function getTabMenuItems(tab: QueryTab): ContextMenuItem[] {
-  const items: ContextMenuItem[] = [
+  return [
     {
-      label: compactTabTitle.value ? t("contextMenu.fullTabTitle") : t("contextMenu.compactTabTitle"),
+      label: compactTabTitle.value ? t("contextMenu.tabMenuFullTitle") : t("contextMenu.tabMenuShortTitle"),
       action: toggleCompactTabTitle,
       icon: compactTabTitle.value ? Maximize2 : Minimize2,
     },
-    ...createRenameDuplicateTabItems({
-      tab,
-      t,
-      canRename: canRenameTab(tab),
-      onRename: () => startRenameTab(tab),
-      onDuplicate: () => queryStore.duplicateTab(tab.id),
-    }),
     {
-      label: t("contextMenu.copyName"),
-      action: async () => {
-        try {
-          await copyToClipboard(tabDisplayTitle(tab, t));
-          toast(t("connection.copied"), 2000);
-        } catch (e: any) {
-          toast(t("grid.copyFailed", { message: e?.message || String(e) }), 5000);
-        }
-      },
-      icon: Copy,
-    },
-    {
-      label: t("tabs.openInNewWindow"),
-      action: () => emit("detach-tab", tab),
-      icon: Maximize2,
-      visible: !!props.canDetachTabs && isDetachableTab(tab),
-    },
-    createLocateTabMenuItem({
-      t,
+      label: t("contextMenu.tabMenuLocate"),
+      action: () => emit("locate-tab", tab),
       visible: !!activeTabSidebarTarget(tab),
-      onLocate: () => emit("locate-tab", tab),
-    }),
-    { label: "", separator: true },
-    ...getTabPreferenceMenuItems(),
-    { label: "", separator: true },
-    createPinTabMenuItem({
-      label: tab.pinned ? t("contextMenu.unpinTab") : t("contextMenu.pinTab"),
-      onToggle: () => queryStore.togglePinnedTab(tab.id),
-    }),
-    // Split actions stay visible but render disabled when they cannot produce
-    // a new layout — at the four-group cap, or with a single open tab (the
-    // store rejects with the same rules). Every tab type can split: groups
-    // host non-query tabs via ContentArea, same as moving them between groups.
-    {
-      label: t("contextMenu.splitRight"),
-      action: () => queryStore.splitTabRight(tab.id),
-      disabled: splitUnavailable.value,
-      icon: ArrowRight,
+      icon: Crosshair,
     },
     {
-      label: t("contextMenu.splitDown"),
-      action: () => queryStore.splitTabDown(tab.id),
-      disabled: splitUnavailable.value,
-      icon: ArrowDown,
+      label: t("contextMenu.tabMenuCloseOthers"),
+      action: () => queryStore.closeOtherTabsInGroup(props.groupId, tab.id),
+      icon: X,
     },
-    ...(canChangeOrientation.value
-      ? [
-          {
-            label: t("contextMenu.changeOrientation"),
-            action: () => queryStore.setOrientation(queryStore.orientation === "vertical" ? "horizontal" : "vertical"),
-            icon: RotateCw,
-          },
-        ]
-      : []),
-    ...(isSecondaryGroup.value
-      ? [
-          {
-            label: t("contextMenu.unsplit"),
-            action: () => queryStore.unsplitTab(tab.id),
-            icon: ArrowRight,
-            visible: true,
-          },
-        ]
-      : []),
-    createCloseOtherTabMenuItem({
-      label: t("contextMenu.closeOtherTabs"),
-      onClose: () => queryStore.closeOtherTabsInGroup(props.groupId, tab.id),
-    }),
-    createCloseLeftTabMenuItem({
-      label: t("contextMenu.closeLeftTabs"),
+    {
+      label: t("contextMenu.tabMenuCloseAllLeft"),
       disabled: !hasTabsToLeft(tab),
-      onClose: () => {
+      action: () => {
         const tabsToClose = tabsToLeftInDisplayOrder(tab).map((item) => item.id);
         const finalActiveTabId = queryStore.activeTabId && !tabsToClose.includes(queryStore.activeTabId) ? queryStore.activeTabId : tab.id;
         queryStore.closeTabsByIds(tabsToClose, finalActiveTabId);
       },
-    }),
-    createCloseRightTabMenuItem({
-      label: t("contextMenu.closeRightTabs"),
+      icon: ArrowLeftToLine,
+    },
+    {
+      label: t("contextMenu.tabMenuCloseAllRight"),
       disabled: !hasTabsToRight(tab),
-      onClose: () => {
+      action: () => {
         const tabsToClose = tabsToRightInDisplayOrder(tab).map((item) => item.id);
         const finalActiveTabId = queryStore.activeTabId && !tabsToClose.includes(queryStore.activeTabId) ? queryStore.activeTabId : tab.id;
         queryStore.closeTabsByIds(tabsToClose, finalActiveTabId);
       },
-    }),
-    createCloseAllTabMenuItem({
-      label: t("contextMenu.closeAllTabs"),
-      onClose: () => queryStore.closeAllTabsInGroup(props.groupId, tab.id),
-    }),
+      icon: ArrowRightToLine,
+    },
     {
-      label: t("contextMenu.closeTabGroup"),
-      action: () => closeTabGroup(tab),
-      visible: settingsStore.editorSettings.tabGroupMode !== "none",
+      label: t("contextMenu.tabMenuCloseAll"),
+      action: () => queryStore.closeAllTabsInGroup(props.groupId, tab.id),
       icon: X,
     },
-    createCloseTabMenuItem({
-      label: t("contextMenu.closeTab"),
-      onClose: () => closeTab(tab),
-    }),
   ];
-  return items;
 }
 
 function handleTabDoubleClick(tab: QueryTab, event: MouseEvent) {
@@ -1632,6 +1553,10 @@ watch([() => props.specialPageTabs?.settingsActive, () => props.specialPageTabs?
                     </div>
                   </CustomContextMenu>
                 </template>
+                <!-- 新建查询加号：常驻标签流末尾，标签横向溢出时吸附在滚动区右缘，保证始终可见。 -->
+                <button v-if="!section.pinned" type="button" class="tab-new-query-button" data-new-query-tab :disabled="connectionStore.connections.length === 0" :title="t('toolbar.newQuery')" :aria-label="t('toolbar.newQuery')" @click="emit('new-query')">
+                  <Plus class="h-4 w-4" />
+                </button>
                 <div v-if="!section.pinned" :class="tabTailDragRegionClass" data-tauri-drag-region />
               </div>
             </div>

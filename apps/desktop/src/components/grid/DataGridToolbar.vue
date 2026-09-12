@@ -1,26 +1,22 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Check, ChevronDown, Copy, Eye, Loader2, Map, Plus, RefreshCcw, RotateCcw, Rows3, Save, TableProperties, Timer, Trash2, Upload } from "@lucide/vue";
+import { Check, ChevronDown, Copy, Eye, Loader2, Map, Plus, RefreshCcw, RotateCcw, Rows3, Save, TableProperties, Trash2, Upload } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DATA_GRID_TOOLBAR_ACTION_COLLAPSE_ORDER,
-  dataGridToolbarIntervalOptions,
   isDataGridToolbarActionCompact,
   isDataGridToolbarCapabilityDisabled,
   isDataGridToolbarCapabilityVisible,
   selectDataGridToolbarAddRowItem,
-  selectDataGridToolbarAutoRefreshInterval,
   selectDataGridToolbarCopyItem,
   selectDataGridToolbarExportItem,
-  toggleDataGridToolbarAutoRefresh,
-  triggerDataGridToolbarCopy,
   triggerDataGridToolbarAction,
+  triggerDataGridToolbarCopy,
   type DataGridToolbarActionCapability,
   type DataGridToolbarActionKey,
   type DataGridToolbarAddRowCapability,
-  type DataGridToolbarAutoRefreshCapability,
   type DataGridToolbarCopyCapability,
   type DataGridToolbarExportCapability,
   type DataGridToolbarSaveCapability,
@@ -31,7 +27,6 @@ const props = defineProps<{
   compactActionCount?: number;
   navigationVisible?: boolean;
   refresh: DataGridToolbarActionCapability;
-  autoRefresh?: DataGridToolbarAutoRefreshCapability;
   addRow?: DataGridToolbarAddRowCapability;
   deleteRow?: DataGridToolbarActionCapability;
   copyData?: DataGridToolbarCopyCapability;
@@ -44,11 +39,9 @@ const props = defineProps<{
   rollback?: DataGridToolbarActionCapability;
 }>();
 
-const autoRefreshIntervals = computed(() => (props.autoRefresh ? dataGridToolbarIntervalOptions(props.autoRefresh.intervalOptions, props.autoRefresh.intervalSeconds) : []));
 const visibleActionOrder = computed<DataGridToolbarActionKey[]>(() => {
   const visibility: Record<DataGridToolbarActionKey, boolean> = {
     refresh: isDataGridToolbarCapabilityVisible(props.refresh),
-    autoRefresh: isDataGridToolbarCapabilityVisible(props.autoRefresh),
     navigation: props.navigationVisible === true,
     copyData: isDataGridToolbarCapabilityVisible(props.copyData),
     addRow: isDataGridToolbarCapabilityVisible(props.addRow),
@@ -91,36 +84,6 @@ function actionLabelClass(action: DataGridToolbarActionKey) {
       </TooltipTrigger>
       <TooltipContent side="bottom">{{ refresh.tooltip ?? refresh.label }}</TooltipContent>
     </Tooltip>
-
-    <DropdownMenu v-if="isDataGridToolbarCapabilityVisible(autoRefresh)">
-      <DropdownMenuTrigger as-child>
-        <Button
-          variant="ghost"
-          size="sm"
-          data-toolbar-action="autoRefresh"
-          :class="[...actionButtonClass('autoRefresh'), autoRefresh?.enabled ? 'bg-primary/10 text-primary hover:bg-primary/15' : 'text-muted-foreground hover:text-foreground']"
-          :disabled="isDataGridToolbarCapabilityDisabled(autoRefresh)"
-          :title="autoRefresh?.label"
-          :aria-label="autoRefresh?.label"
-          :aria-pressed="autoRefresh?.enabled"
-        >
-          <Timer class="data-grid-topbar-action-icon h-3 w-3" />
-          <span class="data-grid-topbar-action-label" :class="actionLabelClass('autoRefresh')">{{ autoRefresh?.enabled ? `${autoRefresh.intervalSeconds}s` : autoRefresh?.shortLabel }}</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" class="w-40">
-        <DropdownMenuItem class="gap-2" :disabled="autoRefresh?.disabled" @select="void toggleDataGridToolbarAutoRefresh(autoRefresh)">
-          <Check v-if="autoRefresh?.enabled" class="h-3.5 w-3.5" />
-          <span v-else class="h-3.5 w-3.5" />
-          {{ autoRefresh?.enabled ? autoRefresh.stopLabel : autoRefresh?.startLabel }}
-        </DropdownMenuItem>
-        <DropdownMenuItem v-for="seconds in autoRefreshIntervals" :key="seconds" class="gap-2" :disabled="autoRefresh?.disabled" @select="void selectDataGridToolbarAutoRefreshInterval(autoRefresh, seconds)">
-          <Check v-if="autoRefresh?.intervalSeconds === seconds" class="h-3.5 w-3.5" />
-          <span v-else class="h-3.5 w-3.5" />
-          {{ autoRefresh?.intervalLabel(seconds) }}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
 
     <slot name="navigation" :compact="actionIsCompact('navigation')" />
 

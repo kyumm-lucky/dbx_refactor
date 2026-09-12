@@ -9,6 +9,7 @@ import { tableOpenPageLimit } from "../../apps/desktop/src/lib/table/tableOpenPa
 import {
   AI_PROVIDER_PARTNER_PRESETS,
   AI_PROVIDER_PRESETS,
+  COLUMN_HEADER_METADATA_MIGRATION_VERSION,
   DEFAULT_EDITOR_SETTINGS,
   EXECUTE_MODE_CURRENT_DEFAULT_VERSION,
   SIDEBAR_BROWSE_OBJECTS_MIGRATION_VERSION,
@@ -569,12 +570,32 @@ test("defaults sidebar horizontal scroll to off", () => {
 });
 
 test("defaults data grid header display settings", () => {
-  assert.equal(DEFAULT_EDITOR_SETTINGS.showColumnCommentsInHeader, true);
+  assert.equal(DEFAULT_EDITOR_SETTINGS.showColumnCommentsInHeader, false);
+  assert.equal(DEFAULT_EDITOR_SETTINGS.showColumnTypesInHeader, false);
   assert.equal(DEFAULT_EDITOR_SETTINGS.dataGridShowTransposeFieldMetadata, false);
   assert.equal(DEFAULT_EDITOR_SETTINGS.compactColumnHeaderActions, true);
-  assert.equal(normalizeEditorSettings({}).showColumnCommentsInHeader, true);
+  assert.equal(normalizeEditorSettings({}).showColumnCommentsInHeader, false);
+  assert.equal(normalizeEditorSettings({}).showColumnTypesInHeader, false);
   assert.equal(normalizeEditorSettings({}).dataGridShowTransposeFieldMetadata, false);
   assert.equal(normalizeEditorSettings({}).compactColumnHeaderActions, true);
+});
+
+test("aligns header type and comment lines with the new default once", () => {
+  const legacy = normalizeEditorSettings({
+    showColumnCommentsInHeader: true,
+    showColumnTypesInHeader: true,
+  } as any);
+  assert.equal(legacy.showColumnCommentsInHeader, false);
+  assert.equal(legacy.showColumnTypesInHeader, false);
+  assert.equal(legacy.columnHeaderMetadataMigrationVersion, COLUMN_HEADER_METADATA_MIGRATION_VERSION);
+
+  const optedIn = normalizeEditorSettings({
+    showColumnCommentsInHeader: true,
+    showColumnTypesInHeader: true,
+    columnHeaderMetadataMigrationVersion: COLUMN_HEADER_METADATA_MIGRATION_VERSION,
+  } as any);
+  assert.equal(optedIn.showColumnCommentsInHeader, true);
+  assert.equal(optedIn.showColumnTypesInHeader, true);
 });
 
 test("keeps saved data grid header display settings", () => {
@@ -582,6 +603,7 @@ test("keeps saved data grid header display settings", () => {
     showColumnCommentsInHeader: true,
     dataGridShowTransposeFieldMetadata: true,
     compactColumnHeaderActions: false,
+    columnHeaderMetadataMigrationVersion: COLUMN_HEADER_METADATA_MIGRATION_VERSION,
   } as any);
 
   assert.equal(settings.showColumnCommentsInHeader, true);
@@ -607,11 +629,12 @@ test("normalizes table font size", () => {
 });
 
 test("normalizes table structure editor density", () => {
-  assert.equal(DEFAULT_EDITOR_SETTINGS.structureEditorDensity, "compact");
-  assert.equal(normalizeEditorSettings({}).structureEditorDensity, "compact");
-  assert.equal(normalizeEditorSettings({ structureEditorDensity: "standard" }).structureEditorDensity, "standard");
+  // Density defaults to the standard row height everywhere the structure surface renders.
+  assert.equal(DEFAULT_EDITOR_SETTINGS.structureEditorDensity, "standard");
+  assert.equal(normalizeEditorSettings({}).structureEditorDensity, "standard");
+  assert.equal(normalizeEditorSettings({ structureEditorDensity: "compact" }).structureEditorDensity, "compact");
   assert.equal(normalizeEditorSettings({ structureEditorDensity: "comfortable" }).structureEditorDensity, "comfortable");
-  assert.equal(normalizeEditorSettings({ structureEditorDensity: "invalid" as any }).structureEditorDensity, "compact");
+  assert.equal(normalizeEditorSettings({ structureEditorDensity: "invalid" as any }).structureEditorDensity, "standard");
 });
 
 test("normalizes table column template fields", () => {
@@ -1126,7 +1149,8 @@ test("settings page resets content scroll when switching categories", () => {
 });
 
 test("defaults SQL formatter settings", () => {
-  assert.deepEqual(DEFAULT_EDITOR_SETTINGS.sqlFormatter, DEFAULT_SQL_FORMATTER_SETTINGS);
+  // 应用默认小写关键字；库内不传设置时的兜底仍保持大写。
+  assert.deepEqual(DEFAULT_EDITOR_SETTINGS.sqlFormatter, { ...DEFAULT_SQL_FORMATTER_SETTINGS, keywordCase: "lower" });
   assert.deepEqual(normalizeEditorSettings({}).sqlFormatter, DEFAULT_EDITOR_SETTINGS.sqlFormatter);
 });
 

@@ -1143,3 +1143,51 @@
 .vertical-tab-layout .tab-group-tab--first::after {
   display: none;
 }
+
+/* 新建查询加号：跟在最后一个标签之后；横向标签溢出时吸附在滚动区右缘，
+ * 因此无论开多少标签它都保持可见（用不透明底色盖住下方滚过的标签）。 */
+.tab-new-query-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  margin-inline-start: 4px;
+  border: 1px solid color-mix(in oklch, var(--foreground) 18%, var(--border));
+  border-radius: 6px;
+  background-color: var(--background);
+  color: color-mix(in oklch, var(--foreground) 70%, transparent);
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.tab-new-query-button:hover:not(:disabled) {
+  border-color: var(--border);
+  background-color: color-mix(in oklch, var(--muted) 60%, var(--background));
+  color: var(--foreground);
+}
+
+.tab-new-query-button:disabled {
+  opacity: 0.45;
+}
+
+/* 多行折叠布局由行内换行决定右侧边界，纵向布局是纵向流，两者都不做吸附。 */
+.app-tab-bar:not(.vertical-tab-layout):not(.tab-wrap-mode) .tab-new-query-button {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+}
+
+/* 经典布局的标签栏底色是 muted，加号跟随同一底色以免出现色块。 */
+.app-tab-bar.classic-tab-layout .tab-new-query-button {
+  background-color: var(--muted);
+}
+
+.app-tab-bar.vertical-tab-layout .tab-new-query-button {
+  width: 100%;
+  margin-inline-start: 0;
+  margin-top: 4px;
+}

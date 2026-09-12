@@ -17,7 +17,24 @@ import zhTW from "../locales/zh-TW";
 // translations, so tests stayed green). en is the fallbackLocale, so a missing
 // en key leaks the raw path in every language — guard the full tab-menu key
 // set against the real en module, not a mock.
-const tabMenuKeys = ["changeOrientation", "closeAllTabs", "closeLeftTabs", "closeOtherTabs", "closeRightTabs", "closeTab", "closeTabGroup", "compactTabTitle", "copyName", "editTabGroup", "fullTabTitle", "pinTab", "resetTabGroup", "splitDown", "splitRight", "unpinTab", "unsplit"] as const;
+const tabMenuKeys = [
+  "closeAllTabs",
+  "closeTab",
+  "closeTabGroup",
+  "compactTabTitle",
+  "editTabGroup",
+  "fullTabTitle",
+  "pinTab",
+  "resetTabGroup",
+  "tabMenuCloseAll",
+  "tabMenuCloseAllLeft",
+  "tabMenuCloseAllRight",
+  "tabMenuCloseOthers",
+  "tabMenuFullTitle",
+  "tabMenuLocate",
+  "tabMenuShortTitle",
+  "unpinTab",
+] as const;
 
 // Non-English locales are `export default withEnglishFallback({...})`, so
 // these imports are en-merged; the assertions below prove the key resolves to
@@ -47,6 +64,21 @@ describe("tab context menu i18n keys", () => {
     const value = contextMenuEntry(en as Record<string, unknown>, key);
     expect(value, `contextMenu.${key} missing from locales/en.ts`).toBeTypeOf("string");
     expect(value).not.toBe("");
+  });
+
+  it("keeps the agreed simplified-Chinese wording of the tab menu", () => {
+    const expected: Record<string, string> = {
+      tabMenuFullTitle: "完整标题",
+      tabMenuShortTitle: "缩短标题",
+      tabMenuLocate: "定位",
+      tabMenuCloseOthers: "关闭其他",
+      tabMenuCloseAllLeft: "关闭左侧所有",
+      tabMenuCloseAllRight: "关闭右侧所有",
+      tabMenuCloseAll: "全部关闭",
+    };
+    for (const [key, text] of Object.entries(expected)) {
+      expect(contextMenuEntry(zhCN as Record<string, unknown>, key), `zh-CN contextMenu.${key}`).toBe(text);
+    }
   });
 
   it.each(locales)("%s resolves pin/unpin tab menu labels", (_name, locale) => {

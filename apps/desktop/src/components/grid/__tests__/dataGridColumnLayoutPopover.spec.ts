@@ -158,6 +158,15 @@ describe("data grid column layout popover", () => {
     expect(trigger?.textContent?.trim()).toBe("");
   });
 
+  it("sits in the row-number header of the table data grid instead of its top toolbar", () => {
+    const dataGridViewSource = readFileSync(path.resolve(process.cwd(), "apps/desktop/src/components/grid/DataGrid.vue"), "utf8");
+
+    expect(contentAreaSource).not.toContain('<DataGridColumnLayoutPopover v-if="activeTab.result?.columns.length" :grid="dataGridRef" trigger-class="px-1.5" />');
+    expect(contentAreaSource).toContain('<DataGridColumnLayoutPopover :grid="dataGridRef" compact content-align="start" trigger-class="text-muted-foreground" />');
+    expect(contentAreaSource).toMatch(/#row-number-header>\s*<DataGridColumnLayoutPopover/);
+    expect(dataGridViewSource).toMatch(/<span v-if="\$slots\['row-number-header'\]"[\s\S]*?<slot name="row-number-header" \/>/);
+  });
+
   it("renders only the visible field window plus a bounded buffer", () => {
     const window = dataGridColumnLayoutVirtualWindow({
       itemCount: 500,

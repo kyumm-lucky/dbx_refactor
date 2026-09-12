@@ -38,6 +38,9 @@ vi.mock("@/components/icons/DatabaseIcon.vue", () => ({
 
 import EditorGroupTabBar from "../EditorGroupTabBar.vue";
 import { useQueryStore } from "@/stores/queryStore";
+import { useSettingsStore } from "@/stores/settingsStore";
+import { useConnectionStore } from "@/stores/connectionStore";
+import type { ConnectionConfig } from "@/types/database";
 
 function createHost(): HTMLDivElement {
   const host = document.createElement("div");
@@ -86,8 +89,16 @@ function mountBar(groupId: string, tabs: string[], activeTabId: string | null, a
             unpinTab: "Unpin",
             fullTabTitle: "Full title",
             compactTabTitle: "Compact title",
+            tabMenuFullTitle: "Full title",
+            tabMenuShortTitle: "Short title",
+            tabMenuLocate: "Locate",
+            tabMenuCloseOthers: "Close others",
+            tabMenuCloseAllLeft: "Close all left",
+            tabMenuCloseAllRight: "Close all right",
+            tabMenuCloseAll: "Close all",
           },
           sidebar: { locateActiveTab: "Locate" },
+          toolbar: { newQuery: "New query" },
         },
       },
     }),
@@ -365,91 +376,11 @@ describe("EditorGroupTabBar behavior", () => {
     host.remove();
   });
 
-  it("disables the split actions while only one tab exists, enabling them once a second tab joins", async () => {
+  it("offers close-all-left between close-others and close-all-right, disabled when nothing is to the left", async () => {
     const store = useQueryStore();
-    const onlyId = store.createTab("pg-1", "app", "Query 1", "query");
-
-    const mainGroup = store.groups[0];
-    const { app, host } = mountBar(mainGroup.id, [onlyId], onlyId, pinia);
-    await settle();
-
-    // Splitting the only tab would return to the same single-group layout, so
-    // the actions render disabled instead of doing nothing.
-    const splitItems = (host: HTMLElement) => JSON.parse(host.querySelector<HTMLElement>(".ctx-menu-stub")!.dataset.menuItems ?? "[]").filter((item: { label: string }) => item.label === "Split right" || item.label === "Split down");
-    expect(splitItems(host)).toHaveLength(2);
-    for (const item of splitItems(host)) {
-      expect(item).toMatchObject({ disabled: true });
-    }
-
-    store.createTab("pg-1", "app", "Query 2", "query");
-    await settle();
-
-    for (const item of splitItems(host)) {
-      expect(item).toMatchObject({ disabled: false });
-    }
-
-    app.unmount();
-    host.remove();
-  });
-
-  it("offers the split actions for non-query tabs, enabled like query tabs", async () => {
-    const store = useQueryStore();
-    const queryId = store.createTab("pg-1", "app", "Query 1", "query");
-    const dataId = store.createTab("pg-1", "app", "users", "data", "public");
-
-    const mainGroup = store.groups[0];
-    const { app, host } = mountBar(mainGroup.id, [queryId, dataId], dataId, pinia);
-    await settle();
-
-    const pill = tabPill(host, dataId);
-    const stub = pill.closest<HTMLElement>(".ctx-menu-stub")!;
-    const items = JSON.parse(stub.dataset.menuItems ?? "[]");
-    const splitItems = items.filter((item: { label: string }) => item.label === "Split right" || item.label === "Split down");
-    expect(splitItems).toHaveLength(2);
-    for (const item of splitItems) {
-      expect(item).toMatchObject({ disabled: false });
-    }
-
-    app.unmount();
-    host.remove();
-  });
-
-  it("keeps split actions visible but disabled once four groups exist", async () => {
-    const store = useQueryStore();
-    const firstId = store.createTab("pg-1", "app", "Query 1", "query");
-    const secondId = store.createTab("pg-1", "app", "Query 2", "query");
-    const thirdId = store.createTab("pg-1", "app", "Query 3", "query");
-    const fourthId = store.createTab("pg-1", "app", "Query 4", "query");
-    const fifthId = store.createTab("pg-1", "app", "Query 5", "query");
-
-    const mainGroup = store.groups[0];
-    const { app, host } = mountBar(mainGroup.id, [firstId, secondId, thirdId, fourthId, fifthId], firstId, pinia);
-    await settle();
-
-    // Two tabs, two groups.
-    store.splitTabRight(secondId);
-    await settle();
-
-    const menus = host.querySelectorAll<HTMLElement>(".ctx-menu-stub");
-    const splitItem = (menu: HTMLElement) => JSON.parse(menu.dataset.menuItems ?? "[]").find((item: { label: string }) => item.label === "Split right");
-    expect(splitItem(menus[0]!)).toMatchObject({ disabled: false });
-
-    store.splitTabDown(thirdId);
-    store.splitTabDown(fourthId);
-    await settle();
-    expect(store.groups.length).toBe(4);
-
-    const disabledSplit = splitItem(menus[0]!);
-    expect(disabledSplit).toMatchObject({ disabled: true });
-    // The store rejects a fifth split with the same capacity rule.
-    expect(store.splitTabRight(fifthId)).toBe(false);
-
-    app.unmount();
-    host.remove();
-  });
-
-  it("offers close-left between close-other and close-right, disabled when nothing is to the left", async () => {
-    const store = useQueryStore();
+    // The user-visible default state is the shortened tab title, so the toggle
+    // offers the full title.
+    useSettingsStore().updateEditorSettings({ compactTabTitle: true });
     const firstId = store.createTab("pg-1", "app", "Query 1", "query");
     const secondId = store.createTab("pg-1", "app", "Query 2", "query");
 
@@ -468,13 +399,59 @@ describe("EditorGroupTabBar behavior", () => {
     const labels = (tabId: string) => menuFor(tabId).map((item: { label: string }) => item.label);
 
     // First tab: nothing to its left — the action exists but is disabled.
-    expect(menuFor(firstId).find((item: { label: string }) => item.label === "Close left tabs")).toMatchObject({ disabled: true });
+    expect(menuFor(firstId).find((item: { label: string }) => item.label === "Close all left")).toMatchObject({ disabled: true });
     const order = labels(firstId);
-    expect(order.indexOf("Close left tabs")).toBeGreaterThan(order.indexOf("Close other tabs"));
-    expect(order.indexOf("Close left tabs")).toBeLessThan(order.indexOf("Close right tabs"));
+    expect(order.indexOf("Close all left")).toBeGreaterThan(order.indexOf("Close others"));
+    expect(order.indexOf("Close all left")).toBeLessThan(order.indexOf("Close all right"));
+    // Exactly the six agreed entries — no extra rows and no separators.
+    expect(order).toEqual(["Full title", "Locate", "Close others", "Close all left", "Close all right", "Close all"]);
 
     // Second tab: a tab exists to its left — the action becomes enabled.
-    expect(menuFor(secondId).find((item: { label: string }) => item.label === "Close left tabs")).toMatchObject({ disabled: false });
+    expect(menuFor(secondId).find((item: { label: string }) => item.label === "Close all left")).toMatchObject({ disabled: false });
+
+    app.unmount();
+    host.remove();
+  });
+
+  it("creates a query tab from the trailing plus, which disables without connections", async () => {
+    const store = useQueryStore();
+    const connectionStore = useConnectionStore();
+    const firstId = store.createTab("pg-1", "app", "Query 1", "query");
+    const mainGroup = store.groups[0];
+    const created: number[] = [];
+    const host = createHost();
+    const app = createApp(EditorGroupTabBar, {
+      groupId: mainGroup.id,
+      tabs: [store.tabs.find((tab) => tab.id === firstId)!],
+      activeTabId: firstId,
+      "onNew-query": () => created.push(1),
+    });
+    app.use(pinia);
+    app.use(
+      createI18n({
+        legacy: false,
+        locale: "en",
+        messages: { en: { toolbar: { newQuery: "New query" } } },
+      }),
+    );
+    app.mount(host);
+    await settle();
+
+    const plus = host.querySelector<HTMLButtonElement>("[data-new-query-tab]");
+    expect(plus).not.toBeNull();
+    // 没有连接时“新建查询”不可用：加号仍在最右侧，但置灰。
+    expect(plus!.disabled).toBe(true);
+    plus!.click();
+    await settle();
+    expect(created).toHaveLength(0);
+
+    connectionStore.connections = [{ id: "pg-1", name: "PG 1", db_type: "postgres", driver_profile: "postgres", host: "127.0.0.1", port: 5432, color: "" } as ConnectionConfig];
+    await settle();
+    const enabled = host.querySelector<HTMLButtonElement>("[data-new-query-tab]")!;
+    expect(enabled.disabled).toBe(false);
+    enabled.click();
+    await settle();
+    expect(created).toHaveLength(1);
 
     app.unmount();
     host.remove();

@@ -35,6 +35,7 @@ const emit = defineEmits<
     "start-resize": [event: MouseEvent];
     "toggle-collapse": [];
     "detach-tab": [tab: QueryTab];
+    "new-query": [];
   }
 >();
 
@@ -285,6 +286,7 @@ function handleFocusStatement(tabId: string, range: StatementRange | null): bool
                 @start-resize="emit('start-resize', $event)"
                 @toggle-collapse="emit('toggle-collapse')"
                 @detach-tab="emit('detach-tab', $event)"
+                @new-query="emit('new-query')"
               >
                 <template #empty><slot name="empty" /></template>
               </EditorGroup>

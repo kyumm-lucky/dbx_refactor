@@ -1,4 +1,5 @@
 import { firstLineCellDisplayValue, type CellValue } from "@/lib/dataGrid/cellValue";
+import { DEFAULT_DATA_GRID_FONT_FAMILY } from "@/lib/app/appFonts";
 import { BOOLEAN_CHECKBOX_SIZE, isBooleanCellValue, normalizeBooleanCellValue } from "@/lib/dataGrid/dataGridBooleanColumn";
 import { resolveDataGridCellTextRole } from "@/lib/dataGrid/dataGridCellTextVisual";
 import type { DataGridTypeVisualKind } from "@/lib/dataGrid/dataGridColumnType";
@@ -280,7 +281,7 @@ function resolveCanvasRenderState(canvas: HTMLCanvasElement, isDark: boolean, st
   const cached = canvasRenderStateCache.get(canvas);
   if (cached?.cacheKey === cacheKey) return cached;
 
-  const fontFamily = canvasStyle.fontFamily || `"Geist Variable Tabular", "Geist Variable", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif`;
+  const fontFamily = canvasStyle.fontFamily || DEFAULT_DATA_GRID_FONT_FAMILY;
   const fontSize = Number.parseFloat(canvasStyle.fontSize) || 13;
   const lineHeight = canvasStyle.lineHeight;
   const normalFont = canvasFont({
@@ -422,7 +423,7 @@ export function drawCanvasDataGrid(options: DrawCanvasDataGridOptions) {
     const rowIsActive = isRowActive(item.displayIndex);
     const rowSelectionVisual = rowCellsUseSelectionVisual(item.id);
 
-    const rowBase = item.isDeleted ? theme.rowDeleted : item.isNew && !rowIsActive ? theme.rowNew : item.isDraft && !rowIsActive ? theme.rowMuted : item.displayIndex % 2 === 1 && !rowIsActive ? theme.rowMuted : theme.background;
+    const rowBase = item.isDeleted ? theme.rowDeleted : item.isNew && !rowIsActive ? theme.rowNew : item.isDraft && !rowIsActive ? theme.rowMuted : theme.background;
     const rowFill = resolveCanvasDataGridRowFill(theme, rowBase, {
       isActive: rowIsActive,
       isDeleted: item.isDeleted,

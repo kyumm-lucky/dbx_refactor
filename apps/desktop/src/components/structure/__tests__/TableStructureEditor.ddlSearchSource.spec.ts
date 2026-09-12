@@ -14,7 +14,8 @@ describe("TableStructureEditor DDL search wiring", () => {
 
   it("routes the global search command to the active searchable structure tab", () => {
     expect(source).toMatch(/function focusSearch\(\): boolean \{[\s\S]*activeTab\.value === "columns"[\s\S]*focusColumnSearch\(\);[\s\S]*activeTab\.value === "indexes"[\s\S]*focusIndexSearch\(\);[\s\S]*activeTab\.value === "ddl"[\s\S]*ddlSearchPanelRef\.value\?\.openSearch\(\)/);
-    expect(source).toContain("defineExpose({ applyChanges, focusSearch });");
+    // The table tab drives the structure view through the same exposed surface.
+    expect(source).toMatch(/defineExpose\(\{[\s\S]*applyChanges[\s\S]*focusSearch[\s\S]*\}\);/);
     expect(source).toMatch(/if \(isPlainModShortcut\(event, "f"\)\) \{\s*if \(focusSearch\(\)\)/);
   });
 

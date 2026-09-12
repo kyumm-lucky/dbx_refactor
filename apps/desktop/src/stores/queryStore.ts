@@ -6,6 +6,7 @@ import { computed, markRaw, nextTick, onScopeDispose, reactive, ref, watch } fro
 import { useI18n } from "vue-i18n";
 import type { BatchSqlExecution, ConnectionConfig, DatabaseType, IndexInfo, NacosConfigEditorViewport, ObjectBrowserFilter, ObjectBrowserViewport, QueryResult, QueryResultSourceColumnRef, QueryTab, TableInfoTab, TableStructureEditorTarget } from "@/types/database";
 import { sanitizeTabPageUiState } from "@/lib/tabs/tabUiState";
+import { hasPendingStructureDraft } from "@/lib/tabs/dataTableView";
 import { orderPinnedFirst } from "@/lib/app/pinnedItems";
 import { canCancelQueryExecution } from "@/lib/sql/queryExecutionState";
 import { buildExplainSql, parseExplainResult, parseDamengExplainText, parseOracleExplainText, sqlServerExplainResult, type BuildExplainSqlResult, type ExplainPlanDatabaseType } from "@/lib/diagram/explainPlan";
@@ -3190,6 +3191,10 @@ export const useQueryStore = defineStore("query", () => {
       // Legacy persisted structure drafts predate the dirty flag; treat them as dirty until the editor rehydrates them.
       return !!tab.structureDraft && tab.structureDraft.dirty !== false;
     }
+    // Data tabs host the same structure draft in their 表结构 view, so an
+    // unapplied structure change must protect the tab exactly like the
+    // standalone structure tab does.
+    if (tab.mode === "data") return hasPendingStructureDraft(tab);
     if (tab.mode !== "query") return false;
     if (!tab.externalSqlPath && !tab.sql.trim() && !(tab.savedSqlId && tab.originalSql !== undefined)) return false;
     const original = tab.originalSql;
@@ -3506,6 +3511,7 @@ export const useQueryStore = defineStore("query", () => {
 
   function shouldConfirmTabClose(tab: QueryTab): boolean {
     if (tab.mode === "structure") return isTabDirty(tab);
+    if (tab.mode === "data" && hasPendingStructureDraft(tab)) return true;
     return shouldConfirmUnsavedSqlClose.value && isTabDirty(tab);
   }
 

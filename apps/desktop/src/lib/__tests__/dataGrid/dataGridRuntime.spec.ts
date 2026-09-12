@@ -19,13 +19,11 @@ function extractFunction(name: string): string {
 }
 
 describe("dataGridRuntime", () => {
-  it("keeps WHERE and ORDER BY execution errors separate from save errors", () => {
-    for (const name of ["applyWhereFilter", "applyOrderBySearch"]) {
-      const source = extractFunction(name);
-      expect(source).toContain('queryControlError.value = ""');
-      expect(source).toContain("queryControlError.value = String(e?.message || e)");
-      expect(source).not.toContain("saveError.value");
-    }
+  it("keeps WHERE execution errors separate from save errors", () => {
+    const source = extractFunction("applyWhereFilter");
+    expect(source).toContain('queryControlError.value = ""');
+    expect(source).toContain("queryControlError.value = String(e?.message || e)");
+    expect(source).not.toContain("saveError.value");
     expect(dataGridSource).toContain('v-if="queryControlError"');
     expect(dataGridSource).toContain(":title=\"t('grid.queryError')\"");
   });

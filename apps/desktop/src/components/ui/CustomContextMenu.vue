@@ -236,9 +236,13 @@ function adjustSubPosition() {
   });
 }
 
+/**
+ * 右键菜单统一为紧凑样式：文字灰色、字号比默认(14px)小两号(11px)，图标保持原尺寸，
+ * 与编辑器“更多操作”下拉菜单保持一致。
+ */
 function itemButtonClass(variant?: "default" | "destructive") {
   return [
-    "w-full gap-2 rounded-md px-2 py-1 text-[13px] leading-4 outline-hidden select-none text-left cursor-default flex items-center disabled:pointer-events-none disabled:opacity-50",
+    "w-full gap-2 rounded-md px-2 py-1 text-[11px] leading-4 outline-hidden select-none text-left cursor-default flex items-center disabled:pointer-events-none disabled:opacity-50",
     variant === "destructive" ? "text-destructive hover:bg-destructive/10 hover:text-destructive focus-visible:bg-destructive/10 focus-visible:text-destructive" : "hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground",
   ];
 }
@@ -287,7 +291,7 @@ onBeforeUnmount(() => {
               <Check v-if="item.checked" class="size-4 text-primary" />
               <component :is="item.icon" v-else-if="item.icon" :class="['size-4', item.iconClass]" />
             </span>
-            <span class="flex-1 whitespace-nowrap">{{ item.label }}</span>
+            <span class="flex-1 whitespace-nowrap" :class="item.variant === 'destructive' ? '' : 'text-muted-foreground'">{{ item.label }}</span>
             <span v-if="item.shortcut" class="ml-8 inline-flex shrink-0 items-center gap-1 text-muted-foreground">
               <kbd v-for="key in shortcutKeys(item.shortcut)" :key="key" class="min-w-4 rounded border border-border/70 bg-muted/60 px-1 py-0.5 text-center font-mono text-[10px] leading-none text-muted-foreground shadow-xs">{{ key }}</kbd>
             </span>
@@ -318,7 +322,7 @@ onBeforeUnmount(() => {
               <Check v-if="child.checked" class="size-4 text-primary" />
               <component :is="child.icon" v-else-if="child.icon" :class="['size-4', child.iconClass]" />
             </span>
-            <span class="flex-1 whitespace-nowrap">{{ child.label }}</span>
+            <span class="flex-1 whitespace-nowrap" :class="child.variant === 'destructive' ? '' : 'text-muted-foreground'">{{ child.label }}</span>
             <span v-if="child.shortcut" class="ml-8 inline-flex shrink-0 items-center gap-1 text-muted-foreground">
               <kbd v-for="key in shortcutKeys(child.shortcut)" :key="key" class="min-w-4 rounded border border-border/70 bg-muted/60 px-1 py-0.5 text-center font-mono text-[10px] leading-none text-muted-foreground shadow-xs">{{ key }}</kbd>
             </span>

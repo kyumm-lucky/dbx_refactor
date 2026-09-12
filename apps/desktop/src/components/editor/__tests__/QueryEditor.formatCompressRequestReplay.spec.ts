@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import QueryEditor from "@/components/editor/QueryEditor.vue";
 import { compressSqlText, formatSqlForEditing } from "@/lib/sql/sqlFormatter";
-import { DEFAULT_SQL_FORMATTER_SETTINGS } from "@/lib/sql/sqlFormatterConfig";
+import { DEFAULT_EDITOR_SETTINGS } from "@/stores/settingsStore";
 
 // The request ids are per-kind global counters in App.vue, so ids keep
 // increasing for the lifetime of the process. The module-scope replay cursor in
@@ -16,7 +16,8 @@ import { DEFAULT_SQL_FORMATTER_SETTINGS } from "@/lib/sql/sqlFormatterConfig";
 // production counter.
 const ORIGINAL_SQL = "select id, name\nfrom users\nwhere id = 1";
 const COMPRESSED_SQL = compressSqlText(ORIGINAL_SQL, "mysql");
-const FORMATTED_SQL = await formatSqlForEditing(COMPRESSED_SQL, "mysql", DEFAULT_SQL_FORMATTER_SETTINGS);
+// 编辑器用应用默认的格式化设置（关键字小写），期望值必须走同一份设置。
+const FORMATTED_SQL = await formatSqlForEditing(COMPRESSED_SQL, "mysql", DEFAULT_EDITOR_SETTINGS.sqlFormatter);
 
 const cleanups: Array<() => void> = [];
 

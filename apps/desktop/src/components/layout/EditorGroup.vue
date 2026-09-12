@@ -44,6 +44,7 @@ const emit = defineEmits<
     "start-resize": [event: MouseEvent];
     "toggle-collapse": [];
     "detach-tab": [tab: QueryTab];
+    "new-query": [];
   }
 >();
 
@@ -155,6 +156,7 @@ const groupExecutableSql = computed(() => {
         @start-resize="$emit('start-resize', $event)"
         @toggle-collapse="$emit('toggle-collapse')"
         @detach-tab="$emit('detach-tab', $event)"
+        @new-query="$emit('new-query')"
         @activate-settings="toolbar.activateSettingsPage()"
         @close-settings="toolbar.closeSettingsPage()"
         @activate-driver-store="toolbar.activateDriverStore()"

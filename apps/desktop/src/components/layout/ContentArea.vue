@@ -10,6 +10,8 @@ import { batchSqlRecoveryState, type BatchSqlRecoveryAction } from "@/lib/query/
 import type { CSSProperties } from "vue";
 import { useI18n } from "vue-i18n";
 import { provideTabUiState } from "@/lib/tabs/tabUiState";
+import { dataTableTabView } from "@/lib/tabs/dataTableView";
+import TableDataViewSwitcher from "@/components/layout/TableDataViewSwitcher.vue";
 import {
   Check,
   CheckSquare2,
@@ -19,7 +21,6 @@ import {
   Gauge,
   Loader2,
   Search,
-  TableProperties,
   ChevronDown,
   ChevronUp,
   Inbox,
@@ -36,6 +37,7 @@ import {
   Minus,
   Plus,
   ShieldAlert,
+  SlidersHorizontal,
   AlignLeft,
   AlignRight,
   PanelsTopLeft,
@@ -128,12 +130,11 @@ const QueryChart = defineAsyncComponent(() => import("@/components/chart/QueryCh
 import { useQueryStore } from "@/stores/queryStore";
 import { useConnectionStore } from "@/stores/connectionStore";
 import type { ContentAreaSurfaceEmits, ContentAreaSurfaceProps } from "@/components/layout/querySurfaces";
-import { TABLE_FONT_SIZE_MAX, TABLE_FONT_SIZE_MIN, useSettingsStore, type DataGridSearchMode, type ResultRunDisplayMode } from "@/stores/settingsStore";
+import { TABLE_FONT_SIZE_MAX, TABLE_FONT_SIZE_MIN, useSettingsStore, type DataGridSearchMode, type ResultRunDisplayMode, type StructureEditorDensity } from "@/stores/settingsStore";
 import { useToast } from "@/composables/useToast";
 import { isTauriRuntime } from "@/lib/backend/tauriRuntime";
 import { canCancelQueryExecution, isActiveResultLoading, queryExecutionLabelKey } from "@/lib/sql/queryExecutionState";
 import {
-  databaseDisplayNameForTab,
   executionSummaryItems,
   isPreviewTab,
   queryResultExecutionSql,
@@ -165,11 +166,10 @@ import type { DataGridSortMode } from "@/lib/dataGrid/dataGridSort";
 import { isDataGridToolbarCompact, type DataGridReloadIntent } from "@/lib/dataGrid/dataGridToolbar";
 import { useTabScroll } from "@/composables/useTabScroll";
 import { useToolbarOverflow } from "@/composables/useToolbarOverflow";
-import ToolbarOverflowMenu from "@/components/ui/ToolbarOverflowMenu.vue";
 import { formatElapsedSeconds } from "@/lib/common/elapsedTime";
 import { copyToClipboard } from "@/lib/common/clipboard";
 import type { CustomSaveHandler } from "@/composables/useDataGridEditor";
-import type { QueryTab, TableInfoTab, TreeNode, VectorCollectionMeta } from "@/types/database";
+import type { DataTableTabView, QueryTab, TableInfoTab, TreeNode, VectorCollectionMeta } from "@/types/database";
 import type { SqlObjectNavigationTarget } from "@/lib/sql/sqlNavigation";
 import { sqlFormatDialectForDbType, type SqlFormatDialect } from "@/lib/sql/sqlFormatter";
 import { productionContextForDatabase } from "@/lib/database/productionSafety";
@@ -295,12 +295,42 @@ const dataGridViewOptionsOpen = ref(false);
 // editor toolbar). The chips keep a min-width floor so scrollWidth reports
 // real overflow; tiers then drop button labels and move secondary actions
 // into the overflow menu instead of crushing the chips away.
+// 数据表标签页的顶层视图（表结构 / 表数据）。视图状态挂在标签页上，
+// 切到别的标签再回来仍是用户离开时的那个视图。
+const activeTableDataView = computed<DataTableTabView>(() => dataTableTabView(props.activeTab));
+
+function selectTableDataView(view: DataTableTabView) {
+  props.activeTab.tableView = view;
+}
+
+// 两个视图都只在首次进入后挂载，之后靠显隐切换：既不为用不到的一侧付出
+// 渲染成本，来回切换也不会重新查询（表格状态与结构草稿都保留）。
+const visitedDataTableView = ref(activeTableDataView.value === "data");
+const visitedStructureView = ref(activeTableDataView.value === "structure");
+watch(activeTableDataView, (view) => {
+  if (view === "data") visitedDataTableView.value = true;
+  else visitedStructureView.value = true;
+});
+
 const dataToolbarRef = ref<HTMLElement | null>(null);
-const { tier: dataToolbarTier } = useToolbarOverflow(dataToolbarRef, [() => props.activeTab.id, () => !!props.activeTab.result]);
+const { tier: dataToolbarTier } = useToolbarOverflow(dataToolbarRef, [() => props.activeTab.id, () => !!props.activeTab.result, () => activeTableDataView.value]);
+
+type TableStructureViewHandle = {
+  structureDensity?: StructureEditorDensity;
+  structureDensityOptions?: Array<{ value: StructureEditorDensity; label: string }>;
+  setStructureDensity: (value: unknown) => void;
+  refreshStructure: () => Promise<void>;
+};
+
+const structureViewRef = ref<TableStructureViewHandle>();
+const structureViewDensity = computed(() => structureViewRef.value?.structureDensity);
+const structureViewDensityOptions = computed(() => structureViewRef.value?.structureDensityOptions ?? []);
+const structureViewDensityLabel = computed(() => structureViewDensityOptions.value.find((option) => option.value === structureViewDensity.value)?.label ?? "");
+const structureViewTableName = computed(() => activeDataTabTableMeta.value?.tableName?.trim() || "");
+function refreshStructureView() {
+  void structureViewRef.value?.refreshStructure();
+}
 const dataToolbarCompact = computed(() => dataToolbarTier.value >= 1);
-const showDataToolbarOverflow = computed(() => dataToolbarTier.value >= 2);
-const showDataTableInfoButton = computed(() => dataToolbarTier.value < 2);
-const showDataColumnsChip = computed(() => dataToolbarTier.value < 2);
 const dataGridRenderMode = computed(() => settingsStore.editorSettings.dataGridRenderMode);
 const dataGridSearchMode = computed(() => settingsStore.editorSettings.dataGridSearchMode);
 const resultRunDisplayMode = computed(() => settingsStore.editorSettings.resultRunDisplayMode);
@@ -1999,356 +2029,167 @@ defineExpose({
     <template v-else-if="activeTab.mode === 'data'">
       <div class="flex-1 min-h-0 flex flex-col">
         <div ref="dataToolbarRef" class="h-9 shrink-0 border-b bg-background/80 px-3 flex items-center gap-2 text-xs overflow-hidden">
-          <!-- No fixed max-w cap on these chips: they must flex (truncate)
-               so long names only clip when the header row itself runs out
-               (#7880). The min-w floor keeps scrollWidth reporting real
-               overflow so the measured tiers condense the row before the
-               chips collapse. -->
-          <span v-if="activeConnection?.name?.trim()" data-data-header-connection class="inline-flex min-w-12 items-center truncate rounded border border-border bg-muted/30 px-2 py-0.5 text-muted-foreground" :title="activeConnection.name">
-            {{ activeConnection.name }}
-          </span>
-          <span class="inline-flex min-w-12 items-center truncate rounded border border-border bg-muted/50 px-2 py-0.5 font-medium" :title="activeDataTabTableMeta?.tableName || activeTab.title">
-            {{ activeDataTabTableMeta?.tableName || activeTab.title }}
-          </span>
-          <span class="inline-flex min-w-12 items-center truncate rounded border border-border bg-muted/30 px-2 py-0.5 text-muted-foreground" :title="[activeDataTabTableMeta?.schema, databaseDisplayNameForTab(activeTab.connectionId, activeTab.database, t)].filter(Boolean).join('@')">
-            <template v-if="activeDataTabTableMeta?.schema">{{ activeDataTabTableMeta.schema }}@</template>{{ databaseDisplayNameForTab(activeTab.connectionId, activeTab.database, t) }}
-          </span>
-          <span v-if="showDataColumnsChip && activeDataTabTableMeta" class="inline-flex shrink-0 items-center rounded border border-border bg-muted/30 px-2 py-0.5 font-medium text-muted-foreground tabular-nums"> {{ activeDataTabTableMeta.columns.length }} {{ t("tree.columns") }} </span>
+          <TableDataViewSwitcher :active-view="activeTableDataView" @select-view="selectTableDataView" />
           <span class="ml-auto" />
-          <DataGridColumnLayoutPopover v-if="activeTab.result?.columns.length" :grid="dataGridRef" trigger-class="px-1.5" />
-          <Button
-            v-if="showDataTableInfoButton && activeTab.result && activeDataTabTableMeta && activeTab.connectionId"
-            variant="ghost"
-            size="sm"
-            class="h-5 text-xs px-1.5 shrink-0"
-            :class="{ 'bg-accent': dataGridRef?.showDdl }"
-            :title="dataToolbarCompact ? t('grid.tableInfo') : undefined"
-            @click="dataGridRef?.toggleDdl()"
-            ><TableProperties class="h-3.5 w-3.5" /><span v-if="!dataToolbarCompact">{{ t("grid.tableInfo") }}</span></Button
-          >
-          <DropdownMenu v-if="activeTab.result && activeDataTabTableMeta && activeTab.connectionId">
-            <DropdownMenuTrigger as-child>
-              <Button variant="ghost" size="sm" class="h-5 text-xs px-1.5 shrink-0" :title="t('tableToolbox.title')"
-                ><Toolbox class="h-3.5 w-3.5" /><span v-if="!dataToolbarCompact">{{ t("tableToolbox.title") }}</span></Button
-              >
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" class="w-max min-w-44 gap-0 overflow-hidden rounded-md border bg-popover p-0 text-popover-foreground shadow-xl">
-              <div class="border-b bg-muted/40 px-3 py-2">
-                <div class="text-xs font-semibold">{{ t("tableToolbox.title") }}</div>
-              </div>
-              <div class="p-1">
-                <DropdownMenuItem class="gap-2" @click="handleTableDataGenerate">
-                  <Database class="h-4 w-4" />
-                  {{ t("tableToolbox.generateData") }}
-                </DropdownMenuItem>
-                <DropdownMenuItem class="gap-2" @click="handleTableImport">
-                  <Download class="h-4 w-4" />
-                  {{ t("tableToolbox.importData") }}
-                </DropdownMenuItem>
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger class="gap-2">
-                    <Upload class="h-4 w-4" />
-                    {{ t("tableToolbox.exportData") }}
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuItem @click="dataGridRef?.exportCsv()"> CSV </DropdownMenuItem>
-                      <DropdownMenuItem @click="dataGridRef?.exportJson()"> JSON </DropdownMenuItem>
-                      <DropdownMenuItem @click="dataGridRef?.exportSql()"> SQL INSERT </DropdownMenuItem>
-                      <DropdownMenuItem @click="dataGridRef?.exportXlsx()"> XLSX </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Popover v-if="activeTab.result?.columns.length" v-model:open="dataGridViewOptionsOpen">
-            <PopoverTrigger as-child>
-              <Button variant="ghost" size="icon" class="h-6 w-7 shrink-0 text-foreground hover:bg-accent" :title="t('grid.viewOptions')" :aria-label="t('grid.viewOptions')">
-                <Wrench class="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" :collision-padding="8" class="w-max min-w-44 max-h-[var(--reka-popover-content-available-height)] max-w-[calc(100vw-2rem)] gap-0 overflow-x-hidden overflow-y-auto rounded-md border bg-popover p-0 text-popover-foreground shadow-xl" @click.stop @keydown.stop>
-              <div class="border-b bg-muted/40 px-3 py-2">
-                <div class="text-xs font-semibold">{{ t("grid.viewOptions") }}</div>
-              </div>
-              <div class="flex items-center justify-between gap-3 px-3 py-1.5 text-xs">
-                <div class="min-w-0 flex items-center gap-2 font-medium">
-                  <SquareDashed class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span>{{ t("grid.renderMode") }}</span>
+          <template v-if="activeTableDataView === 'data'">
+            <DropdownMenu v-if="activeTab.result && activeDataTabTableMeta && activeTab.connectionId">
+              <DropdownMenuTrigger as-child>
+                <Button variant="ghost" size="sm" class="h-5 text-xs px-1.5 shrink-0" :title="t('tableToolbox.title')"
+                  ><Toolbox class="h-3.5 w-3.5" /><span v-if="!dataToolbarCompact">{{ t("tableToolbox.title") }}</span></Button
+                >
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" class="w-max min-w-44 gap-0 overflow-hidden rounded-md border bg-popover p-0 text-popover-foreground shadow-xl">
+                <div class="border-b bg-muted/40 px-3 py-2">
+                  <div class="text-xs font-semibold">{{ t("tableToolbox.title") }}</div>
                 </div>
-                <LightTooltip :text="t('grid.renderModeHint')" side="left" :side-offset="6" :delay="0" :open-on-focus="false">
-                  <div class="grid w-32 grid-cols-2 rounded-md border bg-muted/40 p-0.5">
-                    <button
-                      type="button"
-                      class="h-5 min-w-0 truncate whitespace-nowrap rounded-[5px] px-2 text-xs transition-colors"
-                      :class="dataGridRenderMode === 'canvas' ? 'bg-background font-semibold text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
-                      @click="setDataGridRenderMode('canvas')"
-                    >
-                      {{ t("grid.canvasRenderMode") }}
-                    </button>
-                    <button
-                      type="button"
-                      class="h-5 min-w-0 truncate whitespace-nowrap rounded-[5px] px-2 text-xs transition-colors"
-                      :class="dataGridRenderMode === 'dom' ? 'bg-background font-semibold text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
-                      @click="setDataGridRenderMode('dom')"
-                    >
-                      {{ t("grid.domRenderMode") }}
-                    </button>
-                  </div>
-                </LightTooltip>
-              </div>
-              <div class="flex items-center justify-between gap-3 px-3 py-1.5 text-xs">
-                <div class="min-w-0 flex items-center gap-2 font-medium">
-                  <Columns3Cog class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span>{{ t("grid.columnWidth") }}</span>
+                <div class="p-1">
+                  <DropdownMenuItem class="gap-2" @click="handleTableDataGenerate">
+                    <Database class="h-4 w-4" />
+                    {{ t("tableToolbox.generateData") }}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem class="gap-2" @click="handleTableImport">
+                    <Download class="h-4 w-4" />
+                    {{ t("tableToolbox.importData") }}
+                  </DropdownMenuItem>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger class="gap-2">
+                      <Upload class="h-4 w-4" />
+                      {{ t("tableToolbox.exportData") }}
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem @click="dataGridRef?.exportCsv()"> CSV </DropdownMenuItem>
+                        <DropdownMenuItem @click="dataGridRef?.exportJson()"> JSON </DropdownMenuItem>
+                        <DropdownMenuItem @click="dataGridRef?.exportSql()"> SQL INSERT </DropdownMenuItem>
+                        <DropdownMenuItem @click="dataGridRef?.exportXlsx()"> XLSX </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
                 </div>
-                <div class="grid w-48 grid-cols-3 rounded-md border bg-muted/40 p-0.5">
-                  <button
-                    v-for="density in ['compact', 'standard', 'comfortable'] as const"
-                    :key="density"
-                    type="button"
-                    class="h-5 min-w-0 truncate whitespace-nowrap rounded-[5px] px-1.5 text-xs transition-colors"
-                    :class="columnWidthDensity === density ? 'bg-background font-semibold text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
-                    @click="setColumnWidthDensity(density)"
-                  >
-                    {{ t(`grid.columnWidth${density.charAt(0).toUpperCase()}${density.slice(1)}`) }}
-                  </button>
-                </div>
-              </div>
-              <DataGridFontFamilyControl />
-              <div class="flex items-center justify-between gap-3 px-3 py-1.5 text-xs">
-                <div class="min-w-0 flex items-center gap-2 font-medium">
-                  <span class="flex h-3.5 w-3.5 shrink-0 items-center justify-center text-[11px] font-semibold text-muted-foreground">A</span>
-                  <span>{{ t("grid.tableFontSize") }}</span>
-                </div>
-                <div class="flex h-6 w-32 items-center rounded-md border bg-muted/40 p-0.5">
-                  <button
-                    type="button"
-                    class="flex h-5 w-8 items-center justify-center rounded-[5px] bg-background text-foreground shadow-sm transition-colors hover:text-foreground disabled:pointer-events-none disabled:bg-muted/40 disabled:text-muted-foreground disabled:opacity-50 disabled:shadow-none"
-                    :disabled="tableFontSize <= TABLE_FONT_SIZE_MIN"
-                    :aria-label="t('common.decrease')"
-                    @click="decreaseTableFontSize"
-                  >
-                    <Minus class="h-3.5 w-3.5" />
-                  </button>
-                  <span class="flex-1 text-center text-xs font-semibold tabular-nums">{{ tableFontSize }}</span>
-                  <button
-                    type="button"
-                    class="flex h-5 w-8 items-center justify-center rounded-[5px] bg-background text-foreground shadow-sm transition-colors hover:text-foreground disabled:pointer-events-none disabled:bg-muted/40 disabled:text-muted-foreground disabled:opacity-50 disabled:shadow-none"
-                    :disabled="tableFontSize >= TABLE_FONT_SIZE_MAX"
-                    :aria-label="t('common.increase')"
-                    @click="increaseTableFontSize"
-                  >
-                    <Plus class="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-              <div class="flex items-center justify-between gap-3 px-3 py-1.5 text-xs">
-                <div class="min-w-0 flex items-center gap-2 font-medium">
-                  <Search class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span>{{ t("grid.searchMode") }}</span>
-                </div>
-                <LightTooltip :text="t('grid.searchModeHint')" side="left" :side-offset="6" :delay="0" :open-on-focus="false">
-                  <div class="grid w-32 grid-cols-2 rounded-md border bg-muted/40 p-0.5">
-                    <button
-                      type="button"
-                      class="h-5 min-w-0 truncate whitespace-nowrap rounded-[5px] px-2 text-xs transition-colors"
-                      :class="dataGridSearchMode === 'filter' ? 'bg-background font-semibold text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
-                      @click="setDataGridSearchMode('filter')"
-                    >
-                      {{ t("grid.searchModeFilter") }}
-                    </button>
-                    <button
-                      type="button"
-                      class="h-5 min-w-0 truncate whitespace-nowrap rounded-[5px] px-2 text-xs transition-colors"
-                      :class="dataGridSearchMode === 'highlight' ? 'bg-background font-semibold text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
-                      @click="setDataGridSearchMode('highlight')"
-                    >
-                      {{ t("grid.searchModeHighlight") }}
-                    </button>
-                  </div>
-                </LightTooltip>
-              </div>
-              <div class="flex items-center justify-between gap-3 px-3 py-1.5 text-xs">
-                <div class="min-w-0 flex items-center gap-2 font-medium">
-                  <Rows3 class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span>{{ t("grid.transposeMultiRowToggle") }}</span>
-                </div>
-                <LightTooltip :text="t('grid.transposeMultiRowHint')" side="left" :side-offset="6" :delay="0" :open-on-focus="false">
-                  <div class="grid w-32 grid-cols-2 rounded-md border bg-muted/40 p-0.5">
-                    <button
-                      type="button"
-                      class="h-5 min-w-0 truncate whitespace-nowrap rounded-[5px] px-2 text-xs transition-colors"
-                      :class="!dataGridRef?.multiRowTranspose ? 'bg-background font-semibold text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
-                      @click="dataGridRef?.setMultiRowTranspose(false)"
-                    >
-                      {{ t("grid.transposeSingleRow") }}
-                    </button>
-                    <button
-                      type="button"
-                      class="h-5 min-w-0 truncate whitespace-nowrap rounded-[5px] px-2 text-xs transition-colors"
-                      :class="dataGridRef?.multiRowTranspose ? 'bg-background font-semibold text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
-                      @click="dataGridRef?.setMultiRowTranspose(true)"
-                    >
-                      {{ t("grid.transposeMultiRow") }}
-                    </button>
-                  </div>
-                </LightTooltip>
-              </div>
-              <div class="flex items-center justify-between gap-3 px-3 py-1.5 text-xs">
-                <div class="min-w-0 flex items-center gap-2 font-medium">
-                  <component :is="numericColumnRightAlign ? AlignRight : AlignLeft" class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span>{{ t("grid.numericColumnAlign") }}</span>
-                </div>
-                <div class="grid w-32 grid-cols-2 rounded-md border bg-muted/40 p-0.5">
-                  <button
-                    type="button"
-                    class="h-5 min-w-0 truncate whitespace-nowrap rounded-[5px] px-2 text-xs transition-colors"
-                    :class="!numericColumnRightAlign ? 'bg-background font-semibold text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
-                    @click="setNumericColumnRightAlign(false)"
-                  >
-                    {{ t("grid.numericColumnAlignLeft") }}
-                  </button>
-                  <button
-                    type="button"
-                    class="h-5 min-w-0 truncate whitespace-nowrap rounded-[5px] px-2 text-xs transition-colors"
-                    :class="numericColumnRightAlign ? 'bg-background font-semibold text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
-                    @click="setNumericColumnRightAlign(true)"
-                  >
-                    {{ t("grid.numericColumnAlignRight") }}
-                  </button>
-                </div>
-              </div>
-              <div class="flex items-center justify-between gap-3 px-3 py-1.5 text-xs">
-                <div class="min-w-0 flex items-center gap-2 font-medium">
-                  <CheckSquare2 class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span>{{ t("grid.booleanDisplayMode") }}</span>
-                </div>
-                <div class="grid w-32 grid-cols-2 rounded-md border bg-muted/40 p-0.5">
-                  <button
-                    type="button"
-                    class="h-5 min-w-0 truncate whitespace-nowrap rounded-[5px] px-2 text-xs transition-colors"
-                    :class="booleanDisplayMode === 'dropdown' ? 'bg-background font-semibold text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
-                    @click="setBooleanDisplayMode('dropdown')"
-                  >
-                    {{ t("grid.booleanDisplayDropdown") }}
-                  </button>
-                  <button
-                    type="button"
-                    class="h-5 min-w-0 truncate whitespace-nowrap rounded-[5px] px-2 text-xs transition-colors"
-                    :class="booleanDisplayMode === 'checkbox' ? 'bg-background font-semibold text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
-                    @click="setBooleanDisplayMode('checkbox')"
-                  >
-                    {{ t("grid.booleanDisplayCheckbox") }}
-                  </button>
-                </div>
-              </div>
-              <div class="flex items-center justify-between gap-3 px-3 py-1.5 text-xs">
-                <div class="min-w-0 flex items-center gap-2 font-medium">
-                  <Palette class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span>{{ t("grid.colorizeDataTypes") }}</span>
-                </div>
-                <Switch size="sm" :model-value="colorizeDataGridCellTypes" :aria-label="t('grid.colorizeDataTypes')" @update:model-value="setColorizeDataGridCellTypes" />
-              </div>
-              <div class="flex items-center justify-between gap-3 px-3 py-1.5 text-xs" :class="{ 'opacity-60': !dataGridRef?.canToggleAllNullColumns }">
-                <span class="min-w-0 flex items-center gap-2 font-medium">
-                  <EyeOff class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  {{ t("grid.hideNullColumns") }}
-                  <span v-if="(dataGridRef?.allNullColumnCount ?? 0) > 0" class="text-muted-foreground tabular-nums"> ({{ dataGridRef?.allNullColumnCount }}) </span>
-                </span>
-                <Switch size="sm" :model-value="!!dataGridRef?.nullColumnsHidden" :disabled="!dataGridRef?.canToggleAllNullColumns" :aria-label="t('grid.hideNullColumns')" @update:model-value="dataGridRef?.toggleAllNullColumns()" />
-              </div>
-              <DataGridCopyFormatControl
-                :current-label="dataGridRef?.defaultCopyPreferenceLabel ?? '-'"
-                :current-value="dataGridRef?.defaultCopyPreference ?? ''"
-                :items="dataGridRef?.copyPreferenceMenuItems ?? []"
-                @select="dataGridRef?.setDefaultCopyPreference($event)"
-                @configure="openDataGridExtractorConfiguration"
-              />
-            </PopoverContent>
-          </Popover>
-          <ToolbarOverflowMenu v-if="showDataToolbarOverflow" :label="t('toolbar.moreActions')">
-            <DropdownMenuItem v-if="activeTab.result && activeDataTabTableMeta && activeTab.connectionId" @select="dataGridRef?.toggleDdl()">
-              <TableProperties class="h-3.5 w-3.5" />
-              {{ t("grid.tableInfo") }}
-            </DropdownMenuItem>
-          </ToolbarOverflowMenu>
-        </div>
-        <DataGrid
-          v-if="activeTab.result"
-          ref="dataGridRef"
-          class="flex-1 min-h-0"
-          :key="activeTab.id"
-          :cache-key="activeTab.id"
-          :view-generation="activeTab.resultViewGeneration"
-          :result="activeTab.result"
-          :sort-column="activeTab.resultSortColumn"
-          :sort-column-index="activeTab.resultSortColumnIndex"
-          :sort-direction="activeTab.resultSortDirection"
-          :sort-mode="activeTab.resultSortMode"
-          :initial-order-by-input="activeTab.orderByInput"
-          :sql="activeTab.sql"
-          :loading="activeTab.isExecuting"
-          :editable="!activeTab.tableMetaPending && isTableDataEditable(activeEffectiveDatabaseType, activeTableMeta?.primaryKeys ?? [], activeTableMeta?.tableType)"
-          context="table-data"
-          :initial-where-input="activeTab.whereInput"
-          :database-type="activeEffectiveDatabaseType"
-          :connection-id="activeTab.connectionId"
-          :database="activeTab.database"
-          :execution-database="activeDataTabExecutionDatabase"
-          :table-meta="activeDataTabTableMeta"
-          :table-info-tab="activeTab.tableInfoTab"
-          :auto-show-table-info="settingsStore.editorSettings.tableInfoDrawerPinned"
-          :page-offset="activeTab.resultPageOffset"
-          :page-limit="activeTab.resultPageLimit"
-          :total-row-count="activeTab.resultTotalRowCount"
-          :total-row-count-is-exact="activeTab.resultTotalRowCount !== undefined || activeTab.result.total_is_exact !== false"
-          :total-row-count-loading="activeTab.resultTotalRowCountLoading"
-          :on-execute-sql="async (sql: string) => emit('executeSql', activeTab.id, sql)"
-          :full-export-result="(onProgress?: (info: { rowsExported: number; totalRows: number | null }) => void) => queryStore.fetchTabResultForExport(activeTab.id, onProgress)"
-          :export-file-base-name="activeTab.title"
-          @update:where-input="(v: string) => (activeTab.whereInput = v)"
-          @update:order-by-input="(v: string) => (activeTab.orderByInput = v)"
-          @local-column-filters-change="(filters: Record<string, string[]>) => queryStore.updateDataGridLocalColumnFilters(activeTab.id, filters)"
-          @reload="(sql?: string, searchText?: string, whereInput?: string, orderBy?: string, limit?: number, offset?: number, intent?: DataGridReloadIntent) => emit('reload', activeTab.id, sql, searchText, whereInput, orderBy, limit, offset, intent)"
-          @paginate="(offset: number, limit: number, whereInput?: string, orderBy?: string) => emit('paginate', activeTab.id, offset, limit, whereInput, orderBy)"
-          @sort="(column: string, columnIndex: number, direction: 'asc' | 'desc' | null, whereInput?: string, mode?: DataGridSortMode) => emit('sort', activeTab.id, column, columnIndex, direction, whereInput, mode)"
-          @change-query-timeout="(connectionId: string) => emit('openConnectionSettings', connectionId, 'advanced')"
-        >
-          <template v-if="activeTab.result && isQueryExecutionErrorResult(activeTab.result)" #error-actions="{ errorMessage }">
-            <QueryErrorActions
-              :error-message="String(errorMessage)"
-              :backend-error="activeTab.result.error"
-              :connection-id="activeResultConnectionId"
-              @change-connection-timeout="activeResultConnectionId && emit('openConnectionSettings', activeResultConnectionId, 'advanced')"
-              @change-query-timeout="activeResultConnectionId && emit('openConnectionSettings', activeResultConnectionId, 'advanced')"
-              @fix-with-ai="(message) => emit('fixWithAi', activeTab.id, message)"
-            />
+              </DropdownMenuContent>
+            </DropdownMenu>
           </template>
-        </DataGrid>
-        <QueryLoadingState
-          v-else-if="activeTab.isExecuting"
-          class="h-full"
-          :label-key="queryExecutionLabelKey(activeTab)"
-          :elapsed-seconds="queryRunningElapsedSeconds"
-          show-cancel
-          :cancel-disabled="!canCancelQueryExecution(activeTab)"
-          :cancelling="activeTab.isCancelling"
-          @cancel="emit('cancel', activeTab.id)"
-        />
-        <div v-else class="h-full flex flex-col items-center justify-center gap-3 text-muted-foreground text-sm">
-          <Inbox class="h-8 w-8 opacity-60" />
-          <div>{{ t("grid.dataUnavailable") }}</div>
-          <div class="text-xs text-muted-foreground/70 inline-flex items-center gap-1">
-            <span>{{ t("grid.dataUnavailableHintPrefix") }}</span>
-            <kbd v-for="key in modRKeys" :key="key" class="min-w-5 rounded border border-border/60 bg-muted/50 px-1.5 py-0.5 text-center font-mono text-[12px] leading-none text-muted-foreground shadow-xs">{{ key }}</kbd>
-            <span>{{ t("grid.dataUnavailableHintSuffix") }}</span>
+          <template v-else>
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <Button variant="ghost" size="sm" class="h-5 gap-1 px-1.5 text-xs shrink-0" :title="t('structureEditor.density')" :aria-label="t('structureEditor.density')">
+                  <SlidersHorizontal class="h-3.5 w-3.5" />
+                  <span v-if="!dataToolbarCompact">{{ structureViewDensityLabel }}</span>
+                  <ChevronDown class="h-3 w-3 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" class="w-32">
+                <DropdownMenuItem v-for="option in structureViewDensityOptions" :key="option.value" class="gap-2" @select="structureViewRef?.setStructureDensity(option.value)">
+                  <Check v-if="structureViewDensity === option.value" class="h-3.5 w-3.5" />
+                  <span v-else class="h-3.5 w-3.5" />
+                  {{ option.label }}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="ghost" size="sm" class="h-5 gap-1 px-1.5 text-xs shrink-0" :title="t('structureEditor.refresh')" :aria-label="t('structureEditor.refresh')" @click="refreshStructureView">
+              <RefreshCcw class="h-3.5 w-3.5" />
+              <span v-if="!dataToolbarCompact">{{ t("structureEditor.refresh") }}</span>
+            </Button>
+          </template>
+        </div>
+        <div v-if="visitedDataTableView" v-show="activeTableDataView === 'data'" data-table-data-view class="flex-1 min-h-0 flex flex-col">
+          <DataGrid
+            v-if="activeTab.result"
+            ref="dataGridRef"
+            class="flex-1 min-h-0"
+            :key="activeTab.id"
+            :cache-key="activeTab.id"
+            :view-generation="activeTab.resultViewGeneration"
+            :result="activeTab.result"
+            :sort-column="activeTab.resultSortColumn"
+            :sort-column-index="activeTab.resultSortColumnIndex"
+            :sort-direction="activeTab.resultSortDirection"
+            :sort-mode="activeTab.resultSortMode"
+            :initial-order-by-input="activeTab.orderByInput"
+            :sql="activeTab.sql"
+            :loading="activeTab.isExecuting"
+            :editable="!activeTab.tableMetaPending && isTableDataEditable(activeEffectiveDatabaseType, activeTableMeta?.primaryKeys ?? [], activeTableMeta?.tableType)"
+            context="table-data"
+            :initial-where-input="activeTab.whereInput"
+            :database-type="activeEffectiveDatabaseType"
+            :connection-id="activeTab.connectionId"
+            :database="activeTab.database"
+            :execution-database="activeDataTabExecutionDatabase"
+            :table-meta="activeDataTabTableMeta"
+            :page-offset="activeTab.resultPageOffset"
+            :page-limit="activeTab.resultPageLimit"
+            :total-row-count="activeTab.resultTotalRowCount"
+            :total-row-count-is-exact="activeTab.resultTotalRowCount !== undefined || activeTab.result.total_is_exact !== false"
+            :total-row-count-loading="activeTab.resultTotalRowCountLoading"
+            :on-execute-sql="async (sql: string) => emit('executeSql', activeTab.id, sql)"
+            :full-export-result="(onProgress?: (info: { rowsExported: number; totalRows: number | null }) => void) => queryStore.fetchTabResultForExport(activeTab.id, onProgress)"
+            :export-file-base-name="activeTab.title"
+            @update:where-input="(v: string) => (activeTab.whereInput = v)"
+            @update:order-by-input="(v: string) => (activeTab.orderByInput = v)"
+            @local-column-filters-change="(filters: Record<string, string[]>) => queryStore.updateDataGridLocalColumnFilters(activeTab.id, filters)"
+            @reload="(sql?: string, searchText?: string, whereInput?: string, orderBy?: string, limit?: number, offset?: number, intent?: DataGridReloadIntent) => emit('reload', activeTab.id, sql, searchText, whereInput, orderBy, limit, offset, intent)"
+            @paginate="(offset: number, limit: number, whereInput?: string, orderBy?: string) => emit('paginate', activeTab.id, offset, limit, whereInput, orderBy)"
+            @sort="(column: string, columnIndex: number, direction: 'asc' | 'desc' | null, whereInput?: string, mode?: DataGridSortMode) => emit('sort', activeTab.id, column, columnIndex, direction, whereInput, mode)"
+            @change-query-timeout="(connectionId: string) => emit('openConnectionSettings', connectionId, 'advanced')"
+          >
+            <template v-if="activeTab.result?.columns.length" #row-number-header>
+              <DataGridColumnLayoutPopover :grid="dataGridRef" compact content-align="start" trigger-class="text-muted-foreground" />
+            </template>
+            <template v-if="activeTab.result && isQueryExecutionErrorResult(activeTab.result)" #error-actions="{ errorMessage }">
+              <QueryErrorActions
+                :error-message="String(errorMessage)"
+                :backend-error="activeTab.result.error"
+                :connection-id="activeResultConnectionId"
+                @change-connection-timeout="activeResultConnectionId && emit('openConnectionSettings', activeResultConnectionId, 'advanced')"
+                @change-query-timeout="activeResultConnectionId && emit('openConnectionSettings', activeResultConnectionId, 'advanced')"
+                @fix-with-ai="(message) => emit('fixWithAi', activeTab.id, message)"
+              />
+            </template>
+          </DataGrid>
+          <QueryLoadingState
+            v-else-if="activeTab.isExecuting"
+            class="h-full"
+            :label-key="queryExecutionLabelKey(activeTab)"
+            :elapsed-seconds="queryRunningElapsedSeconds"
+            show-cancel
+            :cancel-disabled="!canCancelQueryExecution(activeTab)"
+            :cancelling="activeTab.isCancelling"
+            @cancel="emit('cancel', activeTab.id)"
+          />
+          <div v-else class="h-full flex flex-col items-center justify-center gap-3 text-muted-foreground text-sm">
+            <Inbox class="h-8 w-8 opacity-60" />
+            <div>{{ t("grid.dataUnavailable") }}</div>
+            <div class="text-xs text-muted-foreground/70 inline-flex items-center gap-1">
+              <span>{{ t("grid.dataUnavailableHintPrefix") }}</span>
+              <kbd v-for="key in modRKeys" :key="key" class="min-w-5 rounded border border-border/60 bg-muted/50 px-1.5 py-0.5 text-center font-mono text-[12px] leading-none text-muted-foreground shadow-xs">{{ key }}</kbd>
+              <span>{{ t("grid.dataUnavailableHintSuffix") }}</span>
+            </div>
+            <Button variant="outline" size="sm" class="h-7 gap-1.5" @click="reloadUnavailableDataTab()">
+              <RefreshCcw class="h-3.5 w-3.5" />
+              {{ t("grid.refresh") }}
+            </Button>
           </div>
-          <Button variant="outline" size="sm" class="h-7 gap-1.5" @click="reloadUnavailableDataTab()">
-            <RefreshCcw class="h-3.5 w-3.5" />
-            {{ t("grid.refresh") }}
-          </Button>
+        </div>
+        <div v-if="visitedStructureView" v-show="activeTableDataView === 'structure'" data-table-structure-view class="flex-1 min-h-0 flex flex-col">
+          <TableStructureEditor
+            v-if="structureViewTableName"
+            ref="structureViewRef"
+            layout="rail"
+            :key="`${activeTab.id}:structure`"
+            :connection-id="activeTab.connectionId"
+            :database="activeTab.database"
+            :catalog="activeTab.catalog"
+            :schema="activeTab.schema"
+            :table-name="structureViewTableName"
+            :draft="activeTab.structureDraft"
+            @update:draft="(draft) => (activeTab.structureDraft = draft)"
+            @saved="(commentChanged) => emit('structureEditorSaved', activeTab.id, commentChanged)"
+            @open-settings="(initialTab, initialSection) => emit('openSettings', initialTab, initialSection)"
+          />
+          <div v-else class="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Loader2 class="h-4 w-4 animate-spin" />
+            {{ t("common.loading") }}
+          </div>
         </div>
       </div>
     </template>

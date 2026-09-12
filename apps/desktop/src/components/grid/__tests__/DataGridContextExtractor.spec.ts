@@ -328,11 +328,11 @@ describe("DataGrid context menu target lifecycle", () => {
     expect(document.body.textContent).toContain("Grid Snapshot");
   });
 
-  it.each(["WHERE", "ORDER BY"] as const)("keeps the native context menu for the %s condition editor", async (placeholder) => {
+  it("keeps the native context menu for the WHERE condition editor", async () => {
     const { host } = mountGrid(hydratedResult(1, "value"));
     await settle();
 
-    const input = host.querySelector<HTMLTextAreaElement>(`textarea[placeholder="${placeholder}"]`);
+    const input = host.querySelector<HTMLTextAreaElement>('textarea[placeholder="WHERE"]');
     expect(input).not.toBeNull();
 
     const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 12, clientY: 12 });
@@ -341,6 +341,13 @@ describe("DataGrid context menu target lifecycle", () => {
 
     expect(event.defaultPrevented).toBe(false);
     expect(document.querySelector("[data-dbx-context-menu]")).toBeNull();
+  });
+
+  it("has no ORDER BY editor in the quick-condition bar", async () => {
+    const { host } = mountGrid(hydratedResult(1, "value"));
+    await settle();
+
+    expect(host.querySelector('textarea[placeholder="ORDER BY"]')).toBeNull();
   });
 
   it("keeps the DataGrid context menu for a regular cell", async () => {

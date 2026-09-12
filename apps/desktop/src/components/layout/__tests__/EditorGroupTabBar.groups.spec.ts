@@ -74,15 +74,17 @@ describe("EditorGroupTabBar semantic tab groups", () => {
     expect(groupMenu).toContain("...getTabPreferenceMenuItems()");
   });
 
-  it("exposes preferences and the group close from each tab context menu", () => {
+  it("keeps tab preferences and the group close out of the tab context menu", () => {
     const menuStart = source.indexOf("function getTabMenuItems");
     const menuEnd = source.indexOf("function handleTabDoubleClick");
     expect(menuStart).toBeGreaterThanOrEqual(0);
     expect(menuEnd).toBeGreaterThan(menuStart);
     const menu = source.slice(menuStart, menuEnd);
-    expect(menu).toContain("...getTabPreferenceMenuItems()");
-    expect(menu).toContain("action: () => closeTabGroup(tab)");
-    expect(menu).toContain('visible: settingsStore.editorSettings.tabGroupMode !== "none"');
+    // Placement/grouping/sorting and the group close stay on the group header
+    // menu only; the tab menu is the fixed six-entry list.
+    expect(menu).not.toContain("getTabPreferenceMenuItems");
+    expect(menu).not.toContain("closeTabGroup(tab)");
+    expect(menu).not.toContain("tabGroupMode");
   });
 
   it("closes the global semantic group by key, not just this pane's cluster", () => {
@@ -621,6 +623,15 @@ describe("EditorGroupTabBar group behavior", () => {
     host.remove();
   });
 
+  /** 该 tab 所属分组簇的表头：簇内表头总排在自己的标签页之前。 */
+  function groupHeaderFor(pill: HTMLElement): HTMLElement {
+    const headers = Array.from(pill.closest<HTMLElement>(".tab-section")!.querySelectorAll<HTMLElement>(".tab-group-header"));
+    const preceding = headers.filter((header) => header.compareDocumentPosition(pill) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const header = preceding.at(-1);
+    expect(header).toBeDefined();
+    return header!;
+  }
+
   it("closing a group stays within the invoking pane, sparing the same-key cluster elsewhere", async () => {
     const store = useQueryStore();
     const settings = useSettingsStore();
@@ -640,7 +651,9 @@ describe("EditorGroupTabBar group behavior", () => {
     // while the same-key cluster in second-group survives untouched.
     const pgPill = host.querySelector<HTMLElement>(`[data-tab-id="${pgA}"]`)!;
     expect(pgPill).not.toBeNull();
-    pgPill.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+    // Closing a group moved off the tab menu onto the group header menu.
+    const pgHeader = groupHeaderFor(pgPill);
+    pgHeader.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
     await settle();
 
     const menu = document.body.querySelector<HTMLElement>("[data-dbx-context-menu]")!;
@@ -674,7 +687,8 @@ describe("EditorGroupTabBar group behavior", () => {
     await settle();
 
     const pgPill = host.querySelector<HTMLElement>(`[data-tab-id="${pgA}"]`)!;
-    pgPill.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+    const pgHeader = groupHeaderFor(pgPill);
+    pgHeader.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
     await settle();
     const menu = document.body.querySelector<HTMLElement>("[data-dbx-context-menu]")!;
     const closeGroupItem = Array.from(menu.querySelectorAll<HTMLButtonElement>("button")).find((button) => button.textContent?.includes("Close group"));
@@ -685,38 +699,6 @@ describe("EditorGroupTabBar group behavior", () => {
     // The regular cluster is gone; the pinned tab with the same key survives.
     const remainingIds = store.tabs.map((tab) => tab.id);
     expect(remainingIds).toEqual([pgB]);
-
-    app.unmount();
-    host.remove();
-  });
-
-  it("offers the detach entry only for query and data tabs and emits the tab upward", async () => {
-    const store = useQueryStore();
-    const queryId = store.createTab("pg-1", "app", "PG 1", "query");
-    const mongoId = store.createTab("mongo-1", "app", "MG 1", "mongo");
-    const mainGroup = store.groups[0];
-    const detached: string[] = [];
-    const { app, host } = mountBar(mainGroup.id, store.tabs.slice(), queryId, pinia, { canDetachTabs: true, "onDetach-tab": (tab: { id: string }) => detached.push(tab.id) });
-    await settle();
-
-    const openMenu = async (tabId: string) => {
-      host.querySelector<HTMLElement>(`[data-tab-id="${tabId}"]`)!.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
-      await settle();
-      const menu = document.body.querySelector<HTMLElement>("[data-dbx-context-menu]")!;
-      return Array.from(menu.querySelectorAll<HTMLButtonElement>("button"));
-    };
-
-    // Query tab: the entry exists and routes the whole tab object upward.
-    const queryItems = await openMenu(queryId);
-    const detachItem = queryItems.find((button) => button.textContent?.includes("Open in new window"));
-    expect(detachItem).toBeDefined();
-    detachItem!.click();
-    await settle();
-    expect(detached).toEqual([queryId]);
-
-    // Non-query/data tab: the entry is not rendered at all.
-    const mongoItems = await openMenu(mongoId);
-    expect(mongoItems.find((button) => button.textContent?.includes("Open in new window"))).toBeUndefined();
 
     app.unmount();
     host.remove();

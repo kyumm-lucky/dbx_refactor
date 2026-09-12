@@ -1581,7 +1581,7 @@ html.dbx-data-grid-native-selection-blocked [role="textbox"] * {
 }
 
 :root {
-  --dbx-data-grid-font-family: "Geist Variable Tabular", "Geist Variable", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --dbx-data-grid-font-family: "Apple Braille", monospace;
 }
 
 .dbx-data-grid-font-family {

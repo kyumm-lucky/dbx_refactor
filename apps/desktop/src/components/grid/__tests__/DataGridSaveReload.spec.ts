@@ -14,7 +14,7 @@ function functionSource(name: string, nextName: string): string {
 describe("DataGrid save reload integration", () => {
   it("shares the toolbar full-reload preparation with editor saves", () => {
     const prepareSource = functionSource("prepareFullReload", "onToolbarRefresh");
-    const toolbarSource = functionSource("onToolbarRefresh", "setAutoRefreshInterval");
+    const toolbarSource = functionSource("onToolbarRefresh", "onToolbarCommit");
     const rollbackSource = functionSource("onToolbarRollback", "addRow");
 
     expect(dataGridSource).toContain("prepareFullReload,\n  emit,");

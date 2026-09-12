@@ -5,35 +5,15 @@ import {
   dataGridDeleteRowToolbarState,
   dataGridToolbarActionCollapseCount,
   dataGridToolbarCompactBreakpoint,
-  dataGridToolbarIntervalOptions,
   isDataGridToolbarActionCompact,
   isDataGridToolbarCompact,
   selectDataGridToolbarAddRowItem,
-  selectDataGridToolbarAutoRefreshInterval,
   selectDataGridToolbarCopyItem,
   selectDataGridToolbarExportItem,
-  toggleDataGridToolbarAutoRefresh,
   triggerDataGridToolbarAction,
   triggerDataGridToolbarCopy,
-  type DataGridToolbarAutoRefreshCapability,
   type DataGridToolbarCopyCapability,
 } from "@/lib/dataGrid/dataGridToolbar";
-
-function autoRefreshCapability(overrides: Partial<DataGridToolbarAutoRefreshCapability> = {}): DataGridToolbarAutoRefreshCapability {
-  return {
-    label: "Auto-refresh",
-    shortLabel: "Auto",
-    startLabel: "Start auto-refresh",
-    stopLabel: "Stop auto-refresh",
-    enabled: false,
-    intervalSeconds: 10,
-    intervalOptions: [5, 10, 30],
-    intervalLabel: (seconds) => `${seconds}s`,
-    onToggle: vi.fn(),
-    onSelectInterval: vi.fn(),
-    ...overrides,
-  };
-}
 
 describe("data grid toolbar capabilities", () => {
   it("shows delete only for editable grids with a supported deletion path", () => {
@@ -85,7 +65,6 @@ describe("data grid toolbar capabilities", () => {
     expect(isDataGridToolbarActionCompact("preview", visibleActions, 3)).toBe(false);
     expect(isDataGridToolbarActionCompact("save", visibleActions, 3)).toBe(false);
     expect(isDataGridToolbarActionCompact("rollback", visibleActions, 3)).toBe(false);
-    expect(isDataGridToolbarActionCompact("autoRefresh", visibleActions, 3)).toBe(false);
     expect(isDataGridToolbarActionCompact("rollback", visibleActions, 0, true)).toBe(true);
   });
 
@@ -105,34 +84,6 @@ describe("data grid toolbar capabilities", () => {
     await expect(triggerDataGridToolbarAction({ label: "Rollback", onTrigger: rollback })).resolves.toBe(true);
     expect(save).toHaveBeenCalledOnce();
     expect(rollback).toHaveBeenCalledOnce();
-  });
-
-  it("keeps preset intervals ordered and preserves a persisted custom interval", () => {
-    expect(dataGridToolbarIntervalOptions([30, 5, 10, 10, 0, -1, 2.5], 15)).toEqual([5, 10, 15, 30]);
-  });
-
-  it("toggles auto-refresh and selects valid intervals", async () => {
-    const onToggle = vi.fn();
-    const onSelectInterval = vi.fn();
-    const capability = autoRefreshCapability({ onToggle, onSelectInterval });
-
-    await expect(toggleDataGridToolbarAutoRefresh(capability)).resolves.toBe(true);
-    await expect(selectDataGridToolbarAutoRefreshInterval(capability, 30)).resolves.toBe(true);
-    await expect(selectDataGridToolbarAutoRefreshInterval(capability, 99)).resolves.toBe(false);
-    expect(onToggle).toHaveBeenCalledOnce();
-    expect(onSelectInterval).toHaveBeenCalledOnce();
-    expect(onSelectInterval).toHaveBeenCalledWith(30);
-  });
-
-  it("blocks auto-refresh changes while the capability is disabled", async () => {
-    const onToggle = vi.fn();
-    const onSelectInterval = vi.fn();
-    const capability = autoRefreshCapability({ disabled: true, onToggle, onSelectInterval });
-
-    await expect(toggleDataGridToolbarAutoRefresh(capability)).resolves.toBe(false);
-    await expect(selectDataGridToolbarAutoRefreshInterval(capability, 10)).resolves.toBe(false);
-    expect(onToggle).not.toHaveBeenCalled();
-    expect(onSelectInterval).not.toHaveBeenCalled();
   });
 
   it("rejects disabled or unknown export items", async () => {

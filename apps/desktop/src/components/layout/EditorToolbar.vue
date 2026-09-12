@@ -229,7 +229,6 @@ const canSaveSql = computed(() => !!props.activeTab.externalSqlPath || !!props.a
 const keywordCaseIsLower = computed(() => props.sqlKeywordCase === "lower");
 const keywordCaseToggleTooltip = computed(() => (keywordCaseIsLower.value ? t("toolbar.keywordCaseUpper") : t("toolbar.keywordCaseLower")));
 const sqlSemanticDiagnosticsEnabled = computed(() => settingsStore.editorSettings.sqlSemanticDiagnosticsEnabled);
-const sqlSemanticDiagnosticsToggleTooltip = computed(() => (sqlSemanticDiagnosticsEnabled.value ? t("toolbar.sqlSemanticDiagnosticsToggleOn") : t("toolbar.sqlSemanticDiagnosticsToggleOff")));
 const supportsSqlSemanticDiagnosticsToggle = computed(() => {
   const dbType = props.activeConnection?.db_type;
   return dbType !== "redis" && dbType !== "victoriametrics";
@@ -240,7 +239,6 @@ function toggleSqlSemanticDiagnostics() {
   });
 }
 const insertValueHintsEnabled = computed(() => settingsStore.editorSettings.showInsertValueHints);
-const insertValueHintsToggleTooltip = computed(() => (insertValueHintsEnabled.value ? t("toolbar.insertValueHintsToggleOn") : t("toolbar.insertValueHintsToggleOff")));
 const supportsInsertValueHintsToggle = computed(() => supportsInsertValueHints(props.activeConnection?.db_type));
 function toggleInsertValueHints() {
   settingsStore.updateEditorSettings({ showInsertValueHints: !insertValueHintsEnabled.value });
@@ -326,19 +324,12 @@ const isActiveDatabaseDefault = computed(() => isDefaultDatabase(props.activeCon
 // instead of overflowing or scrolling. See resolveEditorToolbarTier for the
 // tier contract.
 
-const showOverflowMenu = computed(() => toolbarTier.value >= 1);
 const canFormatSql = computed(() => canFormatSqlForDatabaseType(props.activeConnection?.db_type));
 const showFormatButton = computed(() => canFormatSql.value && toolbarTier.value < 2);
 const showExplainAnalyzeToggle = computed(() => toolbarTier.value < 3);
-const showCompressButton = computed(() => toolbarTier.value < 1);
-const showKeywordCaseButton = computed(() => toolbarTier.value < 1);
-const showSemanticDiagnosticsButton = computed(() => supportsSqlSemanticDiagnosticsToggle.value && toolbarTier.value < 1);
 const showPreviewButton = computed(() => previewButtonVisible.value && toolbarTier.value < 1);
-const showInsertValueHintsButton = computed(() => supportsInsertValueHintsToggle.value && toolbarTier.value < 1);
-const showOpenSqlButton = computed(() => toolbarTier.value < 1);
-const showImportArchiveButton = computed(() => toolbarTier.value < 1);
-const showPasteSqlButton = computed(() => toolbarTier.value < 1);
-const showMultiExecuteButton = computed(() => toolbarTier.value < 1);
+// 压缩/关键字大小写/语义诊断/INSERT 提示/打开 SQL/导入归档/粘贴/多库执行/事务切换
+// 不再占工具栏位置：它们只保留在“更多操作”菜单里。
 const showDatabaseHelperButtons = computed(() => toolbarTier.value < 2);
 const toolbarStyle = computed(() => {
   const color = props.activeConnection?.color;
@@ -459,60 +450,6 @@ async function changeCatalog(selectedCatalog: string) {
         </TooltipTrigger>
         <TooltipContent>{{ t("toolbar.formatSql") }}</TooltipContent>
       </Tooltip>
-      <Tooltip v-if="showCompressButton">
-        <TooltipTrigger as-child>
-          <Button variant="ghost" size="icon" class="h-6 w-6 text-amber-600 hover:bg-amber-500/10 hover:text-amber-700 dark:text-amber-300 dark:hover:text-amber-200" :disabled="activeTab.isExecuting || activeTab.isExplaining || !activeTab.sql.trim()" @click="emit('compressSql')">
-            <Minimize2 class="h-3.5 w-3.5" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{{ t("toolbar.compressSql") }}</TooltipContent>
-      </Tooltip>
-      <Tooltip v-if="showKeywordCaseButton">
-        <TooltipTrigger as-child>
-          <Button
-            variant="ghost"
-            size="icon"
-            class="h-6 w-6 font-mono text-sm font-semibold leading-none"
-            :class="keywordCaseIsLower ? 'bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 hover:text-amber-800 dark:text-amber-300 dark:hover:text-amber-200' : 'text-amber-600/70 hover:bg-amber-500/10 hover:text-amber-700 dark:text-amber-300/70 dark:hover:text-amber-200'"
-            :aria-label="keywordCaseToggleTooltip"
-            @click="emit('toggleSqlKeywordCase')"
-          >
-            {{ keywordCaseIsLower ? "a" : "A" }}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{{ keywordCaseToggleTooltip }}</TooltipContent>
-      </Tooltip>
-      <Tooltip v-if="showSemanticDiagnosticsButton">
-        <TooltipTrigger as-child>
-          <Button
-            variant="ghost"
-            size="icon"
-            class="h-6 w-6"
-            :class="sqlSemanticDiagnosticsEnabled ? 'text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 hover:text-emerald-700 dark:text-emerald-300 dark:hover:text-emerald-200' : 'text-muted-foreground/50 hover:bg-muted hover:text-muted-foreground'"
-            :aria-label="sqlSemanticDiagnosticsToggleTooltip"
-            @click="toggleSqlSemanticDiagnostics"
-          >
-            <SpellCheck2 class="h-3.5 w-3.5" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{{ sqlSemanticDiagnosticsToggleTooltip }}</TooltipContent>
-      </Tooltip>
-      <Tooltip v-if="showInsertValueHintsButton">
-        <TooltipTrigger as-child>
-          <Button
-            variant="ghost"
-            size="icon"
-            class="h-6 w-6"
-            :class="insertValueHintsEnabled ? 'text-sky-600 bg-sky-500/10 hover:bg-sky-500/20 hover:text-sky-700 dark:text-sky-300 dark:hover:text-sky-200' : 'text-muted-foreground/50 hover:bg-muted hover:text-muted-foreground'"
-            :aria-label="insertValueHintsToggleTooltip"
-            :aria-pressed="insertValueHintsEnabled"
-            @click="toggleInsertValueHints"
-          >
-            <BetweenVerticalStart class="h-3.5 w-3.5" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{{ insertValueHintsToggleTooltip }}</TooltipContent>
-      </Tooltip>
       <Tooltip v-if="activeConnection?.db_type === 'redis'">
         <TooltipTrigger as-child>
           <Button
@@ -535,45 +472,17 @@ async function changeCatalog(selectedCatalog: string) {
         </TooltipTrigger>
         <TooltipContent>{{ saveTooltip }}</TooltipContent>
       </Tooltip>
-      <Tooltip v-if="showOpenSqlButton">
-        <TooltipTrigger as-child>
-          <Button variant="ghost" size="icon" class="h-6 w-6 text-sky-600 hover:bg-sky-500/10 hover:text-sky-700 dark:text-sky-300 dark:hover:text-sky-200" @click="emit('openSql')">
-            <FolderOpen class="h-3.5 w-3.5" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{{ t("toolbar.openSql") }}</TooltipContent>
-      </Tooltip>
-      <Tooltip v-if="showImportArchiveButton">
-        <TooltipTrigger as-child>
-          <Button variant="ghost" size="icon" class="h-6 w-6 text-cyan-600 hover:bg-cyan-500/10 hover:text-cyan-700 dark:text-cyan-300 dark:hover:text-cyan-200" @click="emit('importResultArchive')">
-            <Download class="h-3.5 w-3.5" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{{ t("tabs.importResultArchive") }}</TooltipContent>
-      </Tooltip>
-      <Tooltip v-if="showPasteSqlButton">
-        <TooltipTrigger as-child>
-          <Button variant="ghost" size="icon" class="h-6 w-6 text-teal-600 hover:bg-teal-500/10 hover:text-teal-700 dark:text-teal-300 dark:hover:text-teal-200" @click="emit('pasteSqlInCondition')">
-            <ClipboardPaste class="h-3.5 w-3.5" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{{ t("toolbar.exPasteSqlInCondition") }}</TooltipContent>
-      </Tooltip>
-      <Tooltip v-if="showMultiExecuteButton">
-        <TooltipTrigger as-child>
-          <Button variant="ghost" size="icon" class="h-6 w-6 text-primary hover:bg-primary/10" :disabled="!canMultiExecute" :aria-label="t('toolbar.multiDbExecute')" @click="emit('multiExecute')">
-            <CirclePlay class="h-3.5 w-3.5" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{{ t("toolbar.multiDbExecute") }}</TooltipContent>
-      </Tooltip>
-      <DropdownMenu v-if="showOverflowMenu">
+      <DropdownMenu>
         <DropdownMenuTrigger as-child>
           <Button variant="ghost" size="icon" class="h-6 w-6 text-muted-foreground hover:text-foreground" :aria-label="t('toolbar.moreActions')" :title="t('toolbar.moreActions')">
             <MoreHorizontal class="h-3.5 w-3.5" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" class="w-max min-w-56 max-w-[calc(100vw-1rem)]">
+        <!-- “更多操作”菜单的文字统一灰色、字号比默认(14px)小两号(11px)；图标保持原尺寸。 -->
+        <DropdownMenuContent
+          align="start"
+          class="w-max min-w-56 max-w-[calc(100vw-1rem)] text-[11px] text-muted-foreground [&_[data-slot=dropdown-menu-checkbox-item]]:text-[11px] [&_[data-slot=dropdown-menu-checkbox-item]]:text-muted-foreground [&_[data-slot=dropdown-menu-item]]:text-[11px] [&_[data-slot=dropdown-menu-item]]:text-muted-foreground"
+        >
           <DropdownMenuItem :disabled="activeTab.isExecuting || activeTab.isExplaining || !activeTab.sql.trim()" @select="emit('compressSql')">
             <Minimize2 class="h-3.5 w-3.5" />
             {{ t("toolbar.compressSql") }}
@@ -604,6 +513,13 @@ async function changeCatalog(selectedCatalog: string) {
             <CirclePlay class="h-3.5 w-3.5" />
             {{ t("toolbar.multiDbExecute") }}
           </DropdownMenuItem>
+          <DropdownMenuCheckboxItem v-if="supportsTransaction" :model-value="isManualTransactionMode" :disabled="activeTab.isExecuting || activeTab.isExplaining" @select.prevent="emit('update:autoCommit', autoCommit === false)">
+            <span class="inline-flex items-center gap-px leading-none" aria-hidden="true">
+              <span class="text-[11px] font-bold">Tx:</span>
+              <span class="inline-flex h-3 min-w-3 items-center justify-center rounded-[3px] border border-current px-px text-[8px] font-extrabold leading-none">{{ transactionModeBadge }}</span>
+            </span>
+            {{ transactionTooltip }}
+          </DropdownMenuCheckboxItem>
           <DropdownMenuItem v-if="previewButtonVisible" :disabled="activeTab.isExecuting || activeTab.isCancelling" @select="emit('previewChanges')">
             <Eye class="h-3.5 w-3.5" />
             {{ t("editor.previewChanges") }}
@@ -632,30 +548,9 @@ async function changeCatalog(selectedCatalog: string) {
           </DropdownMenuCheckboxItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <div v-if="supportsTransaction" class="ml-1 flex items-center gap-0.5 border-l border-border/60 pl-1" role="group" :aria-label="transactionTooltip">
-        <!-- Transaction toggle -->
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <Button
-              variant="ghost"
-              size="icon"
-              class="h-6 w-8 px-1"
-              :class="isManualTransactionMode ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-300' : 'text-orange-600/70 hover:bg-orange-500/10 hover:text-orange-700 dark:text-orange-300/70 dark:hover:text-orange-200'"
-              :disabled="activeTab.isExecuting || activeTab.isExplaining"
-              :aria-label="transactionTooltip"
-              :aria-pressed="isManualTransactionMode"
-              @click="emit('update:autoCommit', autoCommit === false)"
-            >
-              <span class="inline-flex items-center gap-px leading-none" aria-hidden="true">
-                <span class="text-[11px] font-bold">Tx:</span>
-                <span class="inline-flex h-3 min-w-3 items-center justify-center rounded-[3px] border border-current px-px text-[8px] font-extrabold leading-none">{{ transactionModeBadge }}</span>
-              </span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{{ transactionTooltip }}</TooltipContent>
-        </Tooltip>
+      <div v-if="supportsTransaction && showTxnActions" class="ml-1 flex items-center gap-0.5 border-l border-border/60 pl-1" role="group" :aria-label="transactionTooltip">
         <!-- Commit button (only when a transaction action is warranted) -->
-        <Tooltip v-if="showTxnActions">
+        <Tooltip>
           <TooltipTrigger as-child>
             <Button variant="ghost" size="icon" class="h-6 w-6 text-green-600 hover:bg-green-500/10 hover:text-green-700 dark:text-green-300 dark:hover:text-green-200" :disabled="activeTab.isExecuting" :aria-label="t('toolbar.commit')" @click="emit('commit')">
               <Check class="h-3.5 w-3.5" />
@@ -665,7 +560,7 @@ async function changeCatalog(selectedCatalog: string) {
         </Tooltip>
 
         <!-- Rollback button (only when a transaction action is warranted) -->
-        <Tooltip v-if="showTxnActions">
+        <Tooltip>
           <TooltipTrigger as-child>
             <Button variant="ghost" size="icon" class="h-6 w-6 text-red-600 hover:bg-red-500/10 hover:text-red-700 dark:text-red-300 dark:hover:text-red-200" :disabled="activeTab.isExecuting" :aria-label="t('toolbar.rollback')" @click="emit('rollback')">
               <RotateCcw class="h-3.5 w-3.5" />

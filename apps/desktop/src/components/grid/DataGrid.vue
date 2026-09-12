@@ -44,7 +44,6 @@ import {
   UserRound,
   Database,
   Eraser,
-  Columns3,
   PencilRuler,
   Pin,
   Settings2,
@@ -225,7 +224,7 @@ import {
 import { resolveDataGridWheelScroll } from "@/lib/dataGrid/dataGridWheel";
 import { CANVAS_DATA_GRID_ROW_HEIGHT, MAX_CANVAS_DATA_GRID_PIXEL_RATIO, canvasDataGridActionOverlayWidth, canvasDataGridActionReservedWidth, dataGridSearchMatchKey, drawCanvasDataGrid, resolveCanvasCellTextLayout, type CanvasDevicePixelSize } from "@/lib/dataGrid/canvasDataGridRenderer";
 import { resolveCrosshairTarget, type CrosshairTarget } from "@/lib/dataGrid/crosshairHighlight";
-import { DATA_GRID_DARK_STRIPED_ROW_BG, DATA_GRID_LIGHT_STRIPED_ROW_BG, dataGridActiveRowBackground } from "@/lib/dataGrid/dataGridPaintTheme";
+import { dataGridActiveRowBackground } from "@/lib/dataGrid/dataGridPaintTheme";
 import { createRowLowerTextCache } from "@/lib/dataGrid/dataGridRowLowerText";
 import { dataGridPreviewLabelKey, dataGridSaveActionMode, dataGridSaveToolbarState } from "@/lib/dataGrid/dataGridSaveUi";
 import { buildDataGridSavedRowRefreshPlan, dataGridSavedRowRefreshPatches } from "@/lib/dataGrid/dataGridSavedRowRefresh";
@@ -306,7 +305,6 @@ import { useDataGridEditor } from "@/composables/useDataGridEditor";
 import { useDataGridSort } from "@/composables/useDataGridSort";
 import { useDataGridSearch, type DataGridSearchMatch } from "@/composables/useDataGridSearch";
 import { useDataGridResultLifecycle } from "@/composables/useDataGridResultLifecycle";
-import { useDataGridAutoRefresh } from "@/composables/useDataGridAutoRefresh";
 import { useDataGridAsyncSurface } from "@/composables/useDataGridAsyncSurface";
 import { createDataGridFilterConditionCache, useDataGridFilterBuilder, type DataGridStructuredFilterRule } from "@/composables/useDataGridFilterBuilder";
 import { cloneDataGridStructuredFilterRules, loadDataGridStructuredFilterState, saveDataGridStructuredFilterState, type DataGridCachedServerColumnFilter, type DataGridStructuredFilterCacheState } from "@/lib/dataGrid/dataGridFilterBuilderPersistence";
@@ -330,7 +328,6 @@ import {
   type DataGridReloadIntent,
   type DataGridToolbarActionCapability,
   type DataGridToolbarAddRowCapability,
-  type DataGridToolbarAutoRefreshCapability,
   type DataGridToolbarSaveCapability,
 } from "@/lib/dataGrid/dataGridToolbar";
 import { getTableMetadataCapabilities } from "@/lib/table/tableMetadataCapabilities";
@@ -562,7 +559,6 @@ const dataGridResultLifecycle = useDataGridResultLifecycle({
 const isMac = isMacOS();
 const shortcutMod = isMac ? "Cmd" : "Ctrl";
 const saveShortcutLabel = computed(() => formatShortcut(settingsStore.editorSettings.shortcuts.saveSql));
-const AUTO_REFRESH_INTERVAL_OPTIONS = [5, 10, 30, 60, 300];
 
 function logDataGridTiming(message: string, payload?: Record<string, unknown>) {
   appendDebugLog("info", message, payload);
@@ -577,14 +573,6 @@ const emit = defineEmits<{
   "local-column-filters-change": [value: Record<string, string[]>];
   changeQueryTimeout: [connectionId: string];
 }>();
-
-const autoRefresh = useDataGridAutoRefresh({
-  canRefresh: computed(() => !isSaving.value && !props.loading),
-  refresh: onToolbarRefresh,
-});
-const autoRefreshIntervalSeconds = autoRefresh.intervalSeconds;
-const autoRefreshEnabled = autoRefresh.enabled;
-const autoRefreshLabel = computed(() => (autoRefreshEnabled.value ? t("tabs.autoRefreshEvery", { seconds: autoRefreshIntervalSeconds.value }) : t("tabs.autoRefresh")));
 
 if (isDebugLoggingEnabled()) {
   logDataGridTiming("[DBX][DataGrid:setup]", {
@@ -1804,11 +1792,6 @@ watch(whereFilterInput, () => {
   emit("update:whereInput", currentWhereInput() ?? "");
   persistStructuredFilterState();
 });
-
-function clearOrderByInput() {
-  orderByInput.value = "";
-  void applyOrderBySearch();
-}
 
 watch(orderByInput, (value) => {
   emit("update:orderByInput", value);
@@ -4088,14 +4071,6 @@ async function onToolbarRefresh() {
   emit("reload", props.sql, searchText.value, currentWhereInput(), currentOrderBy(), pageSize.value, resetToFirstPage ? 0 : (currentPage.value - 1) * pageSize.value, "refresh");
 }
 
-function setAutoRefreshInterval(seconds: number) {
-  autoRefresh.setIntervalSeconds(seconds);
-}
-
-function toggleAutoRefresh() {
-  autoRefresh.toggle();
-}
-
 async function onToolbarCommit() {
   await saveChanges();
 }
@@ -4117,18 +4092,6 @@ const refreshToolbarCapability = computed<DataGridToolbarActionCapability>(() =>
   disabled: isSaving.value,
   loading: props.loading,
   onTrigger: onToolbarRefresh,
-}));
-const autoRefreshToolbarCapability = computed<DataGridToolbarAutoRefreshCapability>(() => ({
-  label: autoRefreshLabel.value,
-  shortLabel: t("tabs.autoRefreshShort"),
-  startLabel: t("tabs.startAutoRefresh"),
-  stopLabel: t("tabs.stopAutoRefresh"),
-  enabled: autoRefreshEnabled.value,
-  intervalSeconds: autoRefreshIntervalSeconds.value,
-  intervalOptions: AUTO_REFRESH_INTERVAL_OPTIONS,
-  intervalLabel: (seconds) => t("tabs.autoRefreshEvery", { seconds }),
-  onToggle: toggleAutoRefresh,
-  onSelectInterval: setAutoRefreshInterval,
 }));
 const canPlaceInsertAtSelection = computed(() => {
   if (selectedRowCount.value !== 1) return false;
@@ -6051,46 +6014,6 @@ function waitForTableMeta(timeoutMs = 2500): Promise<DataGridTableMeta | null> {
   });
 }
 
-async function applyOrderBySearch() {
-  if (!props.onExecuteSql) return;
-  const orderByClause = orderByInput.value.trim() || undefined;
-  emit("update:orderByInput", orderByInput.value);
-  if (orderByClause) rememberDataGridConditionHistory("orderBy", conditionHistoryScope.value, orderByClause);
-  isApplyingWhere.value = true;
-  queryControlError.value = "";
-  currentPage.value = 1;
-  clearSort();
-  try {
-    const tableMeta = await waitForTableMeta();
-    if (!tableMeta) return;
-    const sql = await buildTableSelectSql({
-      databaseType: resolvedDatabaseType.value,
-      driverProfile: props.connectionId ? connectionStore.getConfig(props.connectionId)?.driver_profile : undefined,
-      identifierQuote: connectionStore.connectionIdentifierQuote?.(props.connectionId),
-      catalog: tableMeta.catalog,
-      database: tableMeta.database,
-      schema: tableMeta.schema,
-      tableName: tableMeta.tableName,
-      tableType: tableMeta.tableType,
-      columns: tableMeta.columns.map((column) => column.name),
-      includeDatabaseName: settingsStore.editorSettings.generateSqlIncludeDatabaseName,
-      primaryKeys: tableMeta.primaryKeys,
-      ...tableDataLargeValuePreviewOptions(resolvedDatabaseType.value, tableMeta.columns, tableMeta.primaryKeys, pageSize.value),
-      orderBy: orderByClause,
-      injectDefaultTimeSeriesWhere: true,
-      limit: pageSize.value,
-      whereInput: currentWhereInput(),
-      includeRowId: shouldIncludeSyntheticRowId(resolvedDatabaseType.value, tableMeta.primaryKeys, tableMeta.tableType),
-    });
-    markConditionInputsApplied();
-    await props.onExecuteSql(sql);
-  } catch (e: any) {
-    queryControlError.value = String(e?.message || e);
-  } finally {
-    isApplyingWhere.value = false;
-  }
-}
-
 async function applyWhereFilter() {
   if (!props.onExecuteSql) return;
   const whereInput = currentWhereInput();
@@ -6302,11 +6225,9 @@ function dataGridRowStyle(item: RowItem): CSSProperties {
           ? dark
             ? "rgb(51, 51, 55)"
             : "rgb(243, 243, 243)"
-          : item.displayIndex % 2 === 1
-            ? `var(--data-grid-row-muted-bg, ${dark ? DATA_GRID_DARK_STRIPED_ROW_BG : DATA_GRID_LIGHT_STRIPED_ROW_BG})`
-            : dark
-              ? "rgb(19, 20, 22)"
-              : "rgb(255, 255, 255)";
+          : dark
+            ? "rgb(19, 20, 22)"
+            : "rgb(255, 255, 255)";
   const rowNumberBg =
     item.status === "new"
       ? dark
@@ -10867,17 +10788,9 @@ watch(gridSurfaceBusy, (isLoading) => {
   }
 });
 
-onActivated(() => {
-  autoRefresh.start();
-});
-onDeactivated(() => {
-  autoRefresh.stop();
-});
-
 onUnmounted(() => {
   syncPendingDataEditorDraft(false);
   cleanupFrames();
-  autoRefresh.stop();
   onDdlResizeEnd();
   onDetailResizeEnd();
   onMongoJsonPreviewResizeEnd();
@@ -11535,7 +11448,6 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
               <template v-if="canShowWhereSearch">
                 <DataGridQueryControls
                   v-model:where-input="whereFilterInput"
-                  v-model:order-by-input="orderByInput"
                   v-model:filter-builder-open="effectiveFilterBuilderOpen"
                   :filter-editor-view="filterEditorView"
                   :columns="props.tableMeta?.columns.map((column) => column.name) ?? props.result.columns"
@@ -11555,8 +11467,6 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                   :mode-options="filterModeOptions"
                   :column-search="filterBuilderColumnSearch"
                   :apply-where="applyWhereFilter"
-                  :apply-order-by="applyOrderBySearch"
-                  :clear-order-by="clearOrderByInput"
                   @update:column-search="filterBuilderColumnSearch = $event"
                   @ensure-rule="ensureStructuredFilterRule"
                   @add-rule="addStructuredFilterRule"
@@ -11581,7 +11491,6 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
             :compact-action-count="compactDataGridToolbarActionCount"
             :navigation-visible="props.result.columns.length > 0"
             :refresh="refreshToolbarCapability"
-            :auto-refresh="autoRefreshToolbarCapability"
             :add-row="addRowToolbarCapability"
             :delete-row="deleteRowToolbarCapability"
             :layer-preview="layerPreviewToolbarCapability"
@@ -11636,55 +11545,41 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
               </Tooltip>
             </template>
 
-            <template #navigation="{ compact }">
-              <Tooltip v-if="props.result.columns.length">
-                <TooltipTrigger as-child>
-                  <Popover v-model:open="goToColumnOpen">
-                    <PopoverTrigger as-child>
-                      <Button data-toolbar-action="navigation" variant="ghost" size="sm" :class="['data-grid-topbar-action-button h-5 shrink-0 text-xs px-1.5', compact ? 'data-grid-topbar-action-button--compact' : '', goToColumnOpen ? 'text-primary bg-primary/10' : '']">
-                        <Columns3 class="data-grid-topbar-action-icon w-3 h-3" />
-                        <span
-                          class="data-grid-topbar-action-label"
-                          :class="{
-                            'data-grid-topbar-action-label--compact': compact,
-                          }"
-                          >{{ t("grid.goToColumn") }}</span
-                        >
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent align="end" class="w-56 p-2" @keydown="onGoToColumnKeydown">
-                      <div class="relative mb-1">
-                        <Search class="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                        <input ref="goToColumnSearchInput" v-model="goToColumnSearch" :placeholder="t('grid.searchColumn')" class="h-8 w-full rounded-md border bg-transparent pl-7 pr-6 text-xs outline-none focus-visible:border-ring/50 focus-visible:ring-1 focus-visible:ring-ring/25" />
-                        <button v-if="goToColumnSearch" type="button" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" @click="goToColumnSearch = ''">
-                          <X class="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                      <div ref="goToColumnListRef" class="max-h-56 overflow-auto rounded border">
-                        <button
-                          v-for="(column, index) in filteredGoToColumns"
-                          :key="column.index"
-                          type="button"
-                          :class="[
-                            'grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-0.5 px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:outline-none',
-                            index === goToColumnSelectedIndex ? 'bg-accent text-accent-foreground' : '',
-                          ]"
-                          @pointerenter="goToColumnSelectedIndex = index"
-                          @click="scrollToColumn(column.index)"
-                        >
-                          <span class="min-w-0 truncate">{{ column.name }}</span>
-                          <span class="shrink-0 font-mono text-[10px] text-muted-foreground">#{{ column.index + 1 }}</span>
-                          <span v-if="column.comment" class="col-span-2 min-w-0 truncate text-[11px] leading-4 text-muted-foreground" :title="column.comment">{{ column.comment }}</span>
-                        </button>
-                        <div v-if="!filteredGoToColumns.length" class="px-2 py-3 text-center text-xs text-muted-foreground">
-                          {{ t("grid.noColumnsFound") }}
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">{{ t("grid.goToColumn") }}</TooltipContent>
-              </Tooltip>
+            <template #navigation>
+              <!-- 跳转列只保留快捷键入口（默认不绑定）：这里只提供弹层的锚点，
+                   工具栏不再占用一个按钮位置。 -->
+              <Popover v-if="props.result.columns.length" v-model:open="goToColumnOpen">
+                <PopoverAnchor data-go-to-column-anchor class="absolute right-0 top-0 h-5 w-0" aria-hidden="true" />
+                <PopoverContent data-go-to-column-popover align="end" class="w-56 p-2" @keydown="onGoToColumnKeydown">
+                  <div class="relative mb-1">
+                    <Search class="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <input ref="goToColumnSearchInput" v-model="goToColumnSearch" :placeholder="t('grid.searchColumn')" class="h-8 w-full rounded-md border bg-transparent pl-7 pr-6 text-xs outline-none focus-visible:border-ring/50 focus-visible:ring-1 focus-visible:ring-ring/25" />
+                    <button v-if="goToColumnSearch" type="button" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" @click="goToColumnSearch = ''">
+                      <X class="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div ref="goToColumnListRef" class="max-h-56 overflow-auto rounded border">
+                    <button
+                      v-for="(column, index) in filteredGoToColumns"
+                      :key="column.index"
+                      type="button"
+                      :class="[
+                        'grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-0.5 px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:outline-none',
+                        index === goToColumnSelectedIndex ? 'bg-accent text-accent-foreground' : '',
+                      ]"
+                      @pointerenter="goToColumnSelectedIndex = index"
+                      @click="scrollToColumn(column.index)"
+                    >
+                      <span class="min-w-0 truncate">{{ column.name }}</span>
+                      <span class="shrink-0 font-mono text-[10px] text-muted-foreground">#{{ column.index + 1 }}</span>
+                      <span v-if="column.comment" class="col-span-2 min-w-0 truncate text-[11px] leading-4 text-muted-foreground" :title="column.comment">{{ column.comment }}</span>
+                    </button>
+                    <div v-if="!filteredGoToColumns.length" class="px-2 py-3 text-center text-xs text-muted-foreground">
+                      {{ t("grid.noColumnsFound") }}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </template>
           </DataGridToolbar>
         </div>
@@ -12047,7 +11942,12 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                     @click="selectAllCells"
                     @contextmenu="invalidateContextMenuTarget"
                   >
-                    #
+                    <!-- 行号列表头：调用方可以在这里放控件（如字段筛选）；不传时保留全选用的 # 标记。
+                         包裹层阻止冒泡，避免点击表头控件同时触发全选单元格。 -->
+                    <span v-if="$slots['row-number-header']" class="inline-flex items-center justify-center" @click.stop>
+                      <slot name="row-number-header" />
+                    </span>
+                    <template v-else>#</template>
                   </div>
                   <div class="shrink-0" :style="{ width: `${horizontalColumnWindowBeforeWidth}px` }" />
                   <DataGridColumnHeader
@@ -12752,7 +12652,6 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                         'data-grid-row--deleted opacity-70': item.isDeleted,
                         'data-grid-row--new': item.isNew && !isRowActive(item.displayIndex),
                         'data-grid-row--draft': item.isDraft && !isRowActive(item.displayIndex),
-                        'data-grid-row--striped': !item.isNew && !item.isDraft && !item.isDeleted && !isRowActive(item.displayIndex) && item.displayIndex % 2 === 1,
                         'active-row': isRowActive(item.displayIndex) && !item.isDeleted,
                         'crosshair-row': !!crosshairTarget?.rowCrosshair && crosshairTarget.rowIndex === item.displayIndex && !item.isDeleted,
                         'relative z-20 overflow-visible': editingCell?.rowId === item.id || readonlyTextCell?.rowId === item.id,
@@ -13752,10 +13651,6 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
   background-color: var(--data-grid-row-number-bg);
 }
 
-.data-grid-row--striped {
-  background-color: var(--data-grid-cell-bg);
-}
-
 .data-grid-row--draft,
 .data-grid-row--new {
   background-color: var(--data-grid-cell-bg);
@@ -13766,10 +13661,6 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
 }
 
 :global(.dark) [data-grid-root] .data-grid-row {
-  background-color: var(--data-grid-cell-bg) !important;
-}
-
-:global(.dark) [data-grid-root] .data-grid-row--striped {
   background-color: var(--data-grid-cell-bg) !important;
 }
 

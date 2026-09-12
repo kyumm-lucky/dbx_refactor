@@ -110,10 +110,8 @@ function gridRoot(host: HTMLElement): HTMLElement {
   return root;
 }
 
-function goToColumnButton(host: HTMLElement): HTMLButtonElement {
-  const button = [...host.querySelectorAll<HTMLButtonElement>("button")].find((candidate) => candidate.textContent?.trim() === "Go to column");
-  if (!button) throw new Error("Go-to-column button not found");
-  return button;
+function goToColumnPopover(): HTMLElement | null {
+  return document.querySelector<HTMLElement>("[data-go-to-column-popover]");
 }
 
 function goToColumnItem(name: string, position: number): HTMLButtonElement {
@@ -156,7 +154,7 @@ describe("DataGrid go-to-column shortcut", () => {
 
     expect(event.defaultPrevented).toBe(true);
     expect(bubbled).not.toHaveBeenCalled();
-    expect(goToColumnButton(host).getAttribute("aria-expanded")).toBe("true");
+    expect(goToColumnPopover()).not.toBeNull();
     expect(document.activeElement?.getAttribute("placeholder")).toBe("Search column/comment...");
   });
 
@@ -181,7 +179,7 @@ describe("DataGrid go-to-column shortcut", () => {
     await settle();
 
     expect(enter.defaultPrevented).toBe(true);
-    expect(goToColumnButton(host).getAttribute("aria-expanded")).toBe("false");
+    expect(goToColumnPopover()).toBeNull();
   });
 
   it("does not consume the configured shortcut without a displayable column", async () => {
@@ -196,7 +194,7 @@ describe("DataGrid go-to-column shortcut", () => {
 
     expect(event.defaultPrevented).toBe(false);
     expect(bubbled).toHaveBeenCalledOnce();
-    expect(goToColumnButton(host).getAttribute("aria-expanded")).toBe("false");
+    expect(goToColumnPopover()).toBeNull();
   });
 
   it("does not trigger or consume shortcuts from editable targets", async () => {
@@ -217,7 +215,7 @@ describe("DataGrid go-to-column shortcut", () => {
     await settle();
 
     expect(bubbled).toHaveBeenCalledTimes(targets.length);
-    expect(goToColumnButton(host).getAttribute("aria-expanded")).toBe("false");
+    expect(goToColumnPopover()).toBeNull();
   });
 
   it("leaves an unmatched root event untouched", async () => {
@@ -233,7 +231,7 @@ describe("DataGrid go-to-column shortcut", () => {
 
     expect(event.defaultPrevented).toBe(false);
     expect(bubbled).toHaveBeenCalledOnce();
-    expect(goToColumnButton(host).getAttribute("aria-expanded")).toBe("false");
+    expect(goToColumnPopover()).toBeNull();
   });
 
   it("opens the existing popover through the shared grid action", () => {
@@ -268,13 +266,13 @@ describe("DataGrid go-to-column shortcut", () => {
     );
   });
 
-  it("keeps toolbar navigation and adds keyboard selection to the lookup", () => {
+  it("keeps the shortcut-driven lookup and its keyboard selection", () => {
     const selectColumn = functionBody("scrollToColumn", "onGoToColumnKeydown");
     const escape = functionBody("onGoToColumnKeydown", "matchesTableInfoColumn");
     const scroll = functionBody("scrollToColumnIndex", "measureColumnHeaderText");
 
-    expect(dataGridSource.match(/<Popover v-model:open="goToColumnOpen">/g)).toHaveLength(1);
-    expect(dataGridSource).toContain('>{{ t("grid.goToColumn") }}</span');
+    expect(dataGridSource.match(/<Popover v-if="props\.result\.columns\.length" v-model:open="goToColumnOpen">/g)).toHaveLength(1);
+    expect(dataGridSource).not.toContain('data-toolbar-action="navigation"');
     expect(dataGridSource).toContain('v-model="goToColumnSearch"');
     expect(dataGridSource).toContain('ref="goToColumnSearchInput"');
     expect(dataGridSource).toContain('ref="goToColumnListRef"');

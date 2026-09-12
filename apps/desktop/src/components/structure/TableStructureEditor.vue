@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, shallowRef, watch } from "vue";
+import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, shallowRef, watch, type Component } from "vue";
 import { uuid } from "@/lib/common/utils";
 import { useI18n } from "vue-i18n";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertTriangle, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Copy, Database, Info, KeyRound, ListChevronsUpDown, Loader2, Maximize2, Pencil, Plus, RefreshCw, RotateCcw, Save, Search, Settings, SlidersHorizontal, Trash2, UserRound, X } from "@lucide/vue";
+import { AlertTriangle, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Code2, Copy, Database, Info, KeyRound, Link2, ListChevronsUpDown, ListTree, Loader2, Maximize2, Pencil, Plus, RefreshCw, RotateCcw, Save, Search, Settings, ShieldCheck, SlidersHorizontal, Trash2, UserRound, X } from "@lucide/vue";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -154,6 +154,13 @@ const props = defineProps<{
   initialTabRequestId?: number;
   initialTarget?: TableStructureEditorTarget;
   draft?: TableStructureEditorDraft;
+  /**
+   * "tabs" (default) is the standalone editor surface with its own header and
+   * horizontal tabs. "rail" is the table tab's structure view: the same
+   * editing surface with a left section rail and no identity header, so the
+   * table tab can switch between structure and data without a second surface.
+   */
+  layout?: "tabs" | "rail";
 }>();
 
 const emit = defineEmits<{
@@ -712,6 +719,34 @@ const structureDensityStyle = computed(() => {
     "--structure-line-height": String(metric.lineHeight),
   };
 });
+
+const isRailLayout = computed(() => props.layout === "rail");
+
+interface StructureRailSection {
+  key: TableInfoTab;
+  label: string;
+  icon: Component;
+  count?: number;
+}
+
+/** Left section rail of the table tab's structure view, mirroring the editor's tab set. */
+const railSections = computed<StructureRailSection[]>(() => {
+  const sections: StructureRailSection[] = [];
+  if (tableMetadataCapabilities.value.columns) sections.push({ key: "columns", label: t("structureEditor.columns"), icon: ListTree, count: columns.value.length });
+  if (tableMetadataCapabilities.value.indexes) sections.push({ key: "indexes", label: t("structureEditor.indexes"), icon: KeyRound, count: indexes.value.length });
+  if (tableMetadataCapabilities.value.foreignKeys) sections.push({ key: "foreignKeys", label: t("structureEditor.foreignKeys"), icon: Link2, count: foreignKeys.value.length });
+  if (tableMetadataCapabilities.value.constraints) sections.push({ key: "constraints", label: t("structureEditor.constraints"), icon: ShieldCheck, count: constraintsForTab.value.length });
+  if (tableMetadataCapabilities.value.triggers) sections.push({ key: "triggers", label: t("structureEditor.triggers"), icon: RotateCcw, count: triggers.value.length });
+  if (tableMetadataCapabilities.value.ddl && !isCreateMode.value) sections.push({ key: "ddl", label: t("structureEditor.ddl"), icon: Code2 });
+  return sections;
+});
+
+const activeRailSection = computed(() => railSections.value.find((section) => section.key === activeTab.value));
+
+function selectRailSection(key: TableInfoTab) {
+  if (activeTab.value === key) return;
+  activeTab.value = key;
+}
 const structureControlClass = "structure-grid-control h-[var(--structure-control-height)] min-w-0 rounded-[6px] px-[var(--structure-control-px)] py-0 text-[length:var(--structure-font-size)] focus-visible:border-ring/50 focus-visible:ring-1 focus-visible:ring-ring/25";
 const structureMonoControlClass = `${structureControlClass} font-mono`;
 const structureToolbarButtonClass = "h-[var(--structure-control-height)] gap-1 px-[var(--structure-control-px)] text-[length:var(--structure-font-size)]";
@@ -3710,7 +3745,14 @@ async function applyChanges() {
   }
 }
 
-defineExpose({ applyChanges, focusSearch });
+defineExpose({
+  applyChanges,
+  focusSearch,
+  structureDensity: localStructureDensity,
+  structureDensityOptions,
+  setStructureDensity,
+  refreshStructure: reloadStructureFromDatabase,
+});
 
 function addItemForActiveTab(): boolean {
   if (activeTab.value === "columns" && canAddColumn.value) {
@@ -4122,7 +4164,7 @@ watch(
 
 <template>
   <div ref="rootRef" class="flex h-full min-h-0 flex-col gap-2 overflow-hidden p-[var(--structure-shell-padding)] text-[length:var(--structure-font-size)]" :data-structure-density="localStructureDensity" :style="structureDensityStyle">
-    <div class="flex shrink-0 items-center gap-2 rounded-md border bg-muted/20 px-[var(--structure-cell-px)] py-[var(--structure-header-py)] text-[length:var(--structure-font-size)]">
+    <div v-if="!isRailLayout" class="flex shrink-0 items-center gap-2 rounded-md border bg-muted/20 px-[var(--structure-cell-px)] py-[var(--structure-header-py)] text-[length:var(--structure-font-size)]">
       <Database :class="[structureIconClass, 'text-muted-foreground']" />
       <span class="min-w-0 flex-1 truncate font-medium">{{ targetLabel || t("editor.noDatabase") }}</span>
       <Badge variant="outline">{{ connection?.driver_label || databaseType }}</Badge>
@@ -4211,10 +4253,33 @@ watch(
     </div>
 
     <div v-else class="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
+      <!-- 行方向只作用于「左侧分区栏 + 内容」；SQL 预览与应用变更始终在下方整宽。 -->
+      <div class="flex min-h-0 min-w-0 flex-1 gap-2 overflow-hidden" :class="isRailLayout ? 'flex-row' : 'flex-col'">
+      <nav v-if="isRailLayout" data-structure-rail class="flex w-[168px] shrink-0 flex-col gap-1 overflow-y-auto rounded-md border p-2" role="tablist" aria-orientation="vertical" :aria-label="t('tabs.tableStructure')">
+        <button
+          v-for="section in railSections"
+          :key="section.key"
+          type="button"
+          role="tab"
+          :aria-selected="activeTab === section.key"
+          class="flex w-full items-center gap-2 rounded-md px-[var(--structure-cell-px)] py-[var(--structure-cell-py)] text-left text-[length:var(--structure-font-size)] transition-colors"
+          :class="activeTab === section.key ? 'bg-accent font-medium text-foreground' : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'"
+          @click="selectRailSection(section.key)"
+        >
+          <component :is="section.icon" class="h-3.5 w-3.5 shrink-0" />
+          <span class="min-w-0 flex-1 truncate">{{ section.label }}</span>
+          <span v-if="section.key === 'ddl' && ddlDirty" class="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" :title="t('structureEditor.ddlEditNotice')" data-ddl-dirty-indicator />
+          <span v-else-if="section.count !== undefined" class="shrink-0 tabular-nums text-[length:var(--structure-font-size)] text-muted-foreground">{{ section.count }}</span>
+        </button>
+      </nav>
       <div class="min-h-0 min-w-0 flex-1 overflow-hidden rounded-md border">
         <Tabs v-model="activeTab" class="flex h-full min-h-0 flex-col">
           <div class="flex shrink-0 items-center justify-between gap-2 border-b px-2 py-[var(--structure-header-py)]">
-            <TabsList>
+            <div v-if="isRailLayout" class="flex min-w-0 items-center gap-1.5">
+              <span class="shrink-0 font-medium text-foreground">{{ activeRailSection?.label }}</span>
+              <span v-if="activeRailSection?.count !== undefined" class="shrink-0 rounded bg-muted px-1.5 py-0.5 tabular-nums text-[length:var(--structure-font-size)] text-muted-foreground">{{ activeRailSection.count }}</span>
+            </div>
+            <TabsList v-if="!isRailLayout">
               <TabsTrigger v-if="tableMetadataCapabilities.ddl && !isCreateMode" value="ddl">
                 DDL
                 <span v-if="ddlDirty" class="ml-1 h-1.5 w-1.5 rounded-full bg-primary" :title="t('structureEditor.ddlEditNotice')" data-ddl-dirty-indicator></span>
@@ -4226,7 +4291,7 @@ watch(
               <TabsTrigger v-if="tableMetadataCapabilities.triggers" value="triggers">{{ t("structureEditor.triggers") }}</TabsTrigger>
             </TabsList>
             <div class="flex shrink-0 items-center gap-1.5">
-              <div class="flex items-center gap-1.5">
+              <div v-if="!isRailLayout" class="flex items-center gap-1.5">
                 <SlidersHorizontal :class="[structureIconClass, 'text-muted-foreground']" />
                 <div ref="structureDensityMenuRef" class="relative">
                   <button
@@ -5088,8 +5153,9 @@ watch(
           </TabsContent>
         </Tabs>
       </div>
+      </div>
 
-      <div :class="['flex min-w-0 shrink-0 flex-col overflow-hidden rounded-md border', sqlPreviewCollapsed ? '' : 'h-[28%] min-h-40 max-h-64']">
+      <div data-structure-sql-preview :class="['flex min-w-0 shrink-0 flex-col overflow-hidden rounded-md border', sqlPreviewCollapsed ? '' : 'h-[28%] min-h-40 max-h-64']">
         <div class="flex shrink-0 items-center justify-between border-b px-[var(--structure-cell-px)] py-[var(--structure-header-py)] text-[length:var(--structure-font-size)] font-medium">
           <div class="flex items-center gap-1.5">
             <span>{{ t("structureEditor.sqlPreview") }}</span>
@@ -5277,6 +5343,19 @@ watch(
 
 .structure-ddl-editor :deep(.cm-content ::selection) {
   background: var(--dbx-editor-selection-background, rgba(59, 130, 246, 0.35)) !important;
+}
+
+/*
+ * 表单控件的自带字号（Input 的 text-base + md:text-sm、SelectTrigger 的 text-sm）会压过
+ * 通过 class 传入的密度字号，导致同一视图里控件比表格文字大一圈。密度字号统一在这里兜底，
+ * 只作用于结构编辑器内部，弹窗（teleport 到 body）不受影响。
+ */
+[data-structure-density] :deep(input),
+[data-structure-density] :deep(textarea),
+[data-structure-density] :deep(select),
+[data-structure-density] :deep([role="combobox"]),
+[data-structure-density] :deep([data-slot="select-trigger"]) {
+  font-size: var(--structure-font-size);
 }
 
 .structure-table-scroller::-webkit-scrollbar {

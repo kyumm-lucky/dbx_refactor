@@ -21,10 +21,13 @@ const props = withDefaults(
     grid?: DataGridColumnLayoutHandle;
     triggerClass?: string;
     compact?: boolean;
+    /** 弹层对齐方向：工具栏右上角用 end，表格左上角表头用 start。 */
+    contentAlign?: "start" | "center" | "end";
   }>(),
   {
     triggerClass: "",
     compact: false,
+    contentAlign: "end",
   },
 );
 
@@ -311,7 +314,7 @@ onBeforeUnmount(resetColumnDragState);
         <span v-if="!compact && (grid?.hiddenColumnCount ?? 0) > 0" class="tabular-nums"> {{ grid?.visibleColumnCount }}/{{ grid?.displayableColumnCount }} </span>
       </Button>
     </PopoverTrigger>
-    <PopoverContent align="end" class="w-72 max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-md border bg-popover p-0 text-popover-foreground shadow-xl" @click.stop @keydown.stop>
+    <PopoverContent :align="contentAlign" class="w-72 max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-md border bg-popover p-0 text-popover-foreground shadow-xl" @click.stop @keydown.stop>
       <div class="border-b bg-muted/40 px-2 py-1.5">
         <div class="flex items-center justify-between gap-2">
           <div class="text-xs font-semibold">{{ t("grid.columnVisibility") }}</div>

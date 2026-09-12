@@ -3528,7 +3528,6 @@ onUnmounted(() => {
           :has-sql-file-connections="hasSqlFileConnections"
           @new-connection="showConnectionDialog = true"
           @expand-sidebar="setSidebarOpen(true)"
-          @new-query="newQuery"
           @set-theme-mode="setThemeMode"
           @toggle-ai="toggleRightSidebarPanel('ai')"
           @toggle-history="toggleRightSidebarPanel('history')"
@@ -3643,6 +3642,7 @@ onUnmounted(() => {
                     :can-detach-tabs="isDesktop"
                     :detached-drop-target="detachedDropTargetTabId !== null"
                     @detach-tab="detachTab"
+                    @new-query="newQuery"
                     :executable-sql="executableSql"
                     :active-output-view="activeOutputView"
                     :format-sql-request="formatSqlRequest"
@@ -3736,7 +3736,7 @@ onUnmounted(() => {
                             database: tab.database,
                             schema: tab.schema,
                             catalog: tab.catalog,
-                            tableName: tab.structureTableName || '',
+                            tableName: tab.structureTableName || tab.tableMeta?.tableName || '',
                           },
                           commentChanged,
                         );
