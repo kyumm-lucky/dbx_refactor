@@ -10,15 +10,22 @@ name: Fork Release (macOS arm64)
 # changes merge cleanly.
 #
 # Output: DBX_<version>_arm64.dmg (+ .sha256) attached to the tag's release.
+#
+# Tag convention: fork builds use "v<upstream-version>-fork.<n>", e.g.
+# v0.6.11-fork.1. Keeping a distinct name means upstream's own tags (fetched
+# with `git fetch --tags`) never collide with this fork's release tags, and
+# pushing upstream tags does not accidentally publish an upstream build here.
+# Manual runs may pass any tag; the tag is created at the built commit if it
+# does not exist yet.
 
 on:
   push:
     tags:
-      - "v*"
+      - "v*-fork.*"
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to build and publish (must start with v, e.g. v0.6.11)"
+        description: "Release tag (e.g. v0.6.11-fork.1); created at the built commit if missing"
         required: true
         type: string
 
@@ -102,8 +109,10 @@ jobs:
           VERSION="$(jq -r .version src-tauri/tauri.conf.json)"
           TAG="${{ steps.rel.outputs.tag }}"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          if [ "v${VERSION}" != "${TAG}" ]; then
-            echo "::warning::Tag ${TAG} does not match tauri.conf.json version ${VERSION}."
+          TAG_VERSION="${TAG#v}"
+          TAG_VERSION="${TAG_VERSION%%-*}"
+          if [ "${TAG_VERSION}" != "${VERSION}" ]; then
+            echo "::warning::Tag ${TAG} carries version ${TAG_VERSION} but tauri.conf.json says ${VERSION}."
           fi
 
       - name: Prepare draft release
@@ -159,7 +168,7 @@ jobs:
             gh release create "${TAG}" \
               --repo "${GITHUB_REPOSITORY}" \
               --draft \
-              --verify-tag \
+              --target "${GITHUB_SHA}" \
               --title "DBX ${TAG}" \
               --notes-file "$NOTES"
           fi
