@@ -28,6 +28,11 @@ on:
         description: "Release tag (e.g. v0.6.11-fork.1); created at the built commit if missing"
         required: true
         type: string
+      use_lld:
+        description: "Use LLVM lld instead of Apple ld64 to link the app (repo docs claim 2-3x faster linking; not yet verified in this fork)"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -261,6 +266,15 @@ jobs:
               --notes-file "$NOTES"
           fi
 
+      - name: Install lld linker
+        if: ${{ inputs.use_lld }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install lld
+          test -x /opt/homebrew/opt/lld/bin/ld64.lld
+          echo "CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER=/opt/homebrew/opt/lld/bin/ld64.lld" >> "$GITHUB_ENV"
+
       - name: Build macOS arm64 dmg
         shell: bash
         env:
@@ -273,6 +287,14 @@ jobs:
           APPLE_SIGNING_IDENTITY: "-"
         run: |
           set -euo pipefail
+          # Measured timing for this step on the 3-core macos-latest runner:
+          # ~15s frontend build, ~30s of crate compiles served from cache, then
+          # ~35min in the final link. The release profile (Cargo.toml) uses
+          # lto = true, codegen-units = 1 and opt-level = "s", so that last
+          # phase is fat LTO over the whole graph: neither sccache nor the
+          # target cache can remove it. That is why the caches take a build
+          # from ~50min to ~35min but no further; use_lld is the lever left.
+          #
           # Unsigned fork build: skip the upstream updater signing key.
           #
           # Note: the app's own "check for updates" path resolves its endpoints
