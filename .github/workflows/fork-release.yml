@@ -157,11 +157,15 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: "./ -> target"
-          shared-key: fork-release-${{ steps.deps-hash.outputs.hash }}
+          # Versioned key: actions/cache entries are immutable, so reusing the
+          # old key would make rust-cache skip saving the target directory.
+          shared-key: fork-release-target-v1-${{ steps.deps-hash.outputs.hash }}
           add-rust-environment-hash-key: false
-          # Compiled artifacts are sccache's job; this only keeps the crate
-          # registry/git downloads.
-          cache-targets: false
+          # The target directory is what actually makes repeat builds cheap:
+          # with it restored, cargo finds every artifact fresh and skips the
+          # linking, bundling and build-script work that sccache cannot cache.
+          # CARGO_INCREMENTAL=0 above keeps it small enough for the 10 GB limit.
+          cache-targets: true
           cache-on-failure: true
 
       - name: Install frontend dependencies
