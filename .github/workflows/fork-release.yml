@@ -235,13 +235,16 @@ jobs:
           PY
           # A release does not reliably create a missing tag, and the later
           # upload/edit steps resolve the release by tag name, so create the tag
-          # explicitly when the manual run named a new one.
+          # explicitly when the manual run named a new one. Pushing the ref over
+          # the checkout's credentials is used instead of the Git refs API
+          # because the workflow token is refused there with "Resource not
+          # accessible by integration".
           if [ "${TAG_EXISTS}" = "true" ]; then
             echo "Tag ${TAG} already exists."
           else
             echo "Creating tag ${TAG} at ${GITHUB_SHA}."
-            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
-              -f "ref=refs/tags/${TAG}" -f "sha=${GITHUB_SHA}" >/dev/null
+            git tag -f "${TAG}" "${GITHUB_SHA}"
+            git push origin "refs/tags/${TAG}"
           fi
           if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
             echo "Release ${TAG} already exists; the dmg asset will be replaced."
