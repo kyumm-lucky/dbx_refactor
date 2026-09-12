@@ -42,6 +42,15 @@ jobs:
     runs-on: macos-latest
     env:
       CARGO_INCREMENTAL: "0"
+      # The Rust build is ~43 of the ~45 minutes, so compiled-object caching is
+      # the only lever that matters. No S3 backend in a fork, so sccache uses the
+      # GitHub Actions cache. Runs dispatched on the default branch share that
+      # cache, which is why "Run workflow" is the faster path than a tag push.
+      RUSTC_WRAPPER: sccache
+      SCCACHE_GHA_ENABLED: "true"
+      # Linking, bundling and signing run long after the last rustc call; the
+      # 10-minute default idle timeout would exit the server and zero the stats.
+      SCCACHE_IDLE_TIMEOUT: "0"
     steps:
       - name: Resolve release tag
         id: rel
@@ -112,6 +121,48 @@ jobs:
         uses: dtolnay/rust-toolchain@1.97.1
         with:
           targets: aarch64-apple-darwin
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@9e7fa8a12102821edf02ca5dbea1acd0f89a2696 # v0.0.10
+        with:
+          version: "v0.10.0"
+
+      - name: Configure sccache for C/C++ sys crates
+        shell: bash
+        run: |
+          # -sys crates (sqlite, duckdb, ...) compile C/C++ into target/, which
+          # rust-cache does not keep, so route those compilers through sccache
+          # too. Expanded here because job-level env cannot interpolate
+          # SCCACHE_PATH, which the action only exports at runtime.
+          {
+            echo "CC=${SCCACHE_PATH} clang"
+            echo "CXX=${SCCACHE_PATH} clang++"
+          } >> "$GITHUB_ENV"
+
+      - name: Compute Rust dependency hash
+        id: deps-hash
+        shell: bash
+        run: |
+          {
+            find . -name Cargo.toml -not -path './target/*' -print0 \
+              | sort -z \
+              | xargs -0 sed -E '/^version = /d'
+            grep -v '^version = ' Cargo.lock
+          } | shasum -a 256 | cut -d' ' -f1 | {
+            read -r hash
+            echo "hash=${hash:0:20}" >> "$GITHUB_OUTPUT"
+          }
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./ -> target"
+          shared-key: fork-release-${{ steps.deps-hash.outputs.hash }}
+          add-rust-environment-hash-key: false
+          # Compiled artifacts are sccache's job; this only keeps the crate
+          # registry/git downloads.
+          cache-targets: false
+          cache-on-failure: true
 
       - name: Install frontend dependencies
         run: pnpm install
@@ -271,3 +322,9 @@ jobs:
           gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" --draft=false
           echo "Published: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
           echo "Download:  ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${TAG}/${FILE}"
+
+      - name: Show sccache stats
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: ${SCCACHE_PATH} --show-stats
