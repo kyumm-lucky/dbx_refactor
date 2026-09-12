@@ -143,9 +143,13 @@ jobs:
 
           - 仅 Apple Silicon（arm64）。
           - 未签名、未公证：自用/内测构建，不适合公开分发给不特定用户。
-          - 应用内自动更新已指向本仓库的 release，不会自动升级成上游官方版本，fork 改动不会被覆盖。
+          - **更新提醒**：应用内的更新检查走的是上游硬编码的更新源（dl.dbxio.com /
+            github.com/t8y2/dbx，见 src-tauri/src/commands/update.rs），本构建无法改掉。
+            上游发新版本后，应用会静默下载并提示安装，安装后本 fork 的改动会被官方版本覆盖。
+            建议在「设置 → 启用更新提醒」里关闭自动检查（关闭后仍可手动检查更新）。
+          - 本构建不含 Tauri 更新签名产物（build 时关闭了 createUpdaterArtifacts）。
 
-          需要重新构建时，在 Actions 里手动触发 **Fork Release (macOS arm64)** 并填写 tag，或推送任意 `v*` tag。
+          需要重新构建时，在 Actions 里手动触发 **Fork Release (macOS arm64)** 并填写 tag，或推送 `v<版本>-fork.<序号>` tag。
           EOF
           python3 - "$NOTES" <<'PY'
           import os, pathlib, sys
@@ -177,10 +181,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Unsigned fork build: skip the upstream updater signing key, and point
-          # the in-app updater at this fork so an installed copy never silently
-          # replaces itself with the official upstream build.
-          CONFIG_OVERRIDE='{"bundle":{"createUpdaterArtifacts":false},"plugins":{"updater":{"endpoints":["https://github.com/kyumm-lucky/dbx_refactor/releases/latest/download/latest.json"]}}}'
+          # Unsigned fork build: skip the upstream updater signing key.
+          #
+          # Note: the app's own "check for updates" path resolves its endpoints
+          # from OFFICIAL_UPDATE_ENDPOINTS in src-tauri/src/commands/update.rs,
+          # which is compiled in and overrides plugins.updater.endpoints at
+          # runtime. Overriding the config endpoints here therefore changes
+          # nothing; only plugins.updater.pubkey would gate which signatures the
+          # installed app accepts.
+          CONFIG_OVERRIDE='{"bundle":{"createUpdaterArtifacts":false}}'
           pnpm tauri build --target aarch64-apple-darwin --config "${CONFIG_OVERRIDE}"
 
       - name: Collect dmg and checksum
