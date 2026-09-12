@@ -179,6 +179,14 @@ jobs:
 
       - name: Build macOS arm64 dmg
         shell: bash
+        env:
+          # A fork has no Apple Developer certificate, so Tauri would otherwise
+          # ship an app whose bundle seal is missing (_CodeSignature absent):
+          # `codesign --verify` fails and Gatekeeper can report a downloaded
+          # copy as damaged instead of offering the usual "仍要打开" flow.
+          # "-" makes codesign ad-hoc sign the bundle, which keeps the app
+          # launchable on Apple Silicon while staying clearly not notarized.
+          APPLE_SIGNING_IDENTITY: "-"
         run: |
           set -euo pipefail
           # Unsigned fork build: skip the upstream updater signing key.
@@ -217,9 +225,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          hdiutil verify "${{ steps.dmg.outputs.file }}"
-          echo "signature of the bundled app:"
-          codesign -dv --verbose=2 "${{ steps.dmg.outputs.app_dir }}/DBX.app" 2>&1 | head -n 12 || true
+          DMG="${{ steps.dmg.outputs.file }}"
+          APP="${{ steps.dmg.outputs.app_dir }}/DBX.app"
+          hdiutil verify "${DMG}"
+          # Hard gate: a bundle without a valid seal must not be published.
+          codesign --verify --deep --strict --verbose=2 "${APP}"
+          codesign -dv --verbose=4 "${APP}" 2>&1 | grep -E "^(Identifier|Format|Signature|TeamIdentifier|CodeDirectory)" || true
 
       - name: Upload to release
         env:
