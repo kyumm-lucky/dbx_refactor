@@ -45,6 +45,8 @@ jobs:
     steps:
       - name: Resolve release tag
         id: rel
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
@@ -57,11 +59,24 @@ jobs:
             v*) ;;
             *) echo "::error::Release tag must start with 'v', got '${TAG}'."; exit 1 ;;
           esac
+          # A tag push always carries its tag. A manual run may name a tag that
+          # does not exist yet: build the dispatched ref instead and let the
+          # release step create the tag at that commit.
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" >/dev/null 2>&1; then
+            REF="${TAG}"
+            EXISTS="true"
+          else
+            REF="${GITHUB_REF_NAME}"
+            EXISTS="false"
+          fi
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "ref=${REF}" >> "$GITHUB_OUTPUT"
+          echo "exists=${EXISTS}" >> "$GITHUB_OUTPUT"
+          echo "building ref '${REF}' for tag '${TAG}' (tag already exists: ${EXISTS})"
 
       - uses: actions/checkout@v5
         with:
-          ref: ${{ steps.rel.outputs.tag }}
+          ref: ${{ steps.rel.outputs.ref }}
 
       - name: Show runner capacity
         shell: bash
