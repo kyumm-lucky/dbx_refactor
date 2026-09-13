@@ -6916,8 +6916,6 @@ export default withEnglishFallback({
     dataGridQuickEntryDescription: "Aktiv olduqda xanada redaktə edilən və ya altdakı boş sətrə daxil edilən məlumat fokus çıxan kimi verilənlər bazasında yadda saxlanılır. Tez-tez məlumat daxil etmək üçün faydalıdır, lakin təsadüfi yazmalara səbəb ola bilər.",
     dataGridAutoTransposeSingleRow: "Tək sətirli sorğu nəticələrini avtomatik transpozisiya et",
     dataGridAutoTransposeSingleRowDescription: "Aktiv olduqda yalnız bir sətri və bir neçə sütunu olan SQL sorğu nəticələri avtomatik transpozisiya görünüşünə keçir.",
-    dataGridCellDetailButtonVisible: "Xana təfərrüatları düyməsini göstər",
-    dataGridCellDetailButtonVisibleDescription: "Kursor xananın üzərinə gətirildikdə xana təfərrüatları düyməsini göstər.",
     dataGridCrosshairHighlight: "Sətir və sütunun çarpaz vurğulanması",
     dataGridCrosshairHighlightDescription: "Aktiv olduqda aktiv xananın bütün sətrini və sütununu yüngülcə vurğula (Excel-dəki kimi). Fokuslanmış xana seçilmiş üslubunu saxlayır.",
     infiniteScroll: "Sonsuz sürüşdürmə ilə yükləmə",

@@ -635,8 +635,6 @@ const STRUCTURE_EDITOR_DENSITIES = ["compact", "standard", "comfortable"] as con
 export type StructureEditorDensity = (typeof STRUCTURE_EDITOR_DENSITIES)[number];
 const COLUMN_WIDTH_DENSITIES = ["compact", "standard", "comfortable"] as const;
 export type ColumnWidthDensity = (typeof COLUMN_WIDTH_DENSITIES)[number];
-const CELL_DETAIL_PANEL_LAYOUTS = ["bottom", "right"] as const;
-export type CellDetailPanelLayout = (typeof CELL_DETAIL_PANEL_LAYOUTS)[number];
 const TAB_LAYOUT_MODES = ["scroll", "wrap"] as const;
 export type TabLayoutMode = (typeof TAB_LAYOUT_MODES)[number];
 const TAB_PLACEMENTS = ["top", "bottom", "left", "right"] as const;
@@ -823,7 +821,6 @@ export interface EditorSettings {
   defaultAutoKeepResults: boolean;
   multiStatementDefaultView: MultiStatementDefaultView;
   dataGridAutoTransposeSingleRow: boolean;
-  dataGridCellDetailButtonVisible: boolean;
   dataGridCrosshairHighlight: boolean;
   dataGridMultiRowTranspose: boolean;
   dataGridHideNullColumns: boolean;
@@ -835,10 +832,7 @@ export interface EditorSettings {
   tableInfoActiveTab: TableInfoTab;
   tableInfoDrawerPinned: boolean;
   tableInfoDrawerWidth: number;
-  cellDetailDrawerWidth: number;
-  cellDetailPanelLayout: CellDetailPanelLayout;
   cellDetailJsonFormatted: boolean;
-  cellDetailMetadataCollapsed: boolean;
   shortcuts: ShortcutSettings;
   sqlFormatter: SqlFormatterSettings;
   sidebarActivation: SidebarActivation;
@@ -1068,7 +1062,6 @@ export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
   defaultAutoKeepResults: false,
   multiStatementDefaultView: "result",
   dataGridAutoTransposeSingleRow: false,
-  dataGridCellDetailButtonVisible: true,
   dataGridCrosshairHighlight: false,
   dataGridMultiRowTranspose: false,
   dataGridHideNullColumns: false,
@@ -1080,10 +1073,7 @@ export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
   tableInfoActiveTab: "ddl",
   tableInfoDrawerPinned: false,
   tableInfoDrawerWidth: 320,
-  cellDetailDrawerWidth: 380,
-  cellDetailPanelLayout: "bottom",
   cellDetailJsonFormatted: false,
-  cellDetailMetadataCollapsed: false,
   shortcuts: normalizeShortcutSettings(),
   // 应用默认用小写关键字（库内不传设置时的兜底仍是大写）。
   sqlFormatter: { ...normalizeSqlFormatterSettings(DEFAULT_SQL_FORMATTER_SETTINGS), keywordCase: "lower" },
@@ -1227,10 +1217,6 @@ export function normalizeTabGroupCustomizations(value: unknown): Record<string, 
 
 function normalizeTabSortMode(value: unknown): TabSortMode {
   return TAB_SORT_MODES.includes(value as TabSortMode) ? (value as TabSortMode) : DEFAULT_EDITOR_SETTINGS.tabSortMode;
-}
-
-function normalizeCellDetailPanelLayout(value: unknown): CellDetailPanelLayout {
-  return CELL_DETAIL_PANEL_LAYOUTS.includes(value as CellDetailPanelLayout) ? (value as CellDetailPanelLayout) : DEFAULT_EDITOR_SETTINGS.cellDetailPanelLayout;
 }
 
 function normalizeDataGridRenderMode(value: unknown): DataGridRenderMode {
@@ -1551,7 +1537,6 @@ export function normalizeEditorSettings(settings: Partial<EditorSettings>, exist
     defaultAutoKeepResults: settings.defaultAutoKeepResults === true,
     multiStatementDefaultView: normalizeMultiStatementDefaultView(settings.multiStatementDefaultView),
     dataGridAutoTransposeSingleRow: settings.dataGridAutoTransposeSingleRow === true,
-    dataGridCellDetailButtonVisible: typeof settings.dataGridCellDetailButtonVisible === "boolean" ? settings.dataGridCellDetailButtonVisible : DEFAULT_EDITOR_SETTINGS.dataGridCellDetailButtonVisible,
     dataGridCrosshairHighlight: typeof settings.dataGridCrosshairHighlight === "boolean" ? settings.dataGridCrosshairHighlight : DEFAULT_EDITOR_SETTINGS.dataGridCrosshairHighlight,
     dataGridMultiRowTranspose: settings.dataGridMultiRowTranspose === true,
     dataGridHideNullColumns: settings.dataGridHideNullColumns === true,
@@ -1563,10 +1548,7 @@ export function normalizeEditorSettings(settings: Partial<EditorSettings>, exist
     tableInfoActiveTab: normalizeTableInfoTab(settings.tableInfoActiveTab),
     tableInfoDrawerPinned: settings.tableInfoDrawerPinned === true,
     tableInfoDrawerWidth: normalizeDrawerWidth(settings.tableInfoDrawerWidth, 240, DEFAULT_EDITOR_SETTINGS.tableInfoDrawerWidth),
-    cellDetailDrawerWidth: normalizeDrawerWidth(settings.cellDetailDrawerWidth, 260, DEFAULT_EDITOR_SETTINGS.cellDetailDrawerWidth),
-    cellDetailPanelLayout: normalizeCellDetailPanelLayout(settings.cellDetailPanelLayout),
     cellDetailJsonFormatted: typeof settings.cellDetailJsonFormatted === "boolean" ? settings.cellDetailJsonFormatted : DEFAULT_EDITOR_SETTINGS.cellDetailJsonFormatted,
-    cellDetailMetadataCollapsed: typeof settings.cellDetailMetadataCollapsed === "boolean" ? settings.cellDetailMetadataCollapsed : DEFAULT_EDITOR_SETTINGS.cellDetailMetadataCollapsed,
     shortcuts: normalizeShortcutSettings(settings.shortcuts),
     sqlFormatter: needsEditorDefaultsMigration ? { ...normalizeSqlFormatterSettings(settings.sqlFormatter), keywordCase: "lower" } : normalizeSqlFormatterSettings(settings.sqlFormatter),
     sidebarActivation: settings.sidebarActivation === "single" || settings.sidebarActivation === "double" ? settings.sidebarActivation : DEFAULT_EDITOR_SETTINGS.sidebarActivation,
@@ -2310,7 +2292,6 @@ export const useSettingsStore = defineStore("settings", () => {
     if (partial.defaultAutoKeepResults !== undefined) editorSettings.value.defaultAutoKeepResults = partial.defaultAutoKeepResults === true;
     if (partial.multiStatementDefaultView !== undefined) editorSettings.value.multiStatementDefaultView = normalizeMultiStatementDefaultView(partial.multiStatementDefaultView);
     if (partial.dataGridAutoTransposeSingleRow !== undefined) editorSettings.value.dataGridAutoTransposeSingleRow = partial.dataGridAutoTransposeSingleRow === true;
-    if (partial.dataGridCellDetailButtonVisible !== undefined) editorSettings.value.dataGridCellDetailButtonVisible = typeof partial.dataGridCellDetailButtonVisible === "boolean" ? partial.dataGridCellDetailButtonVisible : DEFAULT_EDITOR_SETTINGS.dataGridCellDetailButtonVisible;
     if (partial.dataGridCrosshairHighlight !== undefined) editorSettings.value.dataGridCrosshairHighlight = typeof partial.dataGridCrosshairHighlight === "boolean" ? partial.dataGridCrosshairHighlight : DEFAULT_EDITOR_SETTINGS.dataGridCrosshairHighlight;
     if (partial.dataGridMultiRowTranspose !== undefined) editorSettings.value.dataGridMultiRowTranspose = partial.dataGridMultiRowTranspose === true;
     if (partial.dataGridHideNullColumns !== undefined) editorSettings.value.dataGridHideNullColumns = partial.dataGridHideNullColumns === true;
@@ -2322,10 +2303,7 @@ export const useSettingsStore = defineStore("settings", () => {
     if (partial.tableInfoActiveTab !== undefined) editorSettings.value.tableInfoActiveTab = normalizeTableInfoTab(partial.tableInfoActiveTab);
     if (partial.tableInfoDrawerPinned !== undefined) editorSettings.value.tableInfoDrawerPinned = partial.tableInfoDrawerPinned === true;
     if (partial.tableInfoDrawerWidth !== undefined) editorSettings.value.tableInfoDrawerWidth = normalizeDrawerWidth(partial.tableInfoDrawerWidth, 240, DEFAULT_EDITOR_SETTINGS.tableInfoDrawerWidth);
-    if (partial.cellDetailDrawerWidth !== undefined) editorSettings.value.cellDetailDrawerWidth = normalizeDrawerWidth(partial.cellDetailDrawerWidth, 260, DEFAULT_EDITOR_SETTINGS.cellDetailDrawerWidth);
-    if (partial.cellDetailPanelLayout !== undefined) editorSettings.value.cellDetailPanelLayout = normalizeCellDetailPanelLayout(partial.cellDetailPanelLayout);
     if (partial.cellDetailJsonFormatted !== undefined) editorSettings.value.cellDetailJsonFormatted = partial.cellDetailJsonFormatted === true;
-    if (partial.cellDetailMetadataCollapsed !== undefined) editorSettings.value.cellDetailMetadataCollapsed = partial.cellDetailMetadataCollapsed === true;
     if (partial.shortcuts !== undefined) editorSettings.value.shortcuts = normalizeShortcutSettings(partial.shortcuts);
     if (partial.sqlFormatter !== undefined) editorSettings.value.sqlFormatter = normalizeSqlFormatterSettings(partial.sqlFormatter);
     if (partial.sidebarActivation !== undefined) editorSettings.value.sidebarActivation = partial.sidebarActivation;

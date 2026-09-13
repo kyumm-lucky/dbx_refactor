@@ -5812,8 +5812,6 @@ export default withEnglishFallback({
     dataGridQuickEntryDescription: "開啟後，編輯儲存格或填寫底部空白列並離焦會立即儲存到資料庫。適合高頻輸入，但有誤操作風險。",
     dataGridAutoTransposeSingleRow: "自動轉置單行查詢結果",
     dataGridAutoTransposeSingleRowDescription: "開啟後，SQL 查詢結果只有一行且包含多個欄位時，會自動切換為轉置檢視。",
-    dataGridCellDetailButtonVisible: "顯示儲存格詳細資料按鈕",
-    dataGridCellDetailButtonVisibleDescription: "游標懸停在儲存格上時顯示儲存格詳細資料按鈕。",
     dataGridCrosshairHighlight: "行列十字高亮",
     dataGridCrosshairHighlightDescription: "開啟後，以目前活動儲存格為中心淡色高亮整列和整行（類似 Excel）。焦點儲存格仍保留原有選取樣式。",
     infiniteScroll: "無限滾動載入",

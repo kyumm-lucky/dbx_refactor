@@ -6490,8 +6490,6 @@ export default withEnglishFallback({
     dataGridQuickEntryDescription: "Quando ativado, editar uma célula ou preencher a linha vazia inferior salva no banco de dados assim que o foco sai. Ajuda na entrada frequente, mas pode causar gravações acidentais.",
     dataGridAutoTransposeSingleRow: "Transpor automaticamente resultados de consulta com uma única linha",
     dataGridAutoTransposeSingleRowDescription: "Quando ativado, os resultados de consultas SQL com exatamente uma linha e várias colunas alternam automaticamente para a visualização transposta.",
-    dataGridCellDetailButtonVisible: "Mostrar botão de detalhes da célula",
-    dataGridCellDetailButtonVisibleDescription: "Mostrar o botão de detalhes da célula ao passar o mouse sobre uma célula.",
     dataGridCrosshairHighlight: "Destacar linha e coluna em cruz",
     dataGridCrosshairHighlightDescription: "Quando ativado, destaca levemente toda a linha e a coluna da célula ativa (como no Excel). A célula focada mantém o estilo selecionado.",
     infiniteScroll: "Carregamento por rolagem infinita",

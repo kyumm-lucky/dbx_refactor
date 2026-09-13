@@ -62,7 +62,7 @@ const emit = defineEmits<{
 
 <template>
   <div
-    class="data-grid-header-cell shrink-0 px-2 py-1.5 border-r border-border whitespace-nowrap hover:bg-gray-200 dark:hover:bg-gray-800 select-none relative overflow-hidden"
+    class="data-grid-header-cell shrink-0 px-2 py-1.5 border-r border-border whitespace-nowrap hover:bg-black/5 dark:hover:bg-white/6 select-none relative overflow-hidden"
     :class="[dark && 'data-grid-header-cell--dark', selected && 'data-grid-header-cell--selected', searchMatch && 'bg-amber-500/20 ring-1 ring-inset ring-amber-500/40', frozen && 'data-grid-header-cell--frozen', frozenSeparator && 'data-grid-header-cell--frozen-separator', dragClass]"
     :style="columnStyle"
     :data-grid-column-index="actualColumnIndex"
@@ -127,7 +127,7 @@ const emit = defineEmits<{
 
 <style scoped>
 .data-grid-header-cell {
-  background-color: rgb(239, 239, 239);
+  background-color: rgb(250, 250, 251);
 }
 
 .data-grid-header-cell--dark {
@@ -165,6 +165,20 @@ const emit = defineEmits<{
 </style>
 
 <style>
+/* 列头操作按钮（排序 / 列操作 / 格式化）默认不占视线：只有 hover 该列头才淡入，
+   已排序列的排序箭头由父组件去掉 data-column-hover-only 后常驻。
+   用 opacity 而不是 display，列宽与列名截断位置在 hover 前后保持一致。 */
+.data-grid-header-cell [data-column-hover-only] {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.data-grid-header-cell:hover [data-column-hover-only] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 html.dbx-legacy-webview [data-column-header-copy-name]:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }

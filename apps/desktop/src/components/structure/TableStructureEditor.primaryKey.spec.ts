@@ -309,7 +309,7 @@ async function mountEditor(databaseType: "sqlserver" | "postgres" | "sqlite" | "
   return root;
 }
 
-async function mountLoadingEditor(initialTab: "columns" | "indexes" | "foreignKeys" | "triggers" | "ddl", owner = "app_user", tableComment = "") {
+async function mountLoadingEditor(initialTab: "columns" | "indexes" | "foreignKeys" | "triggers" | "ddl", tableComment = "") {
   mocks.connection.db_type = "postgres";
   mocks.connection.name = "postgres";
   mocks.connection.driver_label = "postgres";
@@ -317,7 +317,7 @@ async function mountLoadingEditor(initialTab: "columns" | "indexes" | "foreignKe
   mocks.listDataTypes.mockResolvedValue([]);
   mocks.buildTableStructureChangeSql.mockResolvedValue({ statements: [], warnings: [] });
   mocks.loadObjectDdl.mockResolvedValue({ ddl: "CREATE TABLE users (id bigint)", cacheStatus: "remote" });
-  mocks.loadObjectMetadataFacet.mockImplementation(async (_request, facet: string) => ({ value: facet === "comment" ? tableComment : facet === "owner" ? owner : [], cacheStatus: "remote" }));
+  mocks.loadObjectMetadataFacet.mockImplementation(async (_request, facet: string) => ({ value: facet === "comment" ? tableComment : [], cacheStatus: "remote" }));
 
   const root = document.createElement("div");
   document.body.append(root);
@@ -365,7 +365,7 @@ beforeEach(() => {
   mocks.loadObjectDdl.mockResolvedValue({ ddl: "CREATE TABLE users (id bigint)", cacheStatus: "remote" });
   mocks.invalidateObjectDdl.mockResolvedValue(undefined);
   mocks.invalidateObjectMetadataCache.mockResolvedValue(undefined);
-  mocks.loadObjectMetadataFacet.mockImplementation(async (_request, facet: string) => ({ value: facet === "owner" ? "app_user" : [], cacheStatus: "remote" }));
+  mocks.loadObjectMetadataFacet.mockImplementation(async (_request, facet: string) => ({ value: facet === "comment" ? "" : [], cacheStatus: "remote" }));
   mocks.getTableOwner.mockResolvedValue("app_user");
   mocks.executeQuery.mockResolvedValue({
     columns: ["user", "host", "plugin"],
@@ -839,11 +839,11 @@ describe("TableStructureEditor horizontal scrolling", () => {
 
 describe("TableStructureEditor metadata loading", () => {
   it("opens the initial DDL tab with its always-visible table comment", async () => {
-    const root = await mountLoadingEditor("ddl", "app_user", "Application users");
+    const root = await mountLoadingEditor("ddl", "Application users");
 
     await vi.waitFor(() => expect(mocks.loadObjectDdl).toHaveBeenCalledTimes(1));
-    await vi.waitFor(() => expect(mocks.loadObjectMetadataFacet).toHaveBeenCalledTimes(2));
-    expect(mocks.loadObjectMetadataFacet.mock.calls.map((call) => call[1]).sort()).toEqual(["comment", "owner"]);
+    await vi.waitFor(() => expect(mocks.loadObjectMetadataFacet).toHaveBeenCalledTimes(1));
+    expect(mocks.loadObjectMetadataFacet.mock.calls.map((call) => call[1]).sort()).toEqual(["comment"]);
     expect(root.querySelector<HTMLInputElement>('input[placeholder="structureEditor.tableCommentPlaceholder"]')?.value).toBe("Application users");
   });
 
@@ -851,7 +851,7 @@ describe("TableStructureEditor metadata loading", () => {
     ["backfills a clean draft", "", "", "Application users"],
     ["preserves a dirty draft", "Local edit", "Old comment", "Local edit"],
   ])("%s when restored DDL metadata loads the table comment", async (_case, tableComment, originalTableComment, expectedComment) => {
-    mocks.loadObjectMetadataFacet.mockImplementation(async (_request, facet: string) => ({ value: facet === "comment" ? "Application users" : facet === "owner" ? "app_user" : [], cacheStatus: "remote" }));
+    mocks.loadObjectMetadataFacet.mockImplementation(async (_request, facet: string) => ({ value: facet === "comment" ? "Application users" : [], cacheStatus: "remote" }));
 
     const root = document.createElement("div");
     document.body.append(root);
@@ -883,7 +883,7 @@ describe("TableStructureEditor metadata loading", () => {
     });
     mocks.loadObjectMetadataFacet.mockImplementation(async (_request, facet: string) => {
       if (facet === "comment") return commentResult;
-      return { value: facet === "owner" ? "app_user" : [], cacheStatus: "remote" };
+      return { value: [], cacheStatus: "remote" };
     });
     mocks.buildTableStructureChangeSql.mockImplementation(async (options) => ({
       statements: options.tableComment === options.originalTableComment ? [] : [commentSql],
@@ -916,44 +916,16 @@ describe("TableStructureEditor metadata loading", () => {
   });
 
   it.each([
-    ["columns", ["columns", "indexes", "comment", "owner"]],
-    ["indexes", ["columns", "indexes", "comment", "owner"]],
-    ["foreignKeys", ["columns", "indexes", "foreign-keys", "comment", "owner"]],
-    ["triggers", ["triggers", "comment", "owner"]],
+    ["columns", ["columns", "indexes", "comment"]],
+    ["indexes", ["columns", "indexes", "comment"]],
+    ["foreignKeys", ["columns", "indexes", "foreign-keys", "comment"]],
+    ["triggers", ["triggers", "comment"]],
   ] as const)("loads only the required facets for the initial %s tab", async (initialTab, expectedFacets) => {
     await mountLoadingEditor(initialTab);
 
     await vi.waitFor(() => expect(mocks.loadObjectMetadataFacet).toHaveBeenCalledTimes(expectedFacets.length));
     expect(mocks.loadObjectMetadataFacet.mock.calls.map((call) => call[1]).sort()).toEqual([...expectedFacets].sort());
     expect(mocks.loadObjectDdl).not.toHaveBeenCalled();
-  });
-
-  it("preserves exact PostgreSQL owner names and includes an owner change in the SQL preview", async () => {
-    mocks.loadObjectMetadataFacet.mockImplementation(async (_request, facet: string) => ({ value: facet === "owner" ? " app_user " : [], cacheStatus: "remote" }));
-    mocks.executeQuery.mockResolvedValue({
-      columns: ["user", "host", "plugin"],
-      rows: [
-        [" app_user ", "LOGIN", ""],
-        ["reporting_role", "ROLE", ""],
-      ],
-    });
-    mocks.buildTableOwnerChangeSql.mockImplementation(async (options: { owner: string; originalOwner: string }) => ({
-      statements: options.owner === options.originalOwner ? [] : [`ALTER TABLE "public"."users" OWNER TO "${options.owner}";`],
-      warnings: [],
-    }));
-    const root = await mountLoadingEditor("columns", " app_user ");
-
-    const ownerSelect = await vi.waitFor(() => {
-      const select = root.querySelector<HTMLButtonElement>("[data-owner-select]");
-      expect(select?.dataset.modelValue).toBe(" app_user ");
-      expect(JSON.parse(select?.dataset.options ?? "[]")).toEqual([" app_user ", "reporting_role"]);
-      expect(select?.dataset.allowCustom).toBe("true");
-      expect(select?.dataset.trimCustom).toBe("false");
-      return select!;
-    });
-    ownerSelect.click();
-
-    await vi.waitFor(() => expect(mocks.buildTableOwnerChangeSql).toHaveBeenLastCalledWith(expect.objectContaining({ owner: "custom_domain", originalOwner: " app_user ", schema: "public", tableName: "users" })));
   });
 
   it("loads the PostgreSQL primary index name before showing a missing-name warning", async () => {
@@ -973,9 +945,7 @@ describe("TableStructureEditor metadata loading", () => {
             ]
           : facet === "comment"
             ? ""
-            : facet === "owner"
-              ? "app_user"
-              : [],
+            : [],
       cacheStatus: "remote",
     }));
 
@@ -992,7 +962,7 @@ describe("TableStructureEditor metadata loading", () => {
     app.mount(root);
 
     await vi.waitFor(() => expect(root.querySelector('[data-column-row-index="0"]')).not.toBeNull());
-    expect(mocks.loadObjectMetadataFacet.mock.calls.map((call) => call[1]).sort()).toEqual(["columns", "indexes", "comment", "owner"].sort());
+    expect(mocks.loadObjectMetadataFacet.mock.calls.map((call) => call[1]).sort()).toEqual(["columns", "indexes", "comment"].sort());
 
     const primaryKey = columnCheckbox(root, "structureEditor.primaryKey");
     primaryKey.checked = false;
@@ -1023,9 +993,7 @@ describe("TableStructureEditor metadata loading", () => {
             ]
           : facet === "comment"
             ? ""
-            : facet === "owner"
-              ? "app_user"
-              : [],
+            : [],
       cacheStatus: "remote",
     }));
 
@@ -1044,8 +1012,8 @@ describe("TableStructureEditor metadata loading", () => {
     mountedApps.push(app);
     app.mount(root);
 
-    await vi.waitFor(() => expect(mocks.loadObjectMetadataFacet).toHaveBeenCalledTimes(2));
-    expect(mocks.loadObjectMetadataFacet.mock.calls.map((call) => call[1]).sort()).toEqual(["indexes", "owner"]);
+    await vi.waitFor(() => expect(mocks.loadObjectMetadataFacet).toHaveBeenCalledTimes(1));
+    expect(mocks.loadObjectMetadataFacet.mock.calls.map((call) => call[1]).sort()).toEqual(["indexes"]);
 
     const primaryKey = columnCheckbox(root, "structureEditor.primaryKey");
     primaryKey.checked = false;
@@ -1080,9 +1048,7 @@ describe("TableStructureEditor metadata loading", () => {
             ]
           : facet === "comment"
             ? ""
-            : facet === "owner"
-              ? "app_user"
-              : [],
+            : [],
       cacheStatus: "remote",
     }));
 
@@ -1105,8 +1071,8 @@ describe("TableStructureEditor metadata loading", () => {
     await Promise.resolve();
     await nextTick();
 
-    await vi.waitFor(() => expect(mocks.loadObjectMetadataFacet).toHaveBeenCalledTimes(2));
-    expect(mocks.loadObjectMetadataFacet.mock.calls.map((call) => call[1]).sort()).toEqual(["indexes", "owner"]);
+    await vi.waitFor(() => expect(mocks.loadObjectMetadataFacet).toHaveBeenCalledTimes(1));
+    expect(mocks.loadObjectMetadataFacet.mock.calls.map((call) => call[1]).sort()).toEqual(["indexes"]);
     await vi.waitFor(() => expect(root.querySelector('[data-index-row-index="0"]')).not.toBeNull());
   });
 });

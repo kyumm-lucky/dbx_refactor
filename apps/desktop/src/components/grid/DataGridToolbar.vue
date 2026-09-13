@@ -58,6 +58,9 @@ const visibleActionOrder = computed<DataGridToolbarActionKey[]>(() => {
 });
 
 function actionIsCompact(action: DataGridToolbarActionKey): boolean {
+  // 行级操作默认只显示图标 + hover 提示，只有「提交」保留文字与待提交计数：
+  // 工具栏宽度因此稳定，不再随窗口宽度逐级收起文字，视觉上只有一组图标和一个主按钮。
+  if (action !== "save") return true;
   return isDataGridToolbarActionCompact(action, visibleActionOrder.value, props.compactActionCount ?? 0, props.compact === true);
 }
 
@@ -87,7 +90,7 @@ function actionLabelClass(action: DataGridToolbarActionKey) {
 
     <slot name="navigation" :compact="actionIsCompact('navigation')" />
 
-    <div v-if="isDataGridToolbarCapabilityVisible(copyData)" class="flex h-5 shrink-0 items-stretch overflow-hidden rounded-md border border-border">
+    <div v-if="isDataGridToolbarCapabilityVisible(copyData)" class="flex h-6 shrink-0 items-stretch overflow-hidden rounded-md">
       <Tooltip>
         <TooltipTrigger as-child>
           <Button data-toolbar-action="copyData" variant="ghost" size="sm" :class="[...actionButtonClass('copyData'), 'rounded-none border-0']" :disabled="copyData?.disabled" @click="void triggerDataGridToolbarCopy(copyData)">
@@ -99,7 +102,7 @@ function actionLabelClass(action: DataGridToolbarActionKey) {
       </Tooltip>
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
-          <Button variant="ghost" size="icon" class="h-5 w-5 rounded-none border-0 border-l border-border" :aria-label="copyData?.label">
+          <Button variant="ghost" size="icon" class="h-6 w-4 rounded-none border-0" :aria-label="copyData?.label">
             <ChevronDown class="h-3 w-3" />
           </Button>
         </DropdownMenuTrigger>
@@ -115,7 +118,7 @@ function actionLabelClass(action: DataGridToolbarActionKey) {
       </DropdownMenu>
     </div>
 
-    <div v-if="isDataGridToolbarCapabilityVisible(addRow)" class="flex h-5 shrink-0 items-stretch overflow-hidden rounded-md border border-border">
+    <div v-if="isDataGridToolbarCapabilityVisible(addRow)" class="flex h-6 shrink-0 items-stretch overflow-hidden rounded-md">
       <Tooltip>
         <TooltipTrigger as-child>
           <Button data-toolbar-action="addRow" variant="ghost" size="sm" :class="[...actionButtonClass('addRow'), 'rounded-none border-0']" :disabled="isDataGridToolbarCapabilityDisabled(addRow)" @click="void triggerDataGridToolbarAction(addRow)">
@@ -127,7 +130,7 @@ function actionLabelClass(action: DataGridToolbarActionKey) {
       </Tooltip>
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
-          <Button variant="ghost" size="icon" class="h-5 w-5 rounded-none border-0 border-l border-border" :aria-label="addRow?.label" :disabled="isDataGridToolbarCapabilityDisabled(addRow)">
+          <Button variant="ghost" size="icon" class="h-6 w-4 rounded-none border-0" :aria-label="addRow?.label" :disabled="isDataGridToolbarCapabilityDisabled(addRow)">
             <ChevronDown class="h-3 w-3" />
           </Button>
         </DropdownMenuTrigger>
@@ -146,7 +149,7 @@ function actionLabelClass(action: DataGridToolbarActionKey) {
 
     <Tooltip v-if="isDataGridToolbarCapabilityVisible(deleteRow)">
       <TooltipTrigger as-child>
-        <Button data-toolbar-action="deleteRow" variant="ghost" size="sm" :class="actionButtonClass('deleteRow')" :disabled="isDataGridToolbarCapabilityDisabled(deleteRow)" @click="void triggerDataGridToolbarAction(deleteRow)">
+        <Button data-toolbar-action="deleteRow" variant="ghost" size="sm" :class="[...actionButtonClass('deleteRow'), 'text-destructive hover:bg-destructive/10 hover:text-destructive']" :disabled="isDataGridToolbarCapabilityDisabled(deleteRow)" @click="void triggerDataGridToolbarAction(deleteRow)">
           <Trash2 class="data-grid-topbar-action-icon h-3 w-3" />
           <span class="data-grid-topbar-action-label" :class="actionLabelClass('deleteRow')">{{ deleteRow?.label }}</span>
         </Button>
@@ -233,6 +236,8 @@ function actionLabelClass(action: DataGridToolbarActionKey) {
       <TooltipContent side="bottom" class="max-w-sm">{{ preview?.tooltip ?? preview?.label }}</TooltipContent>
     </Tooltip>
 
+    <span v-if="isDataGridToolbarCapabilityVisible(save)" class="mx-0.5 h-4 w-px shrink-0 bg-border" aria-hidden="true" />
+
     <Tooltip v-if="isDataGridToolbarCapabilityVisible(save)">
       <TooltipTrigger as-child>
         <Button data-toolbar-action="save" variant="default" size="sm" :class="[...actionButtonClass('save'), 'data-grid-topbar-action-button--commit relative ml-2']" :disabled="isDataGridToolbarCapabilityDisabled(save)" @click="void triggerDataGridToolbarAction(save)">
@@ -258,7 +263,7 @@ function actionLabelClass(action: DataGridToolbarActionKey) {
 
     <Tooltip v-if="isDataGridToolbarCapabilityVisible(rollback)">
       <TooltipTrigger as-child>
-        <Button data-toolbar-action="rollback" variant="outline" size="sm" :class="actionButtonClass('rollback')" :disabled="isDataGridToolbarCapabilityDisabled(rollback)" @click="void triggerDataGridToolbarAction(rollback)">
+        <Button data-toolbar-action="rollback" variant="ghost" size="sm" :class="actionButtonClass('rollback')" :disabled="isDataGridToolbarCapabilityDisabled(rollback)" @click="void triggerDataGridToolbarAction(rollback)">
           <RotateCcw class="data-grid-topbar-action-icon h-3 w-3" />
           <span class="data-grid-topbar-action-label" :class="actionLabelClass('rollback')">{{ rollback?.label }}</span>
         </Button>
@@ -271,6 +276,15 @@ function actionLabelClass(action: DataGridToolbarActionKey) {
 </template>
 
 <style>
+/* 图标化后统一 24px 方形热区；「提交」保留文字与计数徽标，不参与这条规则。 */
+.data-grid-topbar-shell [data-toolbar-action]:not([data-toolbar-action="save"]) {
+  width: 1.5rem;
+  min-width: 1.5rem;
+  max-width: 1.5rem;
+  height: 1.5rem;
+  padding-inline: 0;
+}
+
 .data-grid-topbar-action-button {
   align-items: center;
   justify-content: center;

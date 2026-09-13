@@ -34,7 +34,6 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Trash2,
-  UserRound,
   X,
 } from "@lucide/vue";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -81,7 +80,6 @@ import { getConcurrentIndexAvailability, concurrentIndexNamesInStatements, norma
 import { orderedColumnIndexes, uniqueDataGridColumnOrderKeys } from "@/lib/dataGrid/dataGridColumnOrder";
 import { loadTableDataGridColumnOrder, notifyTableDataGridColumnOrderChanged, removeTableDataGridColumnOrder, saveTableDataGridColumnOrder, tableDataGridColumnOrderScopeKey } from "@/lib/dataGrid/dataGridColumnLayoutStorage";
 import { codeMirrorSqlDialectForConnection, connectionObjectTreeQuerySchema, tableStructureDatabaseTypeForConnection } from "@/lib/database/jdbcDialect";
-import { postgresListRolesSql, usersFromPostgresRolesResult } from "@/lib/database/databaseUserAdmin";
 import type { ColumnInfo, ConstraintInfo, TableInfo, TableInfoTab, TableStructureEditorDraft, TableStructureEditorTarget, TableStructureEditorViewport } from "@/types/database";
 import {
   applyManticoreDdlColumnExtras,
@@ -1196,14 +1194,6 @@ const originalMysqlTableEngine = ref("");
 const mysqlTableEngineOptions = ref<string[]>([]);
 const mysqlTableEngineLoading = ref(false);
 const mysqlTableEngineLoadError = ref("");
-const tableOwner = ref("");
-const originalTableOwner = ref("");
-const tableOwnerLoading = ref(false);
-const tableOwnerLoadError = ref("");
-const tableOwnerRoles = ref<string[]>([]);
-const tableOwnerRolesLoading = ref(false);
-const tableOwnerRolesLoadError = ref("");
-const supportsTableOwner = computed(() => !isCreateMode.value && databaseType.value === "postgres");
 const canEditMysqlAutoIncrement = computed(() => canEditMysqlAutoIncrementCounter(connection.value, isCreateMode.value, columns.value));
 const canBuildMysqlAutoIncrement = computed(() => canEditMysqlAutoIncrement.value && !mysqlAutoIncrementLoading.value && !mysqlAutoIncrementLoadError.value && originalMysqlAutoIncrementValue.value !== undefined);
 const supportsMysqlEngine = computed(() => supportsMysqlTableEngine(connection.value));
@@ -1225,11 +1215,6 @@ function onMysqlAutoIncrementInput(event: Event) {
   }
   input.value = mysqlAutoIncrementValue.value ?? "";
 }
-const tableOwnerOptions = computed(() => {
-  const owner = tableOwner.value;
-  if (!owner || tableOwnerRoles.value.includes(owner)) return tableOwnerRoles.value;
-  return [owner, ...tableOwnerRoles.value];
-});
 const targetLabel = computed(() => buildStructureTargetLabel(connection.value?.name, props.database, props.schema, isCreateMode.value ? undefined : props.tableName));
 
 function isManticoreTextColumn(column: EditableStructureColumn): boolean {
@@ -1247,8 +1232,6 @@ let sqlPreviewRequestId = 0;
 let structureLoadRequestId = 0;
 let tableCommentLoadRequestId = 0;
 let tableCommentLoadPromise: Promise<void> | null = null;
-let tableOwnerLoadRequestId = 0;
-let tableOwnerRolesLoadRequestId = 0;
 let mysqlAutoIncrementLoadRequestId = 0;
 let mysqlTableEngineLoadRequestId = 0;
 let dataTypeOptionsRequestId = 0;
@@ -1450,8 +1433,6 @@ function createCurrentDraft(initialized = true): TableStructureEditorDraft {
     originalMysqlAutoIncrementValue: originalMysqlAutoIncrementValue.value,
     mysqlTableEngine: mysqlTableEngine.value,
     originalMysqlTableEngine: originalMysqlTableEngine.value,
-    tableOwner: tableOwner.value,
-    originalTableOwner: originalTableOwner.value,
     columns: cloneDraftValue(columns.value),
     indexes: cloneDraftValue(indexes.value),
     foreignKeys: cloneDraftValue(foreignKeys.value),
@@ -1493,8 +1474,6 @@ function restoreDraft(draft: TableStructureEditorDraft) {
   originalMysqlAutoIncrementValue.value = draft.originalMysqlAutoIncrementValue;
   mysqlTableEngine.value = draft.mysqlTableEngine || "";
   originalMysqlTableEngine.value = draft.originalMysqlTableEngine || "";
-  tableOwner.value = draft.tableOwner || "";
-  originalTableOwner.value = draft.originalTableOwner || "";
   columns.value = cloneDraftValue(draft.columns || []);
   // Existing-index edits never support Concurrent (the checkbox is disabled and
   // the core builder rejects the request), so a stale `concurrently: true`
@@ -1580,14 +1559,7 @@ function hasPendingStructureChanges(): boolean {
   }
   const scope = captureStructureRefreshScope();
   return (
-    scope.columns ||
-    scope.indexes ||
-    scope.foreignKeys ||
-    scope.triggers ||
-    scope.tableComment ||
-    mysqlTableEngine.value.toLowerCase() !== originalMysqlTableEngine.value.toLowerCase() ||
-    (canBuildMysqlAutoIncrement.value && mysqlAutoIncrementValue.value !== originalMysqlAutoIncrementValue.value) ||
-    (supportsTableOwner.value && tableOwner.value.trim() !== originalTableOwner.value.trim())
+    scope.columns || scope.indexes || scope.foreignKeys || scope.triggers || scope.tableComment || mysqlTableEngine.value.toLowerCase() !== originalMysqlTableEngine.value.toLowerCase() || (canBuildMysqlAutoIncrement.value && mysqlAutoIncrementValue.value !== originalMysqlAutoIncrementValue.value)
   );
 }
 
@@ -1793,17 +1765,8 @@ async function refreshSqlPreview() {
   sqlPreviewLoading.value = true;
   const options = structureChangeOptions();
   try {
-    const [result, ownerResult, mysqlAutoIncrementStatement] = await Promise.all([
+    const [result, mysqlAutoIncrementStatement] = await Promise.all([
       isCreateMode.value ? api.buildCreateTableSql(options) : hasSqliteTypeChange.value ? api.previewSqliteTableStructureChange(props.connectionId, props.database, options) : api.buildTableStructureChangeSql(options),
-      supportsTableOwner.value
-        ? api.buildTableOwnerChangeSql({
-            databaseType: databaseType.value,
-            schema: metadataSchema.value,
-            tableName: props.tableName || "",
-            owner: tableOwner.value,
-            originalOwner: originalTableOwner.value,
-          })
-        : Promise.resolve({ statements: [], warnings: [] }),
       buildMysqlAutoIncrementCounterStatement({
         enabled: canBuildMysqlAutoIncrement.value,
         originalValue: originalMysqlAutoIncrementValue.value,
@@ -1816,10 +1779,10 @@ async function refreshSqlPreview() {
       }),
     ]);
     if (requestId !== sqlPreviewRequestId) return;
-    const statements = [...result.statements, ...ownerResult.statements, ...(mysqlAutoIncrementStatement ? [mysqlAutoIncrementStatement] : [])];
+    const statements = [...result.statements, ...(mysqlAutoIncrementStatement ? [mysqlAutoIncrementStatement] : [])];
     // SQLite type-change apply regenerates this revision-checked plan, so its preview must stay byte-for-byte aligned.
     pendingStatements.value = settingsStore.editorSettings.generateSqlQuoteIdentifiers || hasSqliteTypeChange.value ? statements : statements.map((statement) => omitDdlIdentifierQuotes(statement, sqlFormatDialectForDbType(databaseType.value)));
-    warnings.value = [...result.warnings, ...ownerResult.warnings];
+    warnings.value = [...result.warnings];
     sqliteSchemaRevision.value = "schemaRevision" in result && typeof result.schemaRevision === "string" ? result.schemaRevision : undefined;
   } catch (e: any) {
     if (requestId !== sqlPreviewRequestId) return;
@@ -1901,15 +1864,6 @@ function resetState() {
   mysqlTableEngineLoading.value = false;
   mysqlTableEngineLoadError.value = "";
   mysqlTableDefaultCollation.value = "";
-  tableOwner.value = "";
-  originalTableOwner.value = "";
-  tableOwnerLoadRequestId += 1;
-  tableOwnerLoading.value = false;
-  tableOwnerLoadError.value = "";
-  tableOwnerRoles.value = [];
-  tableOwnerRolesLoadRequestId += 1;
-  tableOwnerRolesLoading.value = false;
-  tableOwnerRolesLoadError.value = "";
   columnSearchText.value = "";
   highlightedColumnId.value = null;
   indexSearchText.value = "";
@@ -1940,10 +1894,10 @@ async function reloadStructureFromDatabase() {
   ddlDraft.value = null;
   if (refreshDdl) {
     ddlFetched.value = false;
-    await Promise.all([fetchDdl(true), loadVisibleTableComment(true), loadTableOwner(true), loadTableOwnerRoles(), loadMysqlTableEngine(true)]);
+    await Promise.all([fetchDdl(true), loadVisibleTableComment(true), loadMysqlTableEngine(true)]);
     markDraftHydratedAndSync();
   } else {
-    await Promise.all([loadStructure(false, visibleTableStructureRefreshScope(activeTab.value), true, { blockSecondaryMetadata: true, forceDdl: true, forceMetadata: true }), loadTableOwner(true), loadTableOwnerRoles(), loadMysqlTableEngine(true)]);
+    await Promise.all([loadStructure(false, visibleTableStructureRefreshScope(activeTab.value), true, { blockSecondaryMetadata: true, forceDdl: true, forceMetadata: true }), loadMysqlTableEngine(true)]);
   }
 }
 
@@ -2073,59 +2027,6 @@ async function loadMysqlTableEngine(preserveDraft = false) {
     mysqlTableEngineLoadError.value = error?.message || String(error);
   } finally {
     if (requestId === mysqlTableEngineLoadRequestId) mysqlTableEngineLoading.value = false;
-  }
-}
-
-async function loadTableOwner(force = false, preserveDraft = false) {
-  const connectionId = props.connectionId;
-  const database = props.database;
-  const schema = metadataSchema.value;
-  const tableName = props.tableName;
-  const catalog = props.catalog;
-  if (!supportsTableOwner.value || !connectionId || !database || !schema || !tableName) return;
-  const requestId = ++tableOwnerLoadRequestId;
-  tableOwnerLoading.value = true;
-  tableOwnerLoadError.value = "";
-  try {
-    await store.ensureConnected(connectionId);
-    const result = await loadObjectMetadataFacet({ connectionId, database, schema, tableName, catalog }, "owner", () => api.getTableOwner(connectionId, database, schema, tableName), { force });
-    if (requestId !== tableOwnerLoadRequestId) return;
-    const owner = result.value || "";
-    originalTableOwner.value = owner;
-    if (!preserveDraft) tableOwner.value = owner;
-    loadedMetadataFacets.add("owner");
-  } catch (error: any) {
-    if (requestId !== tableOwnerLoadRequestId) return;
-    tableOwnerLoadError.value = error?.message || String(error);
-  } finally {
-    if (requestId === tableOwnerLoadRequestId) tableOwnerLoading.value = false;
-  }
-}
-
-async function loadTableOwnerRoles() {
-  const connectionId = props.connectionId;
-  const database = props.database;
-  if (!supportsTableOwner.value || !connectionId || !database) return;
-  const requestId = ++tableOwnerRolesLoadRequestId;
-  tableOwnerRolesLoading.value = true;
-  tableOwnerRolesLoadError.value = "";
-  try {
-    await store.ensureConnected(connectionId);
-    const result = await api.executeQuery(connectionId, database, postgresListRolesSql(), undefined, undefined, { maxRows: 5000 });
-    if (requestId !== tableOwnerRolesLoadRequestId) return;
-    tableOwnerRoles.value = [
-      ...new Set(
-        usersFromPostgresRolesResult(result)
-          .map((role) => role.user)
-          .filter(Boolean),
-      ),
-    ];
-  } catch (error: any) {
-    if (requestId !== tableOwnerRolesLoadRequestId) return;
-    tableOwnerRoles.value = [];
-    tableOwnerRolesLoadError.value = error?.message || String(error);
-  } finally {
-    if (requestId === tableOwnerRolesLoadRequestId) tableOwnerRolesLoading.value = false;
   }
 }
 
@@ -2310,7 +2211,7 @@ async function loadStructure(
 
 async function refreshStructureAfterSave(scope: TableStructureRefreshScope, characterLengthUnitsAfterSave: ReadonlyMap<string, string>) {
   try {
-    await Promise.all([loadStructure(true, scope, false, { blockSecondaryMetadata: true, characterLengthUnitsAfterSave }), loadTableOwner(true), loadMysqlTableEngine(false)]);
+    await Promise.all([loadStructure(true, scope, false, { blockSecondaryMetadata: true, characterLengthUnitsAfterSave }), loadMysqlTableEngine(false)]);
   } catch (e) {
     console.warn("[DBX][structure-editor:post-save-refresh-failed]", e);
   } finally {
@@ -3899,8 +3800,6 @@ onMounted(() => {
   }
   structureEditorReady = true;
   observeStructureHorizontalScroller();
-  void loadTableOwner(false, props.draft?.tableOwner !== undefined);
-  void loadTableOwnerRoles();
   void loadMysqlTableEngine(props.draft?.mysqlTableEngine !== undefined);
   if (props.draft?.initialized) {
     void hydrateRestoredDraftFromDatabase().then(() => {
@@ -3921,8 +3820,6 @@ onActivated(() => {
   registerStructureEditorShortcuts();
   observeStructureHorizontalScroller();
   void loadDynamicDataTypeOptions();
-  if (supportsTableOwner.value && !loadedMetadataFacets.has("owner")) void loadTableOwner(false, props.draft?.tableOwner !== undefined);
-  if (supportsTableOwner.value && !tableOwnerRolesLoading.value && tableOwnerRoles.value.length === 0 && !tableOwnerRolesLoadError.value) void loadTableOwnerRoles();
   if (supportsMysqlEngine.value && !mysqlTableEngineLoading.value && mysqlTableEngineOptions.value.length === 0 && !mysqlTableEngineLoadError.value) {
     void loadMysqlTableEngine(props.draft?.mysqlTableEngine !== undefined);
   }
@@ -4075,7 +3972,6 @@ watch(
     mysqlTableEngineLoading,
     mysqlTableEngineLoadError,
     mysqlTableDefaultCollation,
-    tableOwner,
     ddlDraft,
     columns,
     indexes,
@@ -4239,40 +4135,6 @@ watch(
           <AlertTriangle :class="[structureIconClass, 'shrink-0 text-destructive']" />
         </TooltipTrigger>
         <TooltipContent>{{ t("structureEditor.mysqlTableEngineLoadFailed", { message: mysqlTableEngineLoadError }) }}</TooltipContent>
-      </Tooltip>
-    </div>
-
-    <div v-if="supportsTableOwner" class="flex shrink-0 items-center gap-2">
-      <label class="flex shrink-0 items-center gap-1 font-medium text-muted-foreground">
-        <UserRound :class="structureIconClass" />
-        {{ t("structureEditor.owner") }}
-      </label>
-      <SearchableSelect
-        v-model="tableOwner"
-        :options="tableOwnerOptions"
-        :placeholder="t('structureEditor.ownerPlaceholder')"
-        :search-placeholder="t('structureEditor.ownerSearchPlaceholder')"
-        :empty-text="t('structureEditor.ownerRolesEmpty')"
-        :loading-text="t('common.loading')"
-        :loading="tableOwnerRolesLoading"
-        :allow-custom="true"
-        :trim-custom="false"
-        :disabled="tableOwnerLoading || !!tableOwnerLoadError"
-        :trigger-class="[structureMonoControlClass, 'w-[220px] max-w-[220px]']"
-        data-owner-select
-      />
-      <Loader2 v-if="tableOwnerLoading" :class="[structureIconClass, 'animate-spin text-muted-foreground']" />
-      <Tooltip v-else-if="tableOwnerLoadError">
-        <TooltipTrigger as-child>
-          <AlertTriangle :class="[structureIconClass, 'shrink-0 text-destructive']" />
-        </TooltipTrigger>
-        <TooltipContent>{{ t("structureEditor.ownerLoadFailed", { message: tableOwnerLoadError }) }}</TooltipContent>
-      </Tooltip>
-      <Tooltip v-else-if="tableOwnerRolesLoadError">
-        <TooltipTrigger as-child>
-          <AlertTriangle :class="[structureIconClass, 'shrink-0 text-amber-500']" />
-        </TooltipTrigger>
-        <TooltipContent>{{ t("structureEditor.ownerRolesLoadFailed", { message: tableOwnerRolesLoadError }) }}</TooltipContent>
       </Tooltip>
     </div>
 

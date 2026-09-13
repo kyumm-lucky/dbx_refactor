@@ -107,14 +107,15 @@ watch([() => props.filterBuilderOpen, () => props.rules.map((rule) => `${rule.id
 </script>
 
 <template>
-  <div class="flex flex-1 min-w-0 items-center gap-1 px-2 py-0.5 border-r relative" :class="{ 'border-l': leadingBorder }">
+  <div data-grid-where-pill class="relative flex flex-1 min-w-0 items-center gap-1 rounded-md border border-border/70 bg-background px-1.5 py-0.5" :class="{ 'border-l': leadingBorder }">
     <template v-if="filterEditorView === 'quick'">
       <Popover :open="filterBuilderOpen" @update:open="emit('update:filterBuilderOpen', $event)">
         <PopoverTrigger as-child>
           <button
             type="button"
-            class="relative flex h-5 w-5 -translate-x-1 shrink-0 items-center justify-center rounded border text-[11px] font-medium transition-colors"
-            :class="filterButtonActive ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15' : 'border-border/70 text-muted-foreground hover:bg-accent hover:text-foreground'"
+            data-grid-filter-button
+            class="relative flex h-5 w-5 shrink-0 items-center justify-center rounded text-[11px] font-medium transition-colors"
+            :class="filterButtonActive ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-accent hover:text-foreground'"
             :disabled="!canUseWhereSearch"
             :aria-label="t('grid.filter')"
             @click="handleFilterButtonClick"
@@ -177,8 +178,9 @@ watch([() => props.filterBuilderOpen, () => props.rules.map((rule) => `${rule.id
     <button
       v-else
       type="button"
-      class="relative flex h-5 w-5 -translate-x-1 shrink-0 items-center justify-center rounded border text-[11px] font-medium transition-colors"
-      :class="filterButtonActive ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15' : 'border-border/70 text-muted-foreground hover:bg-accent hover:text-foreground'"
+      data-grid-filter-button
+      class="relative flex h-5 w-5 shrink-0 items-center justify-center rounded text-[11px] font-medium transition-colors"
+      :class="filterButtonActive ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-accent hover:text-foreground'"
       :disabled="!canUseWhereSearch"
       :aria-label="t('grid.filter')"
       :aria-expanded="filterBuilderOpen"

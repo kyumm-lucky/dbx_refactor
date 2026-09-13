@@ -6798,8 +6798,6 @@ export default withEnglishFallback({
     dataGridQuickEntryDescription: "Etkinleştirildiğinde, bir hücreyi düzenlemek ya da alttaki boş satırı doldurmak, odak ayrıldığı anda veritabanına kaydeder. Sık veri girişi için kullanışlıdır, ancak istenmeyen yazmalara yol açabilir.",
     dataGridAutoTransposeSingleRow: "Tek satırlık sorgu sonuçlarını otomatik devrik göster",
     dataGridAutoTransposeSingleRowDescription: "Etkinleştirildiğinde, tam olarak bir satır ve birden çok sütun içeren SQL sorgu sonuçları otomatik olarak devrik görünüme geçer.",
-    dataGridCellDetailButtonVisible: "Hücre ayrıntısı düğmesini göster",
-    dataGridCellDetailButtonVisibleDescription: "Bir hücrenin üzerine gelindiğinde hücre ayrıntısı düğmesini göster.",
     dataGridCrosshairHighlight: "Artı imleç satır ve sütun vurgusu",
     dataGridCrosshairHighlightDescription: "Etkinleştirildiğinde etkin hücrenin tüm satırı ve sütunu hafifçe vurgulanır (Excel gibi). Odaklanan hücre kendi seçili biçemini korur.",
     infiniteScroll: "Sonsuz kaydırmayla yükleme",

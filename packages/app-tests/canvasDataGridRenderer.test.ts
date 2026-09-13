@@ -39,15 +39,15 @@ test("canvas text layout reserves hover actions only for right-aligned cells", (
     textAnchorX: 112,
     maxWidth: 56,
   });
-  assert.equal(canvasDataGridActionReservedWidth(false), 28);
-  assert.equal(canvasDataGridActionReservedWidth(true), 50);
+  assert.equal(canvasDataGridActionReservedWidth(false), 0);
+  assert.equal(canvasDataGridActionReservedWidth(true), 28);
 });
 
 test("DataGrid forwards hover action reservation only for right-aligned canvas cells", () => {
   const source = readFileSync("apps/desktop/src/components/grid/DataGrid.vue", "utf8");
 
   assert.match(source, /columnAligns\.value\[cell\.visibleColIdx\] !== "right"/);
-  assert.match(source, /reservedWidth: canvasDataGridActionReservedWidth\(cell\.canQuickDownload, !!cell\.foreignKey, cellDetailButtonEnabled\.value, !!cell\.externalUrl\)/);
+  assert.match(source, /reservedWidth: canvasDataGridActionReservedWidth\(cell\.canQuickDownload, !!cell\.foreignKey, !!cell\.externalUrl\)/);
   assert.match(source, /rightAlignedActionCell: canvasRightAlignedActionCell\.value/);
 });
 

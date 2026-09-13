@@ -213,7 +213,6 @@ test("tab context menu forwards the exact tab to centered sidebar locate without
   const connectionTree = readFileSync("apps/desktop/src/components/sidebar/ConnectionTree.vue", "utf8");
   const appLocateBody = functionBody(app, "locateTabInSidebar");
   const sidebarLocateBody = functionBody(appSidebar, "locateTabInSidebar");
-  const activeLocateBody = functionBody(connectionTree, "locateActiveTabInSidebar");
   const locateBody = functionBody(connectionTree, "locateTabInSidebar");
 
   assert.match(app, /@locate-tab="locateTabInSidebar"/);
@@ -223,7 +222,6 @@ test("tab context menu forwards the exact tab to centered sidebar locate without
   assert.doesNotMatch(appLocateBody, /activateQueryTab|activeTabId/);
   assert.match(sidebarLocateBody, /return connectionTreeRef\.value\?\.locateTabInSidebar\(tab\)/);
   assert.match(appSidebar, /defineExpose\(\{ focusSearch, locateTabInSidebar \}\)/);
-  assert.match(activeLocateBody, /await locateTabInSidebar\(activeTab\.value, "smart"\)/);
   assert.match(locateBody, /await scrollToSidebarNode\(match\.id, \{ align \}\)/);
   assert.match(connectionTree, /defineExpose\(\{ focusSearch, createNewGroup, collapseAllTreeNodes, locateTabInSidebar \}\)/);
   assert.match(connectionTree, /@request-connection-rename="startRenamingConnectionNode"/);

@@ -1,9 +1,8 @@
 // @vitest-environment happy-dom
 
 import { createApp, defineComponent, h, nextTick, reactive, type App, type Component } from "vue";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import SidebarListOptionsIcon from "../SidebarListOptionsIcon.vue";
-import SidebarLocateButton from "../SidebarLocateButton.vue";
 import SidebarRegexToggleButton from "../SidebarRegexToggleButton.vue";
 
 const mountedApps: App[] = [];
@@ -24,30 +23,6 @@ afterEach(() => {
 });
 
 describe("sidebar toolbar animations", () => {
-  it("restarts the locate pulse on every click without changing the button size", async () => {
-    const locate = vi.fn();
-    const container = await mount(
-      defineComponent({
-        setup: () => () => h(SidebarLocateButton, { label: "Locate", onLocate: locate }),
-      }),
-    );
-    const button = container.querySelector("[data-sidebar-locate-button]");
-    if (!(button instanceof HTMLButtonElement)) throw new Error("Locate button was not rendered");
-
-    expect(button.className).toContain("h-6 w-6");
-    expect(button.querySelector("[data-sidebar-locate-pulse]")).toBeNull();
-    button.click();
-    await nextTick();
-    const firstPulse = button.querySelector("[data-sidebar-locate-pulse]");
-    expect(firstPulse).not.toBeNull();
-    expect(locate).toHaveBeenCalledTimes(1);
-
-    button.click();
-    await nextTick();
-    expect(button.querySelector("[data-sidebar-locate-pulse]")).not.toBe(firstPulse);
-    expect(locate).toHaveBeenCalledTimes(2);
-  });
-
   it("morphs the list options icon between unfiltered and filtered states", async () => {
     const state = reactive({ filtered: false, open: false });
     const container = await mount(

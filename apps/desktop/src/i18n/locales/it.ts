@@ -6488,8 +6488,6 @@ export default withEnglishFallback({
     dataGridQuickEntryDescription: "Se attivo, la modifica di una cella o la compilazione della riga vuota in fondo viene salvata nel database appena il focus esce. Utile per inserimenti frequenti, ma può causare scritture accidentali.",
     dataGridAutoTransposeSingleRow: "Trasponi automaticamente i risultati delle query a riga singola",
     dataGridAutoTransposeSingleRowDescription: "Quando è attivata, i risultati delle query SQL con esattamente una riga e più colonne passano automaticamente alla vista trasposta.",
-    dataGridCellDetailButtonVisible: "Mostra il pulsante dei dettagli della cella",
-    dataGridCellDetailButtonVisibleDescription: "Mostra il pulsante dei dettagli della cella al passaggio del mouse su una cella.",
     dataGridCrosshairHighlight: "Evidenzia riga e colonna a croce",
     dataGridCrosshairHighlightDescription: "Se attivato, evidenzia leggermente l'intera riga e la colonna della cella attiva (come Excel). La cella focalizzata mantiene il suo stile selezionato.",
     infiniteScroll: "Caricamento a scorrimento infinito",

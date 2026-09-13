@@ -14,7 +14,7 @@ function functionSource(name: string, nextName: string): string {
 
 describe("DataGrid infinite-scroll sorting", () => {
   it("clears completed and pending infinite-scroll state before database sorting", () => {
-    const sortSource = functionSource("applyColumnSort", "selectHeaderSort");
+    const sortSource = functionSource("applyColumnSort", "toggleHeaderSort");
     const resetSource = functionSource("resetInfiniteScrollState", "onToolbarRefresh");
 
     expect(sortSource).toContain('if (mode === "database" && infiniteScrollEnabled.value) {\n    resetInfiniteScrollState();');
@@ -27,7 +27,7 @@ describe("DataGrid infinite-scroll sorting", () => {
   });
 
   it("preserves the existing lightweight reset for local sorting", () => {
-    const sortSource = functionSource("applyColumnSort", "selectHeaderSort");
+    const sortSource = functionSource("applyColumnSort", "toggleHeaderSort");
 
     expect(sortSource).toContain("} else {\n    currentPage.value = 1;\n    resetGridVerticalScroll(true);\n  }");
     expect(sortSource.match(/emit\("sort"/g)).toHaveLength(1);

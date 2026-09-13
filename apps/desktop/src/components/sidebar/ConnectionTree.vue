@@ -60,7 +60,6 @@ import { runSidebarSearchTasks, type SidebarSearchTask } from "./sidebarSearchTa
 import TreeItem from "./TreeItem.vue";
 import ActiveConnectionFilterButton from "./ActiveConnectionFilterButton.vue";
 import SidebarListOptionsIcon from "./SidebarListOptionsIcon.vue";
-import SidebarLocateButton from "./SidebarLocateButton.vue";
 import SidebarRegexToggleButton from "./SidebarRegexToggleButton.vue";
 import SidebarTreeRuntimeHost from "./SidebarTreeRuntimeHost.vue";
 import SidebarTreeItemDialogs from "./SidebarTreeItemDialogs.vue";
@@ -1557,10 +1556,6 @@ async function startRenamingConnectionNode(connectionId: string) {
   store.selectedTreeNodeId = connectionId;
 }
 
-async function locateActiveTabInSidebar() {
-  await locateTabInSidebar(activeTab.value, "smart");
-}
-
 async function locateTabInSidebar(tab: QueryTab | undefined | null, align: SidebarNodeScrollAlign = "center") {
   if (!tab) return;
 
@@ -2532,8 +2527,8 @@ defineExpose({ focusSearch, createNewGroup, collapseAllTreeNodes, locateTabInSid
             autocapitalize="off"
             autocorrect="off"
             spellcheck="false"
-            class="w-full h-[26px] pl-7 pr-[4.75rem] text-xs rounded-[7px] border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-            :class="regexMode && compileSearchRegex(searchQuery).invalid ? 'border-destructive focus:ring-destructive' : 'border-border'"
+            class="w-full h-[26px] pl-7 pr-[4.75rem] text-xs rounded-md bg-muted/60 focus:outline-none focus:ring-1 focus:ring-ring"
+            :class="regexMode && compileSearchRegex(searchQuery).invalid ? 'ring-1 ring-destructive focus:ring-destructive' : ''"
             :aria-invalid="regexMode && compileSearchRegex(searchQuery).invalid ? 'true' : 'false'"
             :placeholder="t('grid.search')"
             @keydown="onSearchKeydown"
@@ -2550,9 +2545,6 @@ defineExpose({ focusSearch, createNewGroup, collapseAllTreeNodes, locateTabInSid
             </LightTooltip>
           </div>
         </div>
-        <LightTooltip :text="t('sidebar.locateActiveTab')" side="top" :delay="300" nowrap>
-          <SidebarLocateButton :label="t('sidebar.locateActiveTab')" @locate="locateActiveTabInSidebar" />
-        </LightTooltip>
         <LightTooltip :text="sidebarListOptionsLabel" side="top" :delay="300" nowrap>
           <span class="inline-flex">
             <LightDropdown
@@ -2560,7 +2552,7 @@ defineExpose({ focusSearch, createNewGroup, collapseAllTreeNodes, locateTabInSid
               :items="sidebarListOptionItems"
               :selected-values="selectedSidebarListOptions"
               :aria-label="sidebarListOptionsLabel"
-              :trigger-class="['shrink-0 h-6 w-6 flex items-center justify-center rounded border border-border hover:bg-accent', hasCustomSidebarListOptions ? 'text-primary bg-primary/10 border-primary/30' : 'text-muted-foreground'].join(' ')"
+              :trigger-class="['shrink-0 h-6 w-6 flex items-center justify-center rounded hover:bg-muted', hasCustomSidebarListOptions ? 'text-primary bg-primary/10' : 'text-muted-foreground'].join(' ')"
               item-icon-class="h-3.5 w-3.5"
               content-class="w-max min-w-0"
               selected-item-class="bg-primary/10 text-primary"

@@ -26,7 +26,6 @@ import {
   X,
   Undo2,
   WrapText,
-  Info,
   Rows3,
   RotateCcw,
   Pencil,
@@ -53,21 +52,17 @@ import {
 } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import QueryLoadingState from "@/components/common/QueryLoadingState.vue";
 import CustomContextMenu, { type ContextMenuItem } from "@/components/ui/CustomContextMenu.vue";
-import LightDropdownMenu from "@/components/ui/LightDropdownMenu.vue";
+import LightDropdownMenu, { type LightDropdownMenuItem } from "@/components/ui/LightDropdownMenu.vue";
 import LightTooltip from "@/components/ui/LightTooltip.vue";
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import ErrorBanner from "@/components/ui/ErrorBanner.vue";
 import DangerConfirmDialog from "@/components/editor/DangerConfirmDialog.vue";
-import DataGridValueTransform from "@/components/grid/DataGridValueTransform.vue";
-import DataGridCellDetailPanel from "@/components/grid/DataGridCellDetailPanel.vue";
 import DataGridPagination from "@/components/grid/DataGridPagination.vue";
 import DataGridSearchBar from "@/components/grid/DataGridSearchBar.vue";
 import DataGridToolbar from "@/components/grid/DataGridToolbar.vue";
@@ -79,8 +74,6 @@ import DataGridFilterWorkbench from "@/components/grid/DataGridFilterWorkbench.v
 import DataGridTextFilterWorkbench from "@/components/grid/DataGridTextFilterWorkbench.vue";
 import DataGridTableInfoPanels from "@/components/grid/DataGridTableInfoPanels.vue";
 import DataGridColumnFilterPopover from "@/components/grid/DataGridColumnFilterPopover.vue";
-import DataGridCellDetailHeader from "@/components/grid/DataGridCellDetailHeader.vue";
-import DataGridCellDetailHexViewer from "@/components/grid/DataGridCellDetailHexViewer.vue";
 import TemporalCellEditor from "@/components/grid/TemporalCellEditor.vue";
 import EnumCellEditor from "@/components/grid/EnumCellEditor.vue";
 import DataGridReadonlyTextSelection from "@/components/grid/DataGridReadonlyTextSelection.vue";
@@ -157,12 +150,10 @@ import {
   isBlobCellColumnType,
   isBinaryCellColumnType,
   openBinaryCellFile,
-  parseBinaryCellBytes,
   retainBinaryCellDownloadMenuForHover,
   type BinaryCellDownloadMode,
 } from "@/lib/dataGrid/binaryCellDownload";
-import { buildBinaryHexViewRows } from "@/lib/dataGrid/binaryHexViewer";
-import { canFormatCellDetailJson, defaultCellDetailTab, isGeometryColumnType, linkedCellDetailTarget, looksLikeJsonContainerText, visibleCellDetailTabs, type CellDetailTab } from "@/lib/dataGrid/cellDetailPresentation";
+import { isGeometryColumnType } from "@/lib/dataGrid/cellDetailPresentation";
 import {
   buildDataGridCellDetail,
   buildDataGridColumnDetail,
@@ -230,7 +221,6 @@ import { dataGridPreviewLabelKey, dataGridSaveActionMode, dataGridSaveToolbarSta
 import { buildDataGridSavedRowRefreshPlan, dataGridSavedRowRefreshPatches } from "@/lib/dataGrid/dataGridSavedRowRefresh";
 import type { QueryEditabilityReason } from "@/lib/sql/sqlAnalysis";
 import { EDITOR_FONT_FAMILY_CSS_VAR } from "@/lib/editor/editorThemes";
-import { safeLocalStorageGet, safeLocalStorageSet } from "@/lib/backend/safeStorage";
 import {
   buildColumnValueFilterCondition,
   buildColumnValuesFilterCondition,
@@ -254,17 +244,7 @@ import { createPendingSelectionSummary, formatSelectionAggregate, formatSelectio
 import { captureDataGridSelection, restoreDataGridSelection, type CaptureDataGridSelectionOptions, type PersistedDataGridSelection } from "@/lib/dataGrid/dataGridSelectionPersistence";
 import { buildDataGridViewProbe, clampDataGridViewSelection, DATA_GRID_VIEW_SNAPSHOT_RESTORE, consumeDataGridViewSnapshot, peekDataGridViewSnapshot, saveDataGridViewSnapshot, shouldNotifyOverBudgetSelection, type DataGridViewSelectionSnapshot } from "@/lib/dataGrid/dataGridViewStateCache";
 import { dataGridFrameCoversRow, dataGridSelectionEdgeMask, dataGridSelectionFrameKindAtCell, dataGridSelectionUsesOuterFrame, resolveDataGridSelectionFrames } from "@/lib/dataGrid/dataGridSelectionFrames";
-import {
-  createDataGridCellContextMenuItems,
-  createDataGridColumnContextMenuItems,
-  createDataGridCompactColumnActionItems,
-  createDataGridContextMenuItems,
-  createDataGridFilterSubmenu,
-  createDataGridRowContextMenuItems,
-  createDataGridSortMenuItems,
-  dataGridSelectedSortMenuValue,
-  type DataGridColumnSortState,
-} from "@/lib/dataGrid/dataGridContextMenu";
+import { createDataGridCellContextMenuItems, createDataGridColumnContextMenuItems, createDataGridCompactColumnActionItems, createDataGridContextMenuItems, createDataGridFilterSubmenu, createDataGridRowContextMenuItems } from "@/lib/dataGrid/dataGridContextMenu";
 import { buildColumnForeignKeyMap, combineForeignKeyConditions, foreignKeyAssociationCells, foreignKeyNavigationTarget, foreignKeySourceColumnName, type ForeignKeyAssociation } from "@/lib/dataGrid/dataGridForeignKeyNavigation";
 import {
   collectForeignKeyDisplayValues,
@@ -310,8 +290,6 @@ import { createDataGridFilterConditionCache, useDataGridFilterBuilder, type Data
 import { cloneDataGridStructuredFilterRules, loadDataGridStructuredFilterState, saveDataGridStructuredFilterState, type DataGridCachedServerColumnFilter, type DataGridStructuredFilterCacheState } from "@/lib/dataGrid/dataGridFilterBuilderPersistence";
 import { createDataGridSearchScopeKey } from "@/lib/dataGrid/dataGridSearchStatePersistence";
 import { useSqlHighlighter } from "@/composables/useSqlHighlighter";
-import { useCellDetailEditor, type UseCellDetailEditorReturn } from "@/composables/useCellDetailEditor";
-import { useDataGridCellDetailEdit } from "@/composables/useDataGridCellDetailEdit";
 import { useTheme } from "@/composables/useTheme";
 import { useConnectionStore } from "@/stores/connectionStore";
 import { useQueryStore } from "@/stores/queryStore";
@@ -357,15 +335,12 @@ import { useDataGridLargeValues } from "@/composables/useDataGridLargeValues";
 const SqlPreviewPanel = defineAsyncComponent(() => import("@/components/editor/SqlPreviewPanel.vue"));
 const ImagePreviewDialog = defineAsyncComponent(() => import("@/components/grid/ImagePreviewDialog.vue"));
 const DataGridCellDetailDialog = defineAsyncComponent(() => import("@/components/grid/DataGridCellDetailDialog.vue"));
-const DataGridValueDiffDialog = defineAsyncComponent(() => import("@/components/grid/DataGridValueDiffDialog.vue"));
 const DataGridMongoJsonPreview = defineAsyncComponent(() => import("@/components/grid/DataGridMongoJsonPreview.vue"));
 const DataGridDetailDialogs = defineAsyncComponent(() => import("@/components/grid/DataGridDetailDialogs.vue"));
 const DataGridBulkEditDialog = defineAsyncComponent(() => import("@/components/grid/DataGridBulkEditDialog.vue"));
 const DataGridCopyColumnNamesDialog = defineAsyncComponent(() => import("@/components/grid/DataGridCopyColumnNamesDialog.vue"));
 const DataGridInsertRowsDialog = defineAsyncComponent(() => import("@/components/grid/DataGridInsertRowsDialog.vue"));
 const ExportProgressDialog = defineAsyncComponent(() => import("@/components/export/ExportProgressDialog.vue"));
-const FORMATTED_JSON_EDIT_WARNING_COUNT_STORAGE_KEY = "dbx-cell-detail-formatted-json-edit-warning-count";
-const FORMATTED_JSON_EDIT_WARNING_MAX_COUNT = 3;
 let largeValueRuntime: ReturnType<typeof useDataGridLargeValues> | undefined;
 
 function scheduleVisibleLargeValuePreviewHydration(delay = 150) {
@@ -381,7 +356,6 @@ const slots = useSlots();
 const connectionStore = useConnectionStore();
 const queryStore = useQueryStore();
 const settingsStore = useSettingsStore();
-const cellDetailButtonEnabled = computed(() => settingsStore.editorSettings.dataGridCellDetailButtonVisible);
 const dataGridCrosshairHighlight = computed(() => settingsStore.editorSettings.dataGridCrosshairHighlight);
 const tableFontSize = computed(() => settingsStore.editorSettings.tableFontSize);
 const rowNumberWidth = ref(DATA_GRID_ROW_NUM_WIDTH);
@@ -411,15 +385,6 @@ const binaryCellDownloadMenuItems = computed(() =>
     value: mode,
   })),
 );
-
-interface PreparedCopyValue {
-  key: string;
-  text: string;
-  loading: boolean;
-  ready: boolean;
-}
-
-type SortMenuValue = "local-asc" | "local-desc" | "database-asc" | "database-desc" | "clear";
 
 interface DataGridProps {
   result: QueryResult;
@@ -593,8 +558,6 @@ let preservedSelectionOnNextResult: {
   sourceResult: QueryResult;
 } | null = null;
 let preservedDetailsOnNextResult: {
-  sideCell?: PersistedDataGridSelection;
-  sideCellHasPendingDraft?: boolean;
   cellDialog?: PersistedDataGridSelection;
   rowDialog?: PersistedDataGridSelection;
   columnDialog?: PersistedDataGridSelection;
@@ -818,39 +781,16 @@ function columnIsSorted(column: string, columnIndex: number): boolean {
   return sortCol.value === column && sortColIndex.value === columnIndex;
 }
 
-function currentColumnSortState(): DataGridColumnSortState {
-  return {
-    column: sortCol.value,
-    columnIndex: sortColIndex.value,
-    direction: sortDir.value,
-    mode: sortMode.value,
-  };
-}
-
-function sortMenuItems(column: string, columnIndex: number) {
-  return createDataGridSortMenuItems({
-    column,
-    columnIndex,
-    state: currentColumnSortState(),
-    databaseSortEnabled: databaseSortSupportedForDatabase(resolvedDatabaseType.value),
-    labels: {
-      databaseAscending: t("grid.sortDatabaseAscending"),
-      databaseDescending: t("grid.sortDatabaseDescending"),
-      currentPageAscending: t("grid.sortCurrentPageAscending"),
-      currentPageDescending: t("grid.sortCurrentPageDescending"),
-      clear: t("grid.clearSort"),
+/** 右键排序控件只保留「清除排序」；升/降序由单击直接切换。 */
+function headerSortMenuItems(column: string, columnIndex: number): LightDropdownMenuItem[] {
+  return [
+    {
+      label: t("grid.clearSort"),
+      value: "clear",
+      icon: Eraser,
+      disabled: !columnIsSorted(column, columnIndex),
     },
-    icons: {
-      database: Database,
-      ascending: ArrowUp,
-      descending: ArrowDown,
-      clear: Eraser,
-    },
-  });
-}
-
-function selectedSortMenuValue(column: string, columnIndex: number): SortMenuValue | undefined {
-  return dataGridSelectedSortMenuValue(currentColumnSortState(), column, columnIndex) as SortMenuValue | undefined;
+  ];
 }
 
 function typeColorClass(t: string): string {
@@ -959,23 +899,17 @@ const insertRowsDialogOpen = ref(false);
 const insertPosition = ref<GridInsertRowPosition>("below");
 const generateIncrementDialogOpen = ref(false);
 const generateIncrementStartValue = ref("1");
-const generateIncrementTarget = ref<"selection" | "detail">("selection");
 const gridSnapshotOpen = ref(false);
 const gridSnapshotSource = ref<GridSnapshotSource | null>(null);
-const detailCell = ref<{ rowIndex: number; col: number } | null>(null);
-const hoveredDetailCell = ref<{ rowIndex: number; col: number } | null>(null);
+const hoveredActionCell = ref<{ rowIndex: number; col: number } | null>(null);
 const quickDownloadMenuCell = ref<{ rowIndex: number; col: number } | null>(null);
-const showCellDetail = ref(false);
 const showMongoJsonPreview = ref(false);
-const activeCellDetailTab = ref<CellDetailTab>(defaultCellDetailTab());
 const cellDetailDialogOpen = ref(false);
 const cellDetailDialogTarget = ref<{ rowIndex: number; col: number } | null>(null);
-const cellDetailPanelRef = ref<{ openSearch: () => boolean } | null>(null);
 const rowDetailDialogOpen = ref(false);
 const rowDetailDialogRowId = ref<number | null>(null);
 const columnDetailDialogOpen = ref(false);
 const columnDetailDialogColumnIndex = ref<number | null>(null);
-const isResizingDetail = ref(false);
 const imagePreviewOpen = ref(false);
 const imagePreviewSrc = ref("");
 const imagePreviewTitle = ref("");
@@ -1327,11 +1261,14 @@ function compactColumnActionMenuItems(columnIndex: number) {
       clearFormatter: t("grid.clearFormatter"),
       localFilter: t("grid.localFilter"),
       serverFilter: t("grid.databaseValueFilter"),
+      clearSort: t("grid.clearSort"),
     },
-    icons: { formatter: Code2, clearFormatter: Eraser, filter: Filter, database: Database },
+    icons: { formatter: Code2, clearFormatter: Eraser, filter: Filter, database: Database, clearSort: ArrowUpDown },
     formatterAvailable: !!formatterKeyForColumn(columnIndex),
     formatterActive: columnHasFormatter(columnIndex),
     serverFilterAvailable: canUseServerColumnFilter.value,
+    // 与单元格右键菜单一致：只要当前有排序列就允许清除，不受本列限制。
+    sorted: !!sortCol.value,
   });
 }
 
@@ -1339,7 +1276,7 @@ function columnFilterPanelTitle(columnName: string): string {
   return localFilterDraft.value?.mode === "server" ? t("grid.databaseValueFilterFor", { column: columnName }) : t("grid.localFilterFor", { column: columnName });
 }
 
-function selectCompactColumnAction(value: string, columnIndex: number) {
+function selectCompactColumnAction(value: string, column: string, columnIndex: number) {
   if (value === "formatter") {
     openCompactColumnFormatter(columnIndex);
   } else if (value === "clearFormatter") {
@@ -1348,6 +1285,8 @@ function selectCompactColumnAction(value: string, columnIndex: number) {
     openCompactLocalFilter(columnIndex, "local");
   } else if (value === "serverFilter") {
     openCompactLocalFilter(columnIndex, "server");
+  } else if (value === "clearSort") {
+    clearHeaderSort(column, columnIndex);
   }
 }
 
@@ -2824,7 +2763,7 @@ function onScrollerScroll(e: Event) {
 
 watch(isScrolling, (scrolling) => {
   if (scrolling) {
-    hoveredDetailCell.value = null;
+    hoveredActionCell.value = null;
     quickDownloadMenuCell.value = null;
   }
 });
@@ -3614,7 +3553,6 @@ const {
   commitEditAndMaybeAutoSave,
   commitEditFromBlur,
   applyCellValue,
-  restoreCellValue,
   cancelEdit,
   onEditKeydown,
   addRows: addEditorRows,
@@ -3734,6 +3672,7 @@ const saveToolbarState = computed(() =>
   }),
 );
 const hasSearchBarSlot = computed(() => !!slots["search-bar"]);
+const hasTopbarLeadingSlot = computed(() => !!slots["topbar-leading"]);
 const hasResultToolbarLeadingSlot = computed(() => !!slots["result-toolbar-leading"]);
 const hasResultToolbarActionsSlot = computed(() => !!slots["result-toolbar-actions"]);
 const quickEntryEnabled = computed(() => settingsStore.editorSettings.dataGridQuickEntry);
@@ -3752,6 +3691,7 @@ const showDataGridTopbar = computed(
     hasLocalColumnFilters.value ||
     canShowWhereSearch.value ||
     hasSearchBarSlot.value ||
+    hasTopbarLeadingSlot.value ||
     hasResultToolbarLeadingSlot.value ||
     hasResultToolbarActionsSlot.value ||
     showQueryEditReadOnlyBadge.value ||
@@ -4865,11 +4805,6 @@ function captureColumnTargetForRefresh(columnIndex: number | null): PersistedDat
 
 function captureDetailsForRefresh() {
   const details = {
-    sideCell: showCellDetail.value ? captureCellTargetForRefresh(detailCell.value) : undefined,
-    // A refresh must not silently discard an unsaved value-editor draft: closing
-    // and reopening the panel (even at the "same" cell) would re-derive its text
-    // from the freshly fetched row, wiping whatever the user was typing.
-    sideCellHasPendingDraft: showCellDetail.value && hasPendingDetailEditorDraft.value,
     cellDialog: cellDetailDialogOpen.value ? captureCellTargetForRefresh(cellDetailDialogTarget.value) : undefined,
     rowDialog: rowDetailDialogOpen.value ? captureRowTargetForRefresh(rowDetailDialogRowId.value) : undefined,
     columnDialog: columnDetailDialogOpen.value ? captureColumnTargetForRefresh(columnDetailDialogColumnIndex.value) : undefined,
@@ -4893,19 +4828,6 @@ function restoreDetailCellAfterRefresh(snapshot: PersistedDataGridSelection | un
 }
 
 function restoreDetailsAfterRefresh(details: NonNullable<typeof preservedDetailsOnNextResult>) {
-  // When the side panel was left open with an unsaved value-editor draft, it was
-  // deliberately kept open (not closed) across this refresh, so there is nothing
-  // to restore here - reassigning detailCell would re-derive the editor text from
-  // the freshly fetched row and clobber the draft the user is still editing.
-  if (!details.sideCellHasPendingDraft) {
-    const sideCell = restoreDetailCellAfterRefresh(details.sideCell);
-    if (sideCell) {
-      detailCell.value = sideCell;
-      showCellDetail.value = true;
-      hydrateCellDetailTarget(sideCell);
-    }
-  }
-
   const cellDialog = restoreDetailCellAfterRefresh(details.cellDialog);
   if (cellDialog) openCellDetailDialog(cellDialog.rowIndex, cellDialog.col);
 
@@ -5340,15 +5262,15 @@ function onCellMouseenter(rowIndex: number, visibleColIdx: number, actualColIdx:
   stopReleasedSelectionGesture(event);
   if (!isSelectingCells.value) {
     quickDownloadMenuCell.value = retainBinaryCellDownloadMenuForHover(quickDownloadMenuCell.value, { rowIndex, col: actualColIdx });
-    if (!isScrolling.value) hoveredDetailCell.value = { rowIndex, col: actualColIdx };
+    if (!isScrolling.value) hoveredActionCell.value = { rowIndex, col: actualColIdx };
   }
   if (isCellSelectionDragConfirmed()) extendCellSelection(rowIndex, visibleColIdx);
 }
 
 function onCellMouseleave(rowIndex: number, actualColIdx: number) {
   if (isScrolling.value) return;
-  if (hoveredDetailCell.value?.rowIndex === rowIndex && hoveredDetailCell.value.col === actualColIdx) {
-    hoveredDetailCell.value = null;
+  if (hoveredActionCell.value?.rowIndex === rowIndex && hoveredActionCell.value.col === actualColIdx) {
+    hoveredActionCell.value = null;
   }
 }
 
@@ -5359,7 +5281,7 @@ function quickDownloadMenuOpenFor(rowIndex: number, actualColIdx: number): boole
 function handleQuickDownloadMenuOpenChange(open: boolean, rowIndex: number, actualColIdx: number) {
   if (open) {
     quickDownloadMenuCell.value = { rowIndex, col: actualColIdx };
-    hoveredDetailCell.value = { rowIndex, col: actualColIdx };
+    hoveredActionCell.value = { rowIndex, col: actualColIdx };
     return;
   }
   if (quickDownloadMenuOpenFor(rowIndex, actualColIdx)) {
@@ -5367,9 +5289,9 @@ function handleQuickDownloadMenuOpenChange(open: boolean, rowIndex: number, actu
   }
 }
 
-function cellDetailButtonVisible(rowIndex: number, actualColIdx: number) {
+function cellActionOverlayVisible(rowIndex: number, actualColIdx: number) {
   if (isScrolling.value) return false;
-  return (hoveredDetailCell.value?.rowIndex === rowIndex && hoveredDetailCell.value.col === actualColIdx) || quickDownloadMenuOpenFor(rowIndex, actualColIdx) || (showCellDetail.value && detailCell.value?.rowIndex === rowIndex && detailCell.value.col === actualColIdx);
+  return (hoveredActionCell.value?.rowIndex === rowIndex && hoveredActionCell.value.col === actualColIdx) || quickDownloadMenuOpenFor(rowIndex, actualColIdx);
 }
 
 function affectedRowIds(): number[] {
@@ -5501,11 +5423,6 @@ function cellDetailFor(rowIndex: number, columnIndex: number): DataGridCellDetai
   });
 }
 
-const activeCellDetail = computed(() => {
-  const cell = detailCell.value;
-  return cell ? cellDetailFor(cell.rowIndex, cell.col) : null;
-});
-
 const canShowMongoJsonPreview = computed(() => props.databaseType === "mongodb" && !!props.result.mongo_documents && props.result.mongo_documents.length === props.result.rows.length);
 const mongoJsonPreviewOpen = computed(() => showMongoJsonPreview.value && canShowMongoJsonPreview.value);
 const activeMongoJsonDocument = computed(() => {
@@ -5546,10 +5463,6 @@ const dialogCellDetail = computed(() => {
   const target = cellDetailDialogTarget.value;
   return target ? cellDetailFor(target.rowIndex, target.col) : null;
 });
-
-const cellDetailJsonFormatted = computed(() => settingsStore.editorSettings.cellDetailJsonFormatted);
-const cellDetailMetadataCollapsed = computed(() => settingsStore.editorSettings.cellDetailMetadataCollapsed);
-const sideDetailJsonView = computed(() => cellDetailJsonFormatted.value && !!activeCellDetail.value?.formattedJson);
 
 const rowDetail = computed(() => {
   if (rowDetailDialogRowId.value === null) return null;
@@ -5619,29 +5532,6 @@ watch(columnDetailDialogOpen, (open) => {
   }
 });
 
-const activeCellDetailTabs = computed(() => {
-  const detail = activeCellDetail.value;
-  return visibleCellDetailTabs({
-    isEditable: !!detail?.isEditable,
-    hasBinaryHexViewer: isBinaryCellColumnType(detail?.type),
-  });
-});
-
-const activeBinaryHexBytes = computed(() => {
-  if (activeCellDetailTab.value !== "hexViewer") return null;
-  const detail = activeCellDetail.value;
-  return detail ? parseBinaryCellBytes(detail.value, detail.type, resolvedDatabaseType.value) : null;
-});
-
-const activeBinaryHexRows = computed(() => (activeBinaryHexBytes.value ? buildBinaryHexViewRows(activeBinaryHexBytes.value) : []));
-const activeBinaryHexByteCount = computed(() => activeBinaryHexBytes.value?.length ?? 0);
-
-watch(activeCellDetailTabs, (tabs) => {
-  if (!tabs.includes(activeCellDetailTab.value)) {
-    activeCellDetailTab.value = defaultCellDetailTab();
-  }
-});
-
 const hasPendingInlineEditorDraft = computed(() => {
   const cell = editingCell.value;
   if (!cell) return false;
@@ -5651,208 +5541,7 @@ const hasPendingInlineEditorDraft = computed(() => {
   return editValue.value !== originalValue;
 });
 
-const detailSqlConditionCopy = ref<PreparedCopyValue>({
-  key: "",
-  text: "",
-  loading: false,
-  ready: false,
-});
-
-const detailSqlConditionKey = computed(() => {
-  const detail = activeCellDetail.value;
-  if (!detail) return "";
-  return JSON.stringify({
-    databaseType: props.databaseType ?? null,
-    column: detail.column,
-    value: detail.value,
-    type: detail.type,
-    schema: props.tableMeta?.schema ?? null,
-    tableName: props.tableMeta?.tableName ?? null,
-  });
-});
-
-function canCopyPreparedDetailSqlCondition(): boolean {
-  const detail = activeCellDetail.value;
-  if (detail && isLargeValuePreview(getRowItem(detail.rowId), detail.colIndex)) return false;
-  return detailSqlConditionCopy.value.ready && detailSqlConditionCopy.value.key === detailSqlConditionKey.value;
-}
-
-async function prefetchDetailSqlCondition() {
-  const detail = activeCellDetail.value;
-  const key = detailSqlConditionKey.value;
-  if (!detail || !key) {
-    detailSqlConditionCopy.value = {
-      key: "",
-      text: "",
-      loading: false,
-      ready: false,
-    };
-    return;
-  }
-  const current = detailSqlConditionCopy.value;
-  if ((current.loading || current.ready) && current.key === key) return;
-
-  detailSqlConditionCopy.value = {
-    key,
-    text: "",
-    loading: true,
-    ready: false,
-  };
-
-  try {
-    const condition = await buildDataGridContextFilterCondition({
-      databaseType: resolvedDatabaseType.value,
-      identifierQuote: connectionStore.connectionIdentifierQuote?.(props.connectionId),
-      columnName: detail.column,
-      columnInfo: props.tableMeta?.columns.find((column) => column.name === detail.column),
-      mode: "equals",
-      value: detail.value,
-    });
-    if (detailSqlConditionCopy.value.key !== key) return;
-    detailSqlConditionCopy.value = {
-      key,
-      text: condition ?? "",
-      loading: false,
-      ready: !!condition,
-    };
-  } catch {
-    if (detailSqlConditionCopy.value.key !== key) return;
-    detailSqlConditionCopy.value = {
-      key,
-      text: "",
-      loading: false,
-      ready: false,
-    };
-  }
-}
-
-watch(activeCellDetail, () => {
-  void prefetchDetailSqlCondition();
-});
-
-const detailTemporalEditorConfig = computed(() => {
-  const detail = activeCellDetail.value;
-  return detail && !isIoTDBTimestampColumn(detail.colIndex) ? temporalEditorConfigForColumn(detail.colIndex) : undefined;
-});
-const sideDetailValueFillsHeight = computed(() => cellDetailPanelIsBottom.value || isEditingDetail.value || (!cellDetailPanelIsBottom.value && !activeCellDetail.value?.imagePreviewUrl));
-const canCompactDetailJson = computed(() => {
-  const detail = activeCellDetail.value;
-  return !!detail && isEditingDetail.value && canFormatCellDetailJson(detailEditValue.value, detail.type);
-});
-const showCompactDetailJson = computed(() => {
-  const detail = activeCellDetail.value;
-  if (!detail || !isEditingDetail.value) return false;
-  return !!detail.formattedJson || looksLikeJsonContainerText(detailEditValue.value);
-});
-
-// CodeMirror-based cell detail editors
-const valueEditorContainer = ref<HTMLElement>();
-const detailTransformOpen = ref(false);
-watch([showCellDetail, activeCellDetailTab, () => activeCellDetail.value?.rowId, () => activeCellDetail.value?.colIndex], () => {
-  detailTransformOpen.value = false;
-});
-let valueDetailEditor: UseCellDetailEditorReturn | null = null;
-
-const editorThemeAccessor = () => settingsStore.editorSettings.theme;
-const editorAppAppearance = () => (isDark.value ? "dark" : "light") as import("@/lib/app/appTheme").AppThemeAppearance;
-const editorFontSize = () => settingsStore.editorSettings.fontSize;
-const detailEditorFontFamily = () => tableFontFamily.value;
-const SIDE_DETAIL_EDITOR_MIN_HEIGHT = 160;
-const SIDE_DETAIL_EDITOR_MAX_HEIGHT = 360;
-const SIDE_DETAIL_EDITOR_LINE_HEIGHT = 20;
-const SIDE_DETAIL_EDITOR_SOFT_WRAP_CHARS = 48;
-const sideDetailEditorStyle = computed(() => {
-  if (cellDetailPanelIsBottom.value || isEditingDetail.value) return undefined;
-  const lines = detailEditValue.value.split(/\r\n|\r|\n/).reduce((total, line) => total + Math.max(1, Math.ceil(line.length / SIDE_DETAIL_EDITOR_SOFT_WRAP_CHARS)), 0);
-  const height = Math.min(SIDE_DETAIL_EDITOR_MAX_HEIGHT, Math.max(SIDE_DETAIL_EDITOR_MIN_HEIGHT, lines * SIDE_DETAIL_EDITOR_LINE_HEIGHT + 28));
-  return { height: `${height}px` };
-});
-
-function getDetailEditor(): UseCellDetailEditorReturn | null {
-  return valueDetailEditor;
-}
-
-watch(valueEditorContainer, async (el) => {
-  if (el && !valueDetailEditor) {
-    valueDetailEditor = useCellDetailEditor({
-      onChange: (v) => {
-        detailEditValue.value = v;
-      },
-      onEscape: () => restoreDetailOriginalValue(),
-      onBlur: () => {
-        if (!detailValueDiffOpen.value && !detailTransformOpen.value) commitValueEditorEdit();
-      },
-      editorTheme: editorThemeAccessor,
-      appAppearance: editorAppAppearance,
-      fontSize: editorFontSize,
-      fontFamily: detailEditorFontFamily,
-    });
-    const editor = valueDetailEditor;
-    await editor.create(el, detailEditValue.value, activeCellDetail.value?.type);
-    // The editor initializes asynchronously (theme loading can yield here), so
-    // detailEditValue may have changed before CodeMirror owns the document.
-    // Reconcile the latest value after create and ignore an editor replaced by
-    // a fast tab unmount/remount.
-    if (valueDetailEditor !== editor) return;
-    if (editor.getValue() !== detailEditValue.value) {
-      editor.setValue(detailEditValue.value, activeCellDetail.value?.type);
-    }
-  } else if (!el && valueDetailEditor) {
-    valueDetailEditor.destroy();
-    valueDetailEditor = null;
-  }
-});
-
-const detailEdit = useDataGridCellDetailEdit({
-  activeDetail: activeCellDetail,
-  activeTab: activeCellDetailTab,
-  jsonFormatted: cellDetailJsonFormatted,
-  databaseType: resolvedDatabaseType,
-  resultRows: computed(() => props.result.rows),
-  getColumnInfo: (columnIndex) => tableColumnForGridColumn(columnIndex) ?? resultColumnInfoForGridColumn(columnIndex),
-  cellEditorText: cellEditorTextForValue,
-  normalizeEditorInput: (value) => (props.mongoCollectionGrid ? mongoDocumentGridInputValue(value) : value),
-  nullValue: () => (props.mongoCollectionGrid ? MONGO_DOCUMENT_GRID_NULL : null),
-  getRowItem,
-  hydrateLargeValueCell,
-  applyCellValue,
-  restoreCellValue,
-  syncEditor: (value, columnType) => {
-    const editor = getDetailEditor();
-    if (editor && editor.getValue() !== value) editor.setValue(value, columnType);
-  },
-  refreshDetail: () => {
-    detailCell.value = detailCell.value ? { ...detailCell.value } : null;
-  },
-  warnFormattedJsonEdit: warnFormattedJsonEditIfNeeded,
-});
-
-const {
-  detailEditValue,
-  detailEditOriginalValue,
-  isEditingDetail,
-  detailValueDiffOpen,
-  detailValueDiffSnapshot,
-  hasPendingDetailEditorDraft,
-  showDetailJsonCompare,
-  canCompareDetailJson,
-  activeValueEditorActions,
-  resetDetailEdit,
-  syncEditorFromDetailEdit,
-  startDetailEdit,
-  commitDetailEdit,
-  cancelDetailEdit,
-  cancelValueEditorEdit,
-  commitValueEditorEdit,
-  restoreDetailOriginalValue,
-  setValueEditorNull,
-  formatValueEditorJson,
-  compactDetailJson,
-  openDetailJsonCompare,
-  setDetailNull,
-} = detailEdit;
-
-const hasPendingDataEditorDraft = computed(() => hasPendingDetailEditorDraft.value || hasPendingInlineEditorDraft.value);
+const hasPendingDataEditorDraft = computed(() => hasPendingInlineEditorDraft.value);
 
 function syncPendingDataEditorDraft(pending: boolean) {
   if (props.context !== "table-data" || !props.cacheKey) return;
@@ -5865,17 +5554,10 @@ watch(hasPendingDataEditorDraft, syncPendingDataEditorDraft, {
   flush: "sync",
 });
 
-function closeCellDetails() {
-  resetDetailEdit();
-  showCellDetail.value = false;
-  detailCell.value = null;
-}
-
 function toggleMongoJsonPreview() {
   if (!canShowMongoJsonPreview.value) return;
   showMongoJsonPreview.value = !showMongoJsonPreview.value;
   if (showMongoJsonPreview.value) {
-    closeCellDetails();
     if (!currentSelectedCellPosition() && displayItems.value.length > 0 && visibleColumnIndexes.value.length > 0) {
       selectSingleCell(0, 0);
     }
@@ -5888,26 +5570,6 @@ function closeMongoJsonPreview() {
 
 function copyMongoJsonPreview() {
   if (mongoJsonPreviewFullText.value) copyText(mongoJsonPreviewFullText.value);
-}
-
-function warnFormattedJsonEditIfNeeded(detail: DataGridCellDetail, force = false) {
-  if (!force && (!sideDetailJsonView.value || !detail.formattedJson)) return;
-  const count = Number(safeLocalStorageGet(FORMATTED_JSON_EDIT_WARNING_COUNT_STORAGE_KEY)) || 0;
-  if (count >= FORMATTED_JSON_EDIT_WARNING_MAX_COUNT) return;
-  toast(t("grid.formattedJsonEditWarning"), 6000);
-  safeLocalStorageSet(FORMATTED_JSON_EDIT_WARNING_COUNT_STORAGE_KEY, String(count + 1));
-}
-
-function toggleCellDetailJsonFormatted() {
-  settingsStore.updateEditorSettings({
-    cellDetailJsonFormatted: !cellDetailJsonFormatted.value,
-  });
-}
-
-function toggleCellDetailMetadataCollapsed() {
-  settingsStore.updateEditorSettings({
-    cellDetailMetadataCollapsed: !cellDetailMetadataCollapsed.value,
-  });
 }
 
 function applyColumnSort(column: string, columnIndex: number, direction: "asc" | "desc" | null, mode: DataGridSortMode = "database") {
@@ -5936,13 +5598,25 @@ function applyColumnSort(column: string, columnIndex: number, direction: "asc" |
   emit("sort", column, columnIndex, direction, currentWhereInput(), mode);
 }
 
-function selectHeaderSort(value: string, column: string, columnIndex: number) {
-  if (value === "clear") {
-    applyColumnSort(column, columnIndex, null, sortMode.value);
-    return;
-  }
-  const [mode, direction] = value.split("-") as [DataGridSortMode, DataGridSortDirection];
-  applyColumnSort(column, columnIndex, direction, mode);
+/** 表头单击：同一列在升/降序之间切换；换列时从升序开始。 */
+function toggleHeaderSort(column: string, columnIndex: number) {
+  headerSortMenuOpenColumn.value = null;
+  const sorted = columnIsSorted(column, columnIndex);
+  const direction: DataGridSortDirection = sorted && sortDir.value === "asc" ? "desc" : "asc";
+  applyColumnSort(column, columnIndex, direction, sorted ? sortMode.value : defaultHeaderSortMode());
+}
+
+/** 未排序的列优先走数据库排序；数据库不支持时退回当前页排序。 */
+function defaultHeaderSortMode(): DataGridSortMode {
+  return databaseSortSupportedForDatabase(resolvedDatabaseType.value) ? "database" : "local";
+}
+
+function clearHeaderSort(column: string, columnIndex: number) {
+  applyColumnSort(column, columnIndex, null, sortMode.value);
+}
+
+function openHeaderSortMenu(columnIndex: number) {
+  headerSortMenuOpenColumn.value = columnIndex;
 }
 
 function applyContextSort(direction: "asc" | "desc" | null, mode: DataGridSortMode = "database") {
@@ -6641,18 +6315,18 @@ function onCanvasMouseLeave(event?: MouseEvent) {
   scheduleCanvasDraw();
 }
 
-function keepCanvasDetailHover() {
-  const cell = canvasDetailButtonCell.value;
+function keepCanvasActionHover() {
+  const cell = canvasActionOverlayCell.value;
   if (!cell) return;
   canvasHoverCell.value = {
     rowIndex: cell.rowIndex,
     visibleColIdx: cell.visibleColIdx,
   };
-  hoveredDetailCell.value = { rowIndex: cell.rowIndex, col: cell.actualColIdx };
+  hoveredActionCell.value = { rowIndex: cell.rowIndex, col: cell.actualColIdx };
   scheduleCanvasDraw();
 }
 
-function clearCanvasDetailHover(event?: MouseEvent) {
+function clearCanvasActionHover(event?: MouseEvent) {
   const relatedTarget = event?.relatedTarget;
   if (relatedTarget instanceof Node && isCanvasGridInteractionTarget(relatedTarget)) {
     return;
@@ -6905,10 +6579,10 @@ const canvasReadonlyTextCellStyle = computed(() => {
   };
 });
 
-const canvasDetailButtonCell = computed(() => {
+const canvasActionOverlayCell = computed(() => {
   if (!useCanvasGridRows.value || isScrolling.value) return null;
-  const target = hoveredDetailCell.value ?? quickDownloadMenuCell.value ?? (showCellDetail.value ? detailCell.value : null);
-  if (!target || !cellDetailButtonVisible(target.rowIndex, target.col)) return null;
+  const target = hoveredActionCell.value ?? quickDownloadMenuCell.value;
+  if (!target || !cellActionOverlayVisible(target.rowIndex, target.col)) return null;
   const editing = editingCell.value;
   if (editing && editing.rowId === displayItems.value[target.rowIndex]?.id && editing.col === target.col) return null;
   const visibleColIdx = visibleColumnIndexes.value.indexOf(target.col);
@@ -6922,8 +6596,8 @@ const canvasDetailButtonCell = computed(() => {
   const canQuickDownload = canQuickDownloadCellValue(target.rowIndex, target.col);
   const foreignKey = canvasCellForeignKey(target.rowIndex, target.col);
   const externalUrl = cellExternalUrl(displayItemAt(target.rowIndex)?.data[target.col]);
-  if (!cellDetailButtonEnabled.value && !canQuickDownload && !foreignKey && !externalUrl) return null;
-  const minWidth = canvasDataGridActionOverlayWidth(canQuickDownload, !!foreignKey, cellDetailButtonEnabled.value, !!externalUrl) + 2;
+  if (!canQuickDownload && !foreignKey && !externalUrl) return null;
+  const minWidth = canvasDataGridActionOverlayWidth(canQuickDownload, !!foreignKey, !!externalUrl) + 2;
   if (rect.top < 0 || rect.top > viewportHeight - 1 || visibleRight - visibleLeft < minWidth) return null;
   return {
     rowIndex: target.rowIndex,
@@ -6936,10 +6610,10 @@ const canvasDetailButtonCell = computed(() => {
   };
 });
 
-const canvasDetailButtonStyle = computed(() => {
-  const cell = canvasDetailButtonCell.value;
+const canvasActionOverlayStyle = computed(() => {
+  const cell = canvasActionOverlayCell.value;
   if (!cell) return {};
-  const actionWidth = canvasDataGridActionOverlayWidth(cell.canQuickDownload, !!cell.foreignKey, cellDetailButtonEnabled.value, !!cell.externalUrl);
+  const actionWidth = canvasDataGridActionOverlayWidth(cell.canQuickDownload, !!cell.foreignKey, !!cell.externalUrl);
   const edgeGap = 6;
   return {
     left: `${Math.max(rowNumberWidth.value, cell.rect.left + cell.rect.width - actionWidth - edgeGap)}px`,
@@ -6948,12 +6622,12 @@ const canvasDetailButtonStyle = computed(() => {
 });
 
 const canvasRightAlignedActionCell = computed(() => {
-  const cell = canvasDetailButtonCell.value;
+  const cell = canvasActionOverlayCell.value;
   if (!cell || columnAligns.value[cell.visibleColIdx] !== "right") return null;
   return {
     rowIndex: cell.rowIndex,
     visibleColIdx: cell.visibleColIdx,
-    reservedWidth: canvasDataGridActionReservedWidth(cell.canQuickDownload, !!cell.foreignKey, cellDetailButtonEnabled.value, !!cell.externalUrl),
+    reservedWidth: canvasDataGridActionReservedWidth(cell.canQuickDownload, !!cell.foreignKey, !!cell.externalUrl),
   };
 });
 
@@ -7044,10 +6718,7 @@ watch(
     canvasDevicePixelRatio,
     canvasBackingPixelRatio,
     isScrolling,
-    hoveredDetailCell,
-    detailCell,
-    showCellDetail,
-    cellDetailButtonEnabled,
+    hoveredActionCell,
     editingCell,
     frozenColumnCount,
     saveError,
@@ -7556,22 +7227,6 @@ function hydrateCellDetailTarget(target: { rowIndex: number; col: number }) {
   if (item && isLargeValuePreview(item, target.col)) void hydrateLargeValueCell(item.id, target.col);
 }
 
-function showCellDetails(rowIndex: number, colIndex: number) {
-  closeMongoJsonPreview();
-  resetDetailEdit();
-  detailCell.value = { rowIndex, col: colIndex };
-  activeCellDetailTab.value = defaultCellDetailTab();
-  showCellDetail.value = true;
-  hydrateCellDetailTarget(detailCell.value);
-}
-
-function showCellDetailsForVisibleCell(rowIndex: number, visibleColIdx: number, actualColIdx: number) {
-  clearRowSelection();
-  invalidateContextMenuTarget();
-  selectSingleCell(rowIndex, visibleColIdx);
-  showCellDetails(rowIndex, actualColIdx);
-}
-
 function openCellDetailDialog(rowIndex: number, columnIndex: number) {
   cellDetailDialogTarget.value = { rowIndex, col: columnIndex };
   cellDetailDialogOpen.value = true;
@@ -7598,18 +7253,6 @@ function openContextColumnDetailDialog() {
   }
   if (contextHeaderColumnIndex.value === null) return;
   openColumnDetailDialog(contextHeaderColumnIndex.value);
-}
-
-function openActiveCellDetailDialog() {
-  const detail = activeCellDetail.value;
-  if (!detail) return;
-  openCellDetailDialog(detail.rowNumber - 1, detail.colIndex);
-}
-
-function openActiveColumnDetailDialog() {
-  const detail = activeCellDetail.value;
-  if (!detail) return;
-  openColumnDetailDialog(detail.colIndex);
 }
 
 function openRowDetailDialog(rowId: number) {
@@ -7642,12 +7285,6 @@ function openContextRowDetailDialog() {
   openRowDetailDialog(cell.rowId);
 }
 
-function openActiveRowDetailDialog() {
-  const detail = activeCellDetail.value;
-  if (!detail) return;
-  openRowDetailDialog(detail.rowId);
-}
-
 function closeDetailDialogs() {
   cellDetailDialogOpen.value = false;
   cellDetailDialogTarget.value = null;
@@ -7674,7 +7311,7 @@ function transposeCellEditorActive(recordIndex: number, valueIndex: number): boo
 function onTransposeCellMouseenter(rowIndex: number, actualColIdx: number) {
   quickDownloadMenuCell.value = retainBinaryCellDownloadMenuForHover(quickDownloadMenuCell.value, { rowIndex, col: actualColIdx });
   if (isScrolling.value) return;
-  hoveredDetailCell.value = { rowIndex, col: actualColIdx };
+  hoveredActionCell.value = { rowIndex, col: actualColIdx };
 }
 
 function selectTransposeCell(rowIndex: number, actualColIdx: number, event: MouseEvent) {
@@ -7688,17 +7325,6 @@ function selectTransposeCell(rowIndex: number, actualColIdx: number, event: Mous
     selectSingleCell(rowIndex, visibleColIdx);
   }
   transposeRowIndex.value = rowIndex;
-  gridRef.value?.focus({ preventScroll: true });
-}
-
-function showTransposeCellDetails(rowIndex: number, actualColIdx: number) {
-  const visibleColIdx = visibleColumnIndexes.value.indexOf(actualColIdx);
-  if (visibleColIdx < 0) return;
-  clearRowSelection();
-  invalidateContextMenuTarget();
-  selectSingleCell(rowIndex, visibleColIdx);
-  transposeRowIndex.value = rowIndex;
-  showCellDetails(rowIndex, actualColIdx);
   gridRef.value?.focus({ preventScroll: true });
 }
 
@@ -7718,25 +7344,6 @@ function onTransposeCellContext(rowIndex: number, actualColIdx: number, event: M
   const item = displayItemAt(rowIndex);
   contextCell.value = item ? { rowId: item.id, rowIndex, col: actualColIdx } : null;
 }
-
-watch([selectedRange, showCellDetail, isEditingDetail, isSelectingCells], () => {
-  if (isSelectingCells.value) return;
-  const selectedCell = currentSelectedCellPosition();
-  const target = linkedCellDetailTarget({
-    isOpen: showCellDetail.value,
-    isEditing: isEditingDetail.value && activeCellDetailTab.value !== "valueEditor",
-    selectedCell: selectedCell
-      ? {
-          rowIndex: selectedCell.rowIndex,
-          visibleColIndex: selectedCell.colIndex,
-        }
-      : null,
-    actualColumnIndex,
-  });
-  if (!target) return;
-  detailCell.value = target;
-  hydrateCellDetailTarget(target);
-});
 
 function openImagePreview(src: string, title: string) {
   imagePreviewSrc.value = src;
@@ -8169,20 +7776,6 @@ function applyGeneratedSelectionValue(kind: CellValueGenerationKind, startValue 
   return applied;
 }
 
-function applyGeneratedDetailValue(kind: CellValueGenerationKind, startValue = 1n): boolean {
-  const detail = activeCellDetail.value;
-  if (!detail?.isEditable) return false;
-  const value = generatedGridValue(kind, generateCellValues(kind, 1, { startValue })[0] ?? null);
-  applyCellValue(detail.rowId, detail.colIndex, value, {
-    preserveEmptyString: kind === "empty",
-  });
-  detailEditValue.value = cellEditorTextForValue(value, detail.colIndex);
-  syncEditorFromDetailEdit();
-  isEditingDetail.value = activeCellDetailTab.value === "valueEditor";
-  detailCell.value = { ...detailCell.value! };
-  return true;
-}
-
 function generatedGridValue(kind: CellValueGenerationKind, value: string | null): string | null {
   // MongoDB collection grids reserve an empty cell for a missing field. Their
   // private null marker becomes $set: null in the document save layer.
@@ -8190,10 +7783,8 @@ function generatedGridValue(kind: CellValueGenerationKind, value: string | null)
   return value;
 }
 
-function openGenerateIncrementDialog(target: "selection" | "detail") {
-  if (target === "selection" && (!props.editable || !selectionHasEditableCells())) return;
-  if (target === "detail" && !activeCellDetail.value?.isEditable) return;
-  generateIncrementTarget.value = target;
+function openGenerateIncrementDialog() {
+  if (!props.editable || !selectionHasEditableCells()) return;
   generateIncrementStartValue.value = "1";
   generateIncrementDialogOpen.value = true;
 }
@@ -8206,7 +7797,7 @@ function applyGenerateIncrementValue() {
     toast(t("grid.generateStartInvalid"));
     return;
   }
-  const applied = generateIncrementTarget.value === "detail" ? applyGeneratedDetailValue("increment", startValue) : applyGeneratedSelectionValue("increment", startValue);
+  const applied = applyGeneratedSelectionValue("increment", startValue);
   if (applied) generateIncrementDialogOpen.value = false;
 }
 
@@ -8249,7 +7840,7 @@ function generateSelectionMenuItems(disabled: boolean): ContextMenuItem[] {
     },
     {
       label: t("grid.generateIncrementId"),
-      action: () => openGenerateIncrementDialog("selection"),
+      action: () => openGenerateIncrementDialog(),
       disabled,
     },
   ];
@@ -8441,7 +8032,6 @@ function toggleKeyboardTranspose(): boolean {
   showTranspose.value = next.showTranspose;
   transposeRowIndex.value = next.transposeRowIndex;
   if (next.showTranspose) {
-    closeCellDetails();
     nextTick(updateTransposeViewport);
     if (next.transposeRowIndex !== null) scrollTransposeRecordIntoView(next.transposeRowIndex, "start");
   } else if (!restoreGridScrollTopAfterTranspose) {
@@ -8676,10 +8266,6 @@ function redoGridChange(): boolean {
   return true;
 }
 
-function openCellDetailSearch(): boolean {
-  return getDetailEditor()?.openSearch() || cellDetailPanelRef.value?.openSearch() || false;
-}
-
 async function onGridKeydown(event: KeyboardEvent) {
   if (event.defaultPrevented) return;
 
@@ -8860,35 +8446,6 @@ function gridDetailExternalValue(value: CellValue): CellValue {
   return props.mongoCollectionGrid ? mongoDocumentGridExternalValue(value) : value;
 }
 
-async function copyDetailValue() {
-  const initialDetail = activeCellDetail.value;
-  if (!initialDetail || !(await hydrateLargeValueCell(initialDetail.rowId, initialDetail.colIndex))) return;
-  const detail = activeCellDetail.value;
-  if (!detail) return;
-  copyText(detailClipboardText(detail));
-}
-
-async function copyDetailFormattedJson() {
-  const initialDetail = activeCellDetail.value;
-  if (!initialDetail || !(await hydrateLargeValueCell(initialDetail.rowId, initialDetail.colIndex))) return;
-  const detail = activeCellDetail.value;
-  if (!detail?.formattedJson) return;
-  copyText(detail.formattedJson);
-}
-
-async function copyDetailCurrentValue() {
-  if (sideDetailJsonView.value && activeCellDetail.value?.formattedJson) {
-    await copyDetailFormattedJson();
-  } else {
-    await copyDetailValue();
-  }
-}
-
-function copyDetailColumnName() {
-  if (!activeCellDetail.value) return;
-  copyText(activeCellDetail.value.column);
-}
-
 function canDownloadDetailBinaryValue(detail: DataGridCellDetail | null): boolean {
   if (!detail) return false;
   const item = getRowItem(detail.rowId);
@@ -8906,12 +8463,6 @@ async function importDetailBinaryValue(detail: DataGridCellDetail | null) {
     if (!bytes) return;
     const value = binaryCellBytesToHexValue(bytes);
     applyCellValue(detail.rowId, detail.colIndex, value);
-    if (activeCellDetail.value?.rowId === detail.rowId && activeCellDetail.value.colIndex === detail.colIndex) {
-      detailEditValue.value = value;
-      detailEditOriginalValue.value = value;
-      syncEditorFromDetailEdit();
-      detailCell.value = detailCell.value ? { ...detailCell.value } : null;
-    }
     toast(t("grid.binaryImportApplied", { count: bytes.length }));
   } catch (e: any) {
     if (e instanceof BinaryCellImportTooLargeError) {
@@ -9002,20 +8553,6 @@ function binaryImportItem(detail: DataGridCellDetail | null): ContextMenuItem | 
       void importDetailBinaryValue(detail);
     },
   };
-}
-
-async function copyDetailSqlCondition() {
-  if (!canCopyPreparedDetailSqlCondition()) return;
-  copyText(detailSqlConditionCopy.value.text);
-}
-
-async function openDialogCellInSidePanel() {
-  const detail = dialogCellDetail.value;
-  if (!detail) return;
-  showCellDetails(detail.rowNumber - 1, detail.colIndex);
-  cellDetailDialogOpen.value = false;
-  await nextTick();
-  if (detail.isEditable) await startDetailEdit();
 }
 
 async function resolvedRowDetailForCopy() {
@@ -9449,7 +8986,6 @@ function openContextTranspose() {
   transposeRowIndex.value = next.transposeRowIndex;
   showTranspose.value = next.showTranspose;
   if (next.showTranspose) {
-    closeCellDetails();
     nextTick(updateTransposeViewport);
     if (next.transposeRowIndex !== null) scrollTransposeRecordIntoView(next.transposeRowIndex, "start");
   }
@@ -9461,7 +8997,6 @@ function toggleTranspose(rowIndex: number) {
   transposeRowIndex.value = next.transposeRowIndex;
   showTranspose.value = next.showTranspose;
   if (next.showTranspose) {
-    closeCellDetails();
     nextTick(updateTransposeViewport);
     if (next.transposeRowIndex !== null) scrollTransposeRecordIntoView(next.transposeRowIndex, wasTransposeOpen ? "nearest" : "start");
   } else {
@@ -9592,10 +9127,6 @@ watch(
     clearCellSelection();
     clearRowSelection();
     invalidateContextMenuTarget();
-    // Don't discard an unsaved value-editor draft just because the result set
-    // refreshed underneath it; leave the panel/editor state as-is and let
-    // restoreDetailsAfterRefresh() below skip re-opening it from fresh data.
-    if (!detailsSnapshot?.sideCellHasPendingDraft) closeCellDetails();
     closeDetailDialogs();
     if (shouldPreserveTranspose) {
       applyTransposeState(nextTransposeStateForRecordCount(showTranspose.value, transposeRowIndex.value, displayRowCount.value));
@@ -9817,11 +9348,6 @@ function cellEditVisibleBottom(textarea: HTMLTextAreaElement): number {
   if (root) bottoms.push(root.getBoundingClientRect().bottom);
   if (typeof window !== "undefined") bottoms.push(window.innerHeight);
 
-  if (cellDetailPanelIsBottom.value && showCellDetail.value) {
-    const detailPanel = root?.querySelector<HTMLElement>("[data-cell-detail-panel]");
-    if (detailPanel) bottoms.push(detailPanel.getBoundingClientRect().top);
-  }
-
   return Math.min(...bottoms.filter((bottom) => Number.isFinite(bottom)));
 }
 
@@ -9915,20 +9441,13 @@ type TableInfoTabItem = {
 };
 
 const TABLE_INFO_DRAWER_MIN_WIDTH = 240;
-const CELL_DETAIL_PANEL_MIN_HEIGHT = 180;
-const CELL_DETAIL_PANEL_MIN_WIDTH = 260;
-const CELL_DETAIL_PANEL_MAX_HEIGHT = 520;
-const CELL_DETAIL_TABLE_HEADER_HEIGHT = 28;
-const CELL_DETAIL_TABLE_MIN_VISIBLE_ROWS = 1.5;
-const CELL_DETAIL_TABLE_HORIZONTAL_SCROLLBAR_HEIGHT = 10;
-const CELL_DETAIL_TABLE_MIN_VISIBLE_HEIGHT = Math.ceil(CELL_DETAIL_TABLE_HEADER_HEIGHT + CANVAS_DATA_GRID_ROW_HEIGHT * CELL_DETAIL_TABLE_MIN_VISIBLE_ROWS + CELL_DETAIL_TABLE_HORIZONTAL_SCROLLBAR_HEIGHT);
+const SIDE_PANEL_MIN_WIDTH = 260;
 const DRAWER_MAX_WIDTH = 900;
-const MONGO_JSON_PREVIEW_DEFAULT_WIDTH = 420;
-function clampCellDetailPanelSize(value: number, layout = cellDetailPanelLayout.value): number {
-  const min = layout === "bottom" ? CELL_DETAIL_PANEL_MIN_HEIGHT : CELL_DETAIL_PANEL_MIN_WIDTH;
-  const max = layout === "bottom" ? CELL_DETAIL_PANEL_MAX_HEIGHT : DRAWER_MAX_WIDTH;
-  return Math.min(Math.max(value, min), max);
+
+function clampSidePanelWidth(value: number): number {
+  return Math.min(Math.max(value, SIDE_PANEL_MIN_WIDTH), DRAWER_MAX_WIDTH);
 }
+const MONGO_JSON_PREVIEW_DEFAULT_WIDTH = 420;
 // Table info drawers are tied to a single grid instance. Keeping this state
 // module-global leaks the drawer into other kept-alive tabs.
 const showTableInfo = ref(false);
@@ -10010,14 +9529,11 @@ function onDdlKeydown(e: KeyboardEvent) {
 }
 const ddlLoading = ref(false);
 const ddlWidth = ref(settingsStore.editorSettings.tableInfoDrawerWidth);
-const detailPanelHeight = ref(settingsStore.editorSettings.cellDetailDrawerWidth);
 const mongoJsonPreviewWidth = ref(MONGO_JSON_PREVIEW_DEFAULT_WIDTH);
 const isResizingDdl = ref(false);
 const isResizingMongoJsonPreview = ref(false);
 let ddlResizeStartX = 0;
 let ddlResizeStartWidth = 0;
-let detailResizeStartY = 0;
-let detailResizeStartHeight = 0;
 let mongoJsonPreviewResizeStartX = 0;
 let mongoJsonPreviewResizeStartWidth = 0;
 const indexesRequestGeneration = ref(0);
@@ -10052,10 +9568,7 @@ const activeTableInfoLoading = computed(() => {
   if (activeTableInfoTab.value === "constraints") return constraintsLoading.value;
   return activeTableInfoTab.value === "triggers" && triggersLoading.value;
 });
-const cellDetailPanelLayout = computed(() => settingsStore.editorSettings.cellDetailPanelLayout);
-const cellDetailPanelIsBottom = computed(() => cellDetailPanelLayout.value === "bottom");
-
-watch([showCellDetail, showTableInfo], () => {
+watch(showTableInfo, () => {
   if (useCanvasGridRows.value) nextTick(syncCanvasViewport);
 });
 
@@ -10083,68 +9596,26 @@ watch(
   },
 );
 
-watch(
-  () => settingsStore.editorSettings.cellDetailDrawerWidth,
-  (height) => {
-    if (!isResizingDetail.value) detailPanelHeight.value = clampCellDetailPanelSize(height);
-    scheduleActiveCellEditTextareaResize();
-  },
-);
-
-watch(cellDetailPanelLayout, (layout) => {
-  if (!isResizingDetail.value) detailPanelHeight.value = clampCellDetailPanelSize(detailPanelHeight.value, layout);
-  scheduleActiveCellEditTextareaResize();
-});
-
-watch([showCellDetail, activeCellDetail, cellDetailPanelIsBottom, detailPanelHeight], scheduleActiveCellEditTextareaResize);
-
 const ddlDrawerStyle = computed(() => ({
   width: `min(${ddlWidth.value}px, 100%)`,
   maxWidth: "100%",
 }));
-
-const detailPanelStyle = computed(() =>
-  cellDetailPanelIsBottom.value
-    ? {
-        height: "100%",
-      }
-    : { width: `${detailPanelHeight.value}px` },
-);
 
 const mongoJsonPreviewStyle = computed(() => ({
   width: `${mongoJsonPreviewWidth.value}px`,
 }));
 
 const contentGridStyle = computed(() => {
-  const hasRightCellDetail = !cellDetailPanelIsBottom.value && showCellDetail.value && activeCellDetail.value;
-  const rightPanelWidth = hasRightCellDetail ? detailPanelHeight.value : mongoJsonPreviewOpen.value ? mongoJsonPreviewWidth.value : 0;
-  const hasRightPanel = hasRightCellDetail || mongoJsonPreviewOpen.value;
-  const tableInfoAvailableWidth = hasRightPanel ? `max(0px, calc(100% - ${rightPanelWidth}px))` : "100%";
+  const rightPanelWidth = mongoJsonPreviewOpen.value ? mongoJsonPreviewWidth.value : 0;
+  const tableInfoAvailableWidth = mongoJsonPreviewOpen.value ? `max(0px, calc(100% - ${rightPanelWidth}px))` : "100%";
   const tableInfoTrack = showTableInfo.value ? `minmax(0, min(${ddlWidth.value}px, ${tableInfoAvailableWidth}))` : "0px";
-  const detailTrack = hasRightPanel ? `minmax(0, min(${rightPanelWidth}px, 100%))` : "0px";
-
-  if (cellDetailPanelIsBottom.value && showCellDetail.value && activeCellDetail.value) {
-    return {
-      gridTemplateColumns: `minmax(0, 1fr) ${tableInfoTrack}`,
-      gridTemplateRows: `minmax(${CELL_DETAIL_TABLE_MIN_VISIBLE_HEIGHT}px, 1fr) minmax(0, min(${detailPanelHeight.value}px, 70vh, ${CELL_DETAIL_PANEL_MAX_HEIGHT}px, calc(100% - ${CELL_DETAIL_TABLE_MIN_VISIBLE_HEIGHT}px)))`,
-    };
-  }
+  const rightPanelTrack = mongoJsonPreviewOpen.value ? `minmax(0, min(${rightPanelWidth}px, 100%))` : "0px";
 
   return {
-    gridTemplateColumns: `minmax(0, 1fr) ${tableInfoTrack} ${detailTrack}`,
+    gridTemplateColumns: `minmax(0, 1fr) ${tableInfoTrack} ${rightPanelTrack}`,
     gridTemplateRows: "minmax(0, 1fr)",
   };
 });
-
-function toggleCellDetailPanelLayout() {
-  const nextLayout = cellDetailPanelIsBottom.value ? "right" : "bottom";
-  const nextSize = clampCellDetailPanelSize(detailPanelHeight.value, nextLayout);
-  detailPanelHeight.value = nextSize;
-  settingsStore.updateEditorSettings({
-    ...(nextLayout === "right" ? { cellDetailDrawerWidth: nextSize } : {}),
-    cellDetailPanelLayout: nextLayout,
-  });
-}
 
 const tableMetadataCapabilities = computed(() => getTableMetadataCapabilities(resolvedDatabaseType.value));
 const canOpenTableStructureEditor = computed(() => !!props.connectionId && !!props.database && !!props.tableMeta?.tableName && supportsTableStructureEditing(resolvedDatabaseType.value));
@@ -10678,35 +10149,6 @@ function onDdlResizeEnd() {
   window.removeEventListener("mouseup", onDdlResizeEnd);
 }
 
-function onDetailResizeStart(event: MouseEvent) {
-  isResizingDetail.value = true;
-  // 底部布局拖顶部边缘(垂直/clientY),右侧布局拖左边缘(水平/clientX)
-  detailResizeStartY = cellDetailPanelIsBottom.value ? event.clientY : event.clientX;
-  detailResizeStartHeight = detailPanelHeight.value;
-  document.body.classList.add("select-none", cellDetailPanelIsBottom.value ? "cursor-row-resize" : "cursor-col-resize");
-  window.addEventListener("mousemove", onDetailResizeMove);
-  window.addEventListener("mouseup", onDetailResizeEnd);
-}
-
-function onDetailResizeMove(event: MouseEvent) {
-  if (!isResizingDetail.value) return;
-  const pos = cellDetailPanelIsBottom.value ? event.clientY : event.clientX;
-  const nextSize = detailResizeStartHeight + detailResizeStartY - pos;
-  detailPanelHeight.value = clampCellDetailPanelSize(nextSize);
-}
-
-function onDetailResizeEnd() {
-  if (isResizingDetail.value) {
-    settingsStore.updateEditorSettings({
-      cellDetailDrawerWidth: detailPanelHeight.value,
-    });
-  }
-  isResizingDetail.value = false;
-  document.body.classList.remove("select-none", "cursor-row-resize", "cursor-col-resize");
-  window.removeEventListener("mousemove", onDetailResizeMove);
-  window.removeEventListener("mouseup", onDetailResizeEnd);
-}
-
 function onMongoJsonPreviewResizeStart(event: MouseEvent) {
   isResizingMongoJsonPreview.value = true;
   mongoJsonPreviewResizeStartX = event.clientX;
@@ -10718,7 +10160,7 @@ function onMongoJsonPreviewResizeStart(event: MouseEvent) {
 
 function onMongoJsonPreviewResizeMove(event: MouseEvent) {
   if (!isResizingMongoJsonPreview.value) return;
-  mongoJsonPreviewWidth.value = clampCellDetailPanelSize(mongoJsonPreviewResizeStartWidth + mongoJsonPreviewResizeStartX - event.clientX, "right");
+  mongoJsonPreviewWidth.value = clampSidePanelWidth(mongoJsonPreviewResizeStartWidth + mongoJsonPreviewResizeStartX - event.clientX);
 }
 
 function onMongoJsonPreviewResizeEnd() {
@@ -10790,7 +10232,6 @@ onUnmounted(() => {
   syncPendingDataEditorDraft(false);
   cleanupFrames();
   onDdlResizeEnd();
-  onDetailResizeEnd();
   onMongoJsonPreviewResizeEnd();
   finishCellSelection();
   clearTimeout(highlightedColumnTimer);
@@ -11006,7 +10447,6 @@ defineExpose({
   allNullColumnCount,
   canToggleAllNullColumns,
   toggleAllNullColumns,
-  openCellDetailSearch,
   exportCsv,
   exportJson,
   exportSql,
@@ -11414,15 +10854,23 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
         <!-- Search bar -->
         <!-- Leave real vertical space around the 28px controls instead of fitting them against the border. -->
         <div ref="dataGridTopbarRef" v-if="showDataGridTopbar" class="data-grid-topbar-shell flex h-8 min-w-0 shrink-0 items-center border-b bg-muted/20">
+          <div v-if="hasTopbarLeadingSlot" class="flex h-full shrink-0 items-center gap-2 border-r px-2">
+            <slot name="topbar-leading" :compact="compactDataGridToolbar" />
+          </div>
           <div v-if="hasResultToolbarLeadingSlot" class="flex shrink-0 items-center border-r">
             <slot name="result-toolbar-leading" :compact="compactDataGridToolbar" />
           </div>
           <!-- Clip both axes instead of creating a hidden scroll container around the toolbar controls. -->
           <div class="data-grid-topbar-scroll min-w-0 flex-1 overflow-clip">
             <div class="data-grid-topbar flex items-stretch relative" :class="{ 'data-grid-topbar--compact': compactDataGridToolbar }">
-              <div v-if="useTransaction && editable && hasDataGridSaveTarget" class="flex items-center px-2 py-0.5 border-r shrink-0">
+              <div v-if="useTransaction && editable && hasDataGridSaveTarget" class="flex shrink-0 items-center border-r px-1.5 py-0.5">
                 <Select :model-value="rowStatusFilter" @update:model-value="(value: any) => setRowStatusFilter(String(value))">
-                  <SelectTrigger class="h-5 max-w-28 border-0 bg-transparent px-0 py-0 text-xs font-medium text-foreground/70 shadow-none focus-visible:ring-0 data-[state=open]:text-foreground dark:bg-transparent dark:hover:bg-transparent [&_svg]:size-3">
+                  <SelectTrigger
+                    :class="[
+                      'h-5 max-w-28 shrink-0 gap-1 rounded-md border-0 px-1.5 text-xs font-medium shadow-none focus-visible:ring-0 [&_svg]:size-3',
+                      rowStatusFilter === 'all' ? 'bg-muted/60 text-foreground/70 hover:bg-muted data-[state=open]:bg-muted data-[state=open]:text-foreground' : 'bg-primary/10 text-primary hover:bg-primary/15 data-[state=open]:bg-primary/15',
+                    ]"
+                  >
                     <SelectValue :placeholder="t('grid.filterRows')" />
                   </SelectTrigger>
                   <SelectContent position="popper">
@@ -11884,7 +11332,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                           <span class="text-muted-foreground/70 italic">{{ firstLineCellDisplayValue(newRowCellPlaceholder(displayItems[cell.recordIndex], cell.valueIndex) ?? "", flatteningMultiLineEnabled) }}</span>
                         </template>
                         <template v-else>{{ firstLineCellDisplayValue(cell.display, flatteningMultiLineEnabled) }}</template>
-                        <div v-if="cellDetailButtonVisible(cell.recordIndex, cell.valueIndex)" class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+                        <div v-if="cellActionOverlayVisible(cell.recordIndex, cell.valueIndex)" class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
                           <LightDropdownMenu
                             v-if="canQuickDownloadCellValue(cell.recordIndex, cell.valueIndex)"
                             :items="binaryCellDownloadMenuItems"
@@ -11910,15 +11358,6 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                             @click.stop="openCellExternalUrl(cell.recordIndex, cell.valueIndex)"
                           >
                             <ExternalLink class="h-3 w-3" />
-                          </button>
-                          <button
-                            v-if="cellDetailButtonEnabled"
-                            class="flex h-5 w-5 items-center justify-center rounded bg-background/90 text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground"
-                            :title="t('grid.cellDetails')"
-                            @mousedown.stop
-                            @click.stop="showTransposeCellDetails(cell.recordIndex, cell.valueIndex)"
-                          >
-                            <Info class="h-3 w-3" />
                           </button>
                         </div>
                       </template>
@@ -12002,9 +11441,8 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                       >
                         <LightDropdownMenu
                           v-if="headerColumnSortable(col.actualColIdx)"
-                          :items="sortMenuItems(col.name, col.actualColIdx)"
+                          :items="headerSortMenuItems(col.name, col.actualColIdx)"
                           :open="headerSortMenuOpenColumn === col.actualColIdx"
-                          :selected-value="selectedSortMenuValue(col.name, col.actualColIdx)"
                           check-position="none"
                           align="end"
                           content-class="w-max min-w-28 p-0.5"
@@ -12012,17 +11450,19 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                           item-icon-class="h-3 w-3"
                           :match-trigger-width="false"
                           @update:open="(value: boolean) => (headerSortMenuOpenColumn = value ? col.actualColIdx : null)"
-                          @select="(value: string) => selectHeaderSort(value, col.name, col.actualColIdx)"
+                          @select="() => clearHeaderSort(col.name, col.actualColIdx)"
                         >
-                          <template #trigger="{ open, toggle }">
+                          <template #trigger="{ open }">
                             <button
                               type="button"
                               class="flex h-4 w-4 shrink-0 items-center justify-center rounded"
                               :class="columnIsSorted(col.name, col.actualColIdx) ? 'bg-primary text-primary-foreground opacity-100 shadow-sm hover:bg-primary/90' : 'text-muted-foreground opacity-80 hover:bg-accent hover:text-foreground'"
+                              :data-column-hover-only="columnIsSorted(col.name, col.actualColIdx) ? undefined : 'true'"
                               :title="t('grid.sort')"
                               :aria-expanded="open"
                               @mousedown.stop
-                              @click.stop="toggle"
+                              @click.stop="toggleHeaderSort(col.name, col.actualColIdx)"
+                              @contextmenu.prevent.stop="openHeaderSortMenu(col.actualColIdx)"
                             >
                               <ArrowUp v-if="columnIsSorted(col.name, col.actualColIdx) && sortDir === 'asc'" class="h-3 w-3 shrink-0" />
                               <ArrowDown v-else-if="columnIsSorted(col.name, col.actualColIdx) && sortDir === 'desc'" class="h-3 w-3 shrink-0" />
@@ -12041,13 +11481,14 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                           item-icon-class="h-3 w-3"
                           :match-trigger-width="false"
                           @update:open="(value: boolean) => (headerActionMenuOpenColumn = value ? col.actualColIdx : null)"
-                          @select="(value: string) => selectCompactColumnAction(value, col.actualColIdx)"
+                          @select="(value: string) => selectCompactColumnAction(value, col.name, col.actualColIdx)"
                         >
                           <template #trigger="{ open, toggle }">
                             <button
                               type="button"
                               class="flex h-4 w-4 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-foreground"
                               :class="columnHasFormatter(col.actualColIdx) || localFilterActive(col.actualColIdx) ? 'text-primary opacity-90' : 'opacity-80'"
+                              data-column-hover-only
                               :title="t('grid.columnActions')"
                               :aria-expanded="open"
                               @click.stop="toggle"
@@ -12065,6 +11506,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                               type="button"
                               class="flex h-4 w-4 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-foreground"
                               :class="columnHasFormatter(col.actualColIdx) ? 'text-primary opacity-100' : 'opacity-80'"
+                              data-column-hover-only
                               :disabled="!formatterKeyForColumn(col.actualColIdx)"
                               :title="t('grid.columnFormatter')"
                               @click.stop
@@ -12567,16 +12009,16 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                         @paste.stop="onCellEditTextareaPaste"
                       />
                     </div>
-                    <div v-if="canvasDetailButtonCell" class="absolute pointer-events-auto z-20 flex -translate-y-1/2 items-center gap-1" :style="canvasDetailButtonStyle" @mouseenter="keepCanvasDetailHover" @mouseleave="clearCanvasDetailHover">
+                    <div v-if="canvasActionOverlayCell" class="absolute pointer-events-auto z-20 flex -translate-y-1/2 items-center gap-1" :style="canvasActionOverlayStyle" @mouseenter="keepCanvasActionHover" @mouseleave="clearCanvasActionHover">
                       <LightDropdownMenu
-                        v-if="canvasDetailButtonCell.canQuickDownload"
+                        v-if="canvasActionOverlayCell.canQuickDownload"
                         :items="binaryCellDownloadMenuItems"
-                        :open="quickDownloadMenuOpenFor(canvasDetailButtonCell.rowIndex, canvasDetailButtonCell.actualColIdx)"
+                        :open="quickDownloadMenuOpenFor(canvasActionOverlayCell.rowIndex, canvasActionOverlayCell.actualColIdx)"
                         align="end"
                         content-class="w-44"
                         :match-trigger-width="false"
-                        @update:open="(value: boolean) => handleQuickDownloadMenuOpenChange(value, canvasDetailButtonCell!.rowIndex, canvasDetailButtonCell!.actualColIdx)"
-                        @select="(mode: string) => downloadCellBinaryValue(canvasDetailButtonCell!.rowIndex, canvasDetailButtonCell!.actualColIdx, mode as BinaryCellDownloadMode)"
+                        @update:open="(value: boolean) => handleQuickDownloadMenuOpenChange(value, canvasActionOverlayCell!.rowIndex, canvasActionOverlayCell!.actualColIdx)"
+                        @select="(mode: string) => downloadCellBinaryValue(canvasActionOverlayCell!.rowIndex, canvasActionOverlayCell!.actualColIdx, mode as BinaryCellDownloadMode)"
                       >
                         <template #trigger="{ open, toggle }">
                           <button class="flex h-5 w-5 items-center justify-center rounded bg-background/90 text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground" :title="t('grid.downloadBinaryValue')" :aria-expanded="open" @mousedown.stop @click.stop="toggle">
@@ -12585,36 +12027,27 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                         </template>
                       </LightDropdownMenu>
                       <button
-                        v-if="canvasDetailButtonCell.externalUrl"
+                        v-if="canvasActionOverlayCell.externalUrl"
                         class="flex h-5 w-5 items-center justify-center rounded bg-background/90 text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground"
                         :title="t('grid.openUrl')"
                         :aria-label="t('grid.openUrl')"
                         @mousedown.stop
-                        @click.stop="openCellExternalUrl(canvasDetailButtonCell.rowIndex, canvasDetailButtonCell.actualColIdx)"
+                        @click.stop="openCellExternalUrl(canvasActionOverlayCell.rowIndex, canvasActionOverlayCell.actualColIdx)"
                       >
                         <ExternalLink class="h-3 w-3" />
                       </button>
                       <button
-                        v-if="canvasDetailButtonCell.foreignKey"
+                        v-if="canvasActionOverlayCell.foreignKey"
                         class="flex h-5 w-5 items-center justify-center rounded bg-background/90 text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground"
                         :title="
                           t('grid.foreignKeyNavigate', {
-                            table: canvasDetailButtonCell.foreignKey.ref_table,
+                            table: canvasActionOverlayCell.foreignKey.ref_table,
                           })
                         "
                         @mousedown.stop
-                        @click.stop="navigateToForeignKeyCell(canvasDetailButtonCell.rowIndex, canvasDetailButtonCell.actualColIdx)"
+                        @click.stop="navigateToForeignKeyCell(canvasActionOverlayCell.rowIndex, canvasActionOverlayCell.actualColIdx)"
                       >
                         <ArrowUpRight class="h-3 w-3" />
-                      </button>
-                      <button
-                        v-if="cellDetailButtonEnabled"
-                        class="flex h-5 w-5 items-center justify-center rounded bg-background/90 text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground"
-                        :title="t('grid.cellDetails')"
-                        @mousedown.stop
-                        @click.stop="showCellDetailsForVisibleCell(canvasDetailButtonCell.rowIndex, canvasDetailButtonCell.visibleColIdx, canvasDetailButtonCell.actualColIdx)"
-                      >
-                        <Info class="h-3 w-3" />
                       </button>
                     </div>
                   </div>
@@ -12808,7 +12241,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                             <span class="text-muted-foreground/70 italic">{{ firstLineCellDisplayValue(newRowCellPlaceholder(item, col.actualColIdx) ?? "", flatteningMultiLineEnabled) }}</span>
                           </template>
                           <template v-else>{{ firstLineCellDisplayValue(formatGridItemCell(item, col.actualColIdx), flatteningMultiLineEnabled) }}</template>
-                          <div v-if="cellDetailButtonVisible(item.displayIndex, col.actualColIdx)" class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+                          <div v-if="cellActionOverlayVisible(item.displayIndex, col.actualColIdx)" class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
                             <LightDropdownMenu
                               v-if="canQuickDownloadCellValue(item.displayIndex, col.actualColIdx)"
                               :items="binaryCellDownloadMenuItems"
@@ -12834,15 +12267,6 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                               @click.stop="openCellExternalUrl(item.displayIndex, col.actualColIdx)"
                             >
                               <ExternalLink class="h-3 w-3" />
-                            </button>
-                            <button
-                              v-if="cellDetailButtonEnabled"
-                              class="flex h-5 w-5 items-center justify-center rounded bg-background/90 text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground"
-                              :title="t('grid.cellDetails')"
-                              @mousedown.stop
-                              @click.stop="showCellDetailsForVisibleCell(item.displayIndex, col.visibleColIdx, col.actualColIdx)"
-                            >
-                              <Info class="h-3 w-3" />
                             </button>
                           </div>
                         </template>
@@ -12895,14 +12319,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
             </template>
           </div>
           <!-- Table Info Drawer -->
-          <div
-            v-if="showTableInfo"
-            data-native-clipboard
-            class="table-info-drawer relative col-start-2 row-start-1 border-l flex flex-col bg-background min-w-0 max-w-full"
-            :class="[{ 'row-span-2': cellDetailPanelIsBottom }, { 'ddl-drawer-resizing': isResizingDdl }]"
-            :style="ddlDrawerStyle"
-            @contextmenu="onDrawerContextMenu"
-          >
+          <div v-if="showTableInfo" data-native-clipboard class="table-info-drawer relative col-start-2 row-start-1 border-l flex flex-col bg-background min-w-0 max-w-full" :class="{ 'ddl-drawer-resizing': isResizingDdl }" :style="ddlDrawerStyle" @contextmenu="onDrawerContextMenu">
             <div class="absolute left-0 top-0 bottom-0 z-20 w-1.5 -translate-x-1/2 cursor-col-resize" @mousedown.prevent="onDdlResizeStart" />
             <div class="flex items-center gap-2 px-3 py-1.5 border-b shrink-0 bg-muted/20 h-9">
               <TableProperties class="w-3.5 h-3.5 text-muted-foreground" />
@@ -13032,126 +12449,6 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
               <Loader2 class="w-4 h-4 animate-spin text-muted-foreground" />
             </div>
           </div>
-          <!-- Cell Detail Drawer -->
-          <div
-            v-if="showCellDetail && activeCellDetail"
-            class="relative flex flex-col bg-background min-w-0"
-            :class="[cellDetailPanelIsBottom ? 'col-start-1 row-start-2 border-t' : 'col-start-3 row-start-1 border-l', { 'detail-drawer-resizing': isResizingDetail }]"
-            :style="detailPanelStyle"
-            @contextmenu="onDrawerContextMenu"
-          >
-            <div v-if="!cellDetailPanelIsBottom" class="absolute left-0 top-0 bottom-0 z-20 w-1.5 -translate-x-1/2 cursor-col-resize hover:bg-primary/30" @mousedown.prevent="onDetailResizeStart" />
-            <div v-else class="data-grid-detail-resize-handle data-grid-detail-resize-handle--bottom absolute left-0 right-0 top-0 z-20 h-2 -translate-y-1/2 cursor-row-resize" @mousedown.prevent="onDetailResizeStart" />
-            <Tabs v-model="activeCellDetailTab" class="min-w-0 flex-1 min-h-0 gap-0">
-              <DataGridCellDetailHeader
-                :metadata-collapsed="cellDetailMetadataCollapsed"
-                :panel-is-bottom="cellDetailPanelIsBottom"
-                :active-tabs="activeCellDetailTabs"
-                @toggle-metadata="toggleCellDetailMetadataCollapsed"
-                @toggle-layout="toggleCellDetailPanelLayout"
-                @open-cell-details="openActiveCellDetailDialog"
-                @open-row-details="openActiveRowDetailDialog"
-                @open-column-details="openActiveColumnDetailDialog"
-                @close="closeCellDetails"
-              />
-
-              <DataGridCellDetailPanel
-                v-if="activeCellDetail"
-                ref="cellDetailPanelRef"
-                v-model:value="detailEditValue"
-                :detail="activeCellDetail"
-                :panel-is-bottom="cellDetailPanelIsBottom"
-                :metadata-collapsed="cellDetailMetadataCollapsed"
-                :value-fills-height="sideDetailValueFillsHeight"
-                :editing="isEditingDetail"
-                :editor-style="sideDetailEditorStyle"
-                :temporal-editor-config="detailTemporalEditorConfig"
-                :side-json-view="sideDetailJsonView"
-                :show-compact-json="showCompactDetailJson"
-                :can-compact-json="canCompactDetailJson"
-                :show-compare-json="showDetailJsonCompare"
-                :can-compare-json="canCompareDetailJson"
-                :type-color-class="typeColorClass"
-                :can-download-binary-value="canDownloadDetailBinaryValue"
-                :download-binary-value="downloadDetailBinaryValue"
-                :can-import-binary-value="canImportDetailBinaryValue"
-                :import-binary-value="importDetailBinaryValue"
-                :open-image-preview="openImagePreview"
-                :can-copy-sql-condition="canCopyPreparedDetailSqlCondition"
-                :database-type="resolvedDatabaseType"
-                @start-edit="startDetailEdit"
-                @compact-json="compactDetailJson"
-                @compare-json="openDetailJsonCompare"
-                @toggle-formatted="toggleCellDetailJsonFormatted"
-                @copy-value="copyDetailCurrentValue"
-                @commit="commitDetailEdit"
-                @cancel="cancelDetailEdit"
-                @set-null="setDetailNull"
-                @copy-column-name="copyDetailColumnName"
-                @copy-sql-condition="copyDetailSqlCondition"
-              />
-              <DataGridCellDetailHexViewer v-if="activeCellDetailTabs.includes('hexViewer')" :rows="activeBinaryHexRows" :byte-count="activeBinaryHexByteCount" />
-
-              <TabsContent v-if="activeCellDetailTabs.includes('valueEditor')" value="valueEditor" class="m-0 min-h-0 min-w-0 flex-1 flex flex-col p-3 text-xs">
-                <div class="min-w-0 flex min-h-0 flex-1 flex-col">
-                  <TemporalCellEditor
-                    v-if="detailTemporalEditorConfig"
-                    v-model="detailEditValue"
-                    :kind="detailTemporalEditorConfig.kind"
-                    :fraction-precision="detailTemporalEditorConfig.fractionPrecision"
-                    variant="inline"
-                    :commit-on-close="false"
-                    @cancel="cancelValueEditorEdit"
-                    @commit="commitValueEditorEdit"
-                  />
-                  <div v-else ref="valueEditorContainer" data-cell-detail-editor-root class="min-h-0 min-w-0 flex-1 w-full rounded border overflow-auto" />
-                </div>
-                <div class="min-w-0 flex flex-wrap gap-1 mt-2 shrink-0">
-                  <DataGridValueTransform
-                    v-if="activeCellDetail && !isBinaryCellColumnType(activeCellDetail.type)"
-                    v-model:open="detailTransformOpen"
-                    :source="isEditingDetail && !((activeCellDetail.isNull ?? activeCellDetail.value === null) && detailEditValue === detailEditOriginalValue) ? detailEditValue : null"
-                    :identity="`${activeCellDetail.rowId}:${activeCellDetail.colIndex}:${activeCellDetailTab}`"
-                    :incomplete="activeCellDetail.isSourceTruncated"
-                    :unsafe-number="typeof activeCellDetail.value === 'number' && Number.isInteger(activeCellDetail.value) && !Number.isSafeInteger(activeCellDetail.value) && detailEditValue === activeCellDetail.rawValue"
-                  />
-                  <DropdownMenu v-if="activeCellDetail?.isEditable">
-                    <DropdownMenuTrigger as-child>
-                      <Button variant="outline" size="sm" class="h-6 gap-1 text-xs" @mousedown.prevent>
-                        <WandSparkles class="h-3 w-3" />
-                        {{ t("grid.generateValue") }}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" class="w-44">
-                      <DropdownMenuItem @click="applyGeneratedDetailValue('empty')">{{ t("grid.generateEmptyString") }}</DropdownMenuItem>
-                      <DropdownMenuItem @click="applyGeneratedDetailValue('null')">{{ t("grid.generateNull") }}</DropdownMenuItem>
-                      <DropdownMenuItem @click="applyGeneratedDetailValue('datetime')">{{ t("grid.generateCurrentDatetime") }}</DropdownMenuItem>
-                      <DropdownMenuItem @click="applyGeneratedDetailValue('date')">{{ t("grid.generateCurrentDate") }}</DropdownMenuItem>
-                      <DropdownMenuItem @click="applyGeneratedDetailValue('uuid')">{{ t("grid.generateUuidV4") }}</DropdownMenuItem>
-                      <DropdownMenuItem @click="applyGeneratedDetailValue('uuid-v7')">{{ t("grid.generateUuidV7") }}</DropdownMenuItem>
-                      <DropdownMenuItem @click="applyGeneratedDetailValue('snowflake')">{{ t("grid.generateSnowflakeId") }}</DropdownMenuItem>
-                      <DropdownMenuItem @click="openGenerateIncrementDialog('detail')">{{ t("grid.generateIncrementId") }}</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <Button v-if="activeValueEditorActions.includes('formatJson')" variant="outline" size="sm" class="h-6 text-xs" @mousedown.prevent @click="formatValueEditorJson">
-                    {{ t("grid.formatJson") }}
-                  </Button>
-                  <Button v-if="activeValueEditorActions.includes('compactJson')" variant="outline" size="sm" class="h-6 text-xs" @mousedown.prevent @click="compactDetailJson">
-                    {{ t("grid.compactJson") }}
-                  </Button>
-                  <Button v-if="showDetailJsonCompare" variant="outline" size="sm" class="h-6 text-xs" :disabled="!canCompareDetailJson" @mousedown.prevent @click="openDetailJsonCompare">
-                    {{ t("grid.compareJson") }}
-                  </Button>
-                  <Button v-if="activeValueEditorActions.includes('setNull')" variant="outline" size="sm" class="h-6 text-xs" @mousedown.prevent @click="setValueEditorNull">
-                    {{ t("grid.setNull") }}
-                  </Button>
-                  <Button v-if="activeValueEditorActions.includes('restoreOriginal')" variant="outline" size="sm" class="h-6 text-xs" @mousedown.prevent @click="restoreDetailOriginalValue">
-                    {{ t("grid.restoreOriginalValue") }}
-                  </Button>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
           <DataGridMongoJsonPreview
             v-if="mongoJsonPreviewOpen"
             :full-text="mongoJsonPreviewFullText"
@@ -13272,10 +12569,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
       :can-import-binary-value="canImportDetailBinaryValue"
       :import-binary-value="importDetailBinaryValue"
       :database-type="resolvedDatabaseType"
-      @edit="openDialogCellInSidePanel"
     />
-
-    <DataGridValueDiffDialog v-if="detailValueDiffSnapshot" v-model:open="detailValueDiffOpen" :snapshot="detailValueDiffSnapshot" />
 
     <DataGridDetailDialogs
       v-if="detailDialogsMounted"
@@ -13373,7 +12667,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
           <p class="text-sm text-muted-foreground">
             {{
               t("grid.generateSequenceDescription", {
-                count: generateIncrementTarget === "detail" ? 1 : editableSelectionCells().length,
+                count: editableSelectionCells().length,
               })
             }}
           </p>
@@ -13876,29 +13170,6 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
   top: 2px;
   height: 6px;
   background: var(--data-grid-scrollbar-thumb-hover);
-}
-
-.data-grid-detail-resize-handle--bottom {
-  background: transparent;
-}
-
-.data-grid-detail-resize-handle--bottom::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 42px;
-  height: 2px;
-  border-radius: 999px;
-  background: var(--data-grid-scrollbar-thumb-hover);
-  opacity: 0;
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-  transition: opacity 120ms ease;
-}
-
-.detail-drawer-resizing > .data-grid-detail-resize-handle--bottom::after {
-  opacity: 0.7;
 }
 
 .data-grid-vertical-scrollbar {

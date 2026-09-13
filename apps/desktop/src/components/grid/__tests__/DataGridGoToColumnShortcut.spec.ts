@@ -235,7 +235,7 @@ describe("DataGrid go-to-column shortcut", () => {
   });
 
   it("opens the existing popover through the shared grid action", () => {
-    const keydown = functionBody("onGridKeydown", "copyDetailValue");
+    const keydown = functionBody("onGridKeydown", "detailClipboardText");
 
     expect(dataGridSource).toMatch(/<div\b(?=[^>]*\bdata-grid-root)(?=[^>]*\btabindex="0")(?=[^>]*@keydown="onGridKeydown")[^>]*>/);
     expect(keydown).toMatch(
@@ -246,7 +246,7 @@ describe("DataGrid go-to-column shortcut", () => {
   });
 
   it("keeps editable targets available for the application-level fallback", () => {
-    const keydown = functionBody("onGridKeydown", "copyDetailValue");
+    const keydown = functionBody("onGridKeydown", "detailClipboardText");
     const shortcutStart = keydown.indexOf("if (!targetAllowsNativeClipboard && isGoToColumnShortcut");
     const shortcutEnd = keydown.indexOf("if (isFocusSearchShortcut", shortcutStart);
     const shortcutBranch = keydown.slice(shortcutStart, shortcutEnd);
@@ -258,7 +258,7 @@ describe("DataGrid go-to-column shortcut", () => {
   });
 
   it("gives the data-tab fallback priority over conflicting global shortcuts", () => {
-    const keydown = functionBody("onGridKeydown", "copyDetailValue");
+    const keydown = functionBody("onGridKeydown", "detailClipboardText");
 
     expect(keydown).toMatch(/if \(isFocusSearchShortcut\(event\) && !isGoToColumnShortcut\(event, settingsStore\.editorSettings\.shortcuts\)\)/);
     expect(appSource).toMatch(

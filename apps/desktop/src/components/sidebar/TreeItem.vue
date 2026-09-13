@@ -47,7 +47,6 @@ import DatabaseIcon from "@/components/icons/DatabaseIcon.vue";
 import ConnectionErrorIndicator from "@/components/connection/ConnectionErrorIndicator.vue";
 import ReadOnlySessionControl from "@/components/connection/ReadOnlySessionControl.vue";
 import ProductionContextBadge from "@/components/common/ProductionContextBadge.vue";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import LightTooltip from "@/components/ui/LightTooltip.vue";
@@ -1626,12 +1625,9 @@ function onKeydown(event: KeyboardEvent) {
               class="text-muted-foreground text-[10px] shrink-0"
               >{{ node.objectCount }}<span v-if="hasActiveObjectNameFilter(node)"> · {{ t("tree.tableNameFilterActive") }}</span></span
             >
-            <Badge v-if="isNodeDefaultDatabase" variant="secondary" class="h-4 px-1.5 text-[10px]">
-              {{ t("editor.defaultDatabase") }}
-            </Badge>
-            <Badge v-if="isNodeDefaultSchema()" variant="secondary" class="h-4 px-1.5 text-[10px]">
-              {{ t("editor.defaultSchema") }}
-            </Badge>
+            <!-- 「默认库 / 默认 Schema」是静态信息，降级为普通灰字，不再用带底色的徽章抢占注意力。 -->
+            <span v-if="isNodeDefaultDatabase" class="shrink-0 text-[10px] text-muted-foreground">{{ t("editor.defaultDatabase") }}</span>
+            <span v-if="isNodeDefaultSchema()" class="shrink-0 text-[10px] text-muted-foreground">{{ t("editor.defaultSchema") }}</span>
           </div>
           <span v-if="trailingComment && !isRightAlignedComment()" class="sidebar-object-comment ml-4 min-w-0 flex-1 truncate text-left" :class="{ 'sidebar-object-comment--windows': useWindowsSidebarCommentFont }">{{ trailingComment }}</span>
           <span v-if="isRightAlignedComment() && trailingCommentMaxWidth > 0" class="min-w-0 flex-1" aria-hidden="true" />

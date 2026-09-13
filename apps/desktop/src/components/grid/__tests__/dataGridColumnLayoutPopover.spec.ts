@@ -141,9 +141,7 @@ afterEach(() => {
 });
 
 describe("data grid column layout popover", () => {
-  it("is available from the query result toolbar and keeps a labelled compact trigger", async () => {
-    expect(contentAreaSource).toContain('<DataGridColumnLayoutPopover :grid="dataGridRef" :compact="compact" />');
-
+  it("keeps an icon-only compact trigger and a labelled regular trigger", async () => {
     const gridState = createGrid(4);
     const host = document.createElement("div");
     document.body.append(host);
@@ -156,14 +154,25 @@ describe("data grid column layout popover", () => {
     const trigger = [...host.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.getAttribute("aria-label") === i18n.global.t("grid.columnVisibility"));
     expect(trigger?.className).toContain("w-6");
     expect(trigger?.textContent?.trim()).toBe("");
+
+    const labelledHost = document.createElement("div");
+    document.body.append(labelledHost);
+    const labelledApp = createApp(DataGridColumnLayoutPopover, { grid: gridState.grid, compact: false });
+    labelledApp.use(i18n);
+    labelledApp.mount(labelledHost);
+    mountedApps.push({ app: labelledApp, host: labelledHost });
+    await nextTick();
+
+    const labelledTrigger = [...labelledHost.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.getAttribute("aria-label") === i18n.global.t("grid.columnVisibility"));
+    expect(labelledTrigger?.textContent).toContain(i18n.global.t("grid.columnVisibility"));
   });
 
-  it("sits in the row-number header of the table data grid instead of its top toolbar", () => {
+  it("sits in the row-number header of both grids instead of their top toolbars", () => {
     const dataGridViewSource = readFileSync(path.resolve(process.cwd(), "apps/desktop/src/components/grid/DataGrid.vue"), "utf8");
 
-    expect(contentAreaSource).not.toContain('<DataGridColumnLayoutPopover v-if="activeTab.result?.columns.length" :grid="dataGridRef" trigger-class="px-1.5" />');
-    expect(contentAreaSource).toContain('<DataGridColumnLayoutPopover :grid="dataGridRef" compact content-align="start" trigger-class="text-muted-foreground" />');
-    expect(contentAreaSource).toMatch(/#row-number-header>\s*<DataGridColumnLayoutPopover/);
+    // The trigger replaced the "#" row-number header, so no grid keeps a toolbar copy.
+    expect(contentAreaSource).not.toMatch(/<DataGridColumnLayoutPopover[^>]*:compact="compact"/);
+    expect(contentAreaSource.match(/#row-number-header>\s*<DataGridColumnLayoutPopover :grid="dataGridRef" compact content-align="start" trigger-class="text-muted-foreground" \/>/g)).toHaveLength(2);
     expect(dataGridViewSource).toMatch(/<span v-if="\$slots\['row-number-header'\]"[\s\S]*?<slot name="row-number-header" \/>/);
   });
 

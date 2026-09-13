@@ -2,7 +2,7 @@
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { translateBackendError } from "@/i18n/backend-errors";
-import { Upload, Download, ArrowDownUp, FolderPlus, FolderOpen, RefreshCw, ChevronsLeft, ChevronsDownUp, Trash2, FolderInput, Check, Minus, Square, X } from "@lucide/vue";
+import { FolderPlus, FolderOpen, RefreshCw, ChevronsLeft, Trash2, FolderInput, Check, Minus, Square, X } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
+  // 工具栏已无导入/导出触发点，App.vue 仍在监听这两个事件
   import: [source: "dbx" | "navicat" | "dbeaver" | "datagrip"];
   export: [];
   startResize: [event: MouseEvent];
@@ -28,8 +29,6 @@ const emit = defineEmits<{
   "open-settings": [initialTab: string];
   "add-to-ai": [nodes: TreeNode | TreeNode[]];
 }>();
-
-type ImportSource = "dbx" | "navicat" | "dbeaver" | "datagrip";
 
 const { t } = useI18n();
 const connectionStore = useConnectionStore();
@@ -39,26 +38,6 @@ const showDeleteSelectedConfirm = ref(false);
 const showCreateSelectedGroupDialog = ref(false);
 const selectedGroupName = ref("");
 const UNGROUPED_GROUP_VALUE = "__ungrouped";
-const importSourceItems = computed(() => [
-  { value: "dbx", label: t("sidebar.importDbx") },
-  { value: "navicat", label: t("sidebar.importNavicat") },
-  { value: "dbeaver", label: t("sidebar.importDbeaver") },
-  { value: "datagrip", label: t("sidebar.importDatagrip") },
-]);
-const connectionTransferItems = computed(() => [
-  ...importSourceItems.value.map((item) => ({
-    ...item,
-    value: `import:${item.value}`,
-    icon: Download,
-  })),
-  {
-    value: "export",
-    label: t("sidebar.export"),
-    icon: Upload,
-    separatorBefore: true,
-  },
-]);
-const connectionTransferLabel = computed(() => t("sidebar.importExport"));
 const connectionIdSet = computed(() => new Set(connectionStore.connections.map((connection) => connection.id)));
 const allConnectionIds = computed(() => connectionStore.connections.map((connection) => connection.id));
 const selectedConnectionIds = computed(() => (connectionStore.connectionMultiSelectActive ? connectionStore.selectedTreeNodeIds.filter((id) => connectionIdSet.value.has(id)) : []));
@@ -92,22 +71,6 @@ async function refreshTree() {
 
 function createNewGroup() {
   void connectionTreeRef.value?.createNewGroup();
-}
-
-function selectImportSource(source: string) {
-  emit("import", source as ImportSource);
-}
-
-function selectConnectionTransferAction(action: string) {
-  if (action === "export") {
-    emit("export");
-    return;
-  }
-  if (action.startsWith("import:")) selectImportSource(action.slice("import:".length));
-}
-
-function collapseAllTreeNodes() {
-  connectionTreeRef.value?.collapseAllTreeNodes();
 }
 
 function focusSearch(): boolean {
@@ -206,25 +169,6 @@ defineExpose({ focusSearch, locateTabInSidebar });
             {{ t("connectionGroup.selectedConnections", { count: selectedConnectionCount }) }}
           </span>
         </span>
-        <LightDropdown
-          v-else
-          model-value=""
-          :items="connectionTransferItems"
-          :aria-label="connectionTransferLabel"
-          :trigger-title="connectionTransferLabel"
-          :trigger-icon="ArrowDownUp"
-          :trigger-label="connectionTransferLabel"
-          trigger-class="inline-flex h-7 min-w-0 items-center gap-1 rounded-md px-1 outline-none hover:bg-muted hover:text-foreground focus-visible:ring-0"
-          trigger-icon-class="h-3.5 w-3.5 shrink-0"
-          item-icon-class="h-3.5 w-3.5"
-          content-class="w-48"
-          :show-trigger-label="true"
-          :show-chevron="true"
-          :highlight-selected="false"
-          check-position="none"
-          align="start"
-          @update:model-value="selectConnectionTransferAction"
-        />
         <span class="flex-1 self-stretch" data-tauri-drag-region />
         <template v-if="showConnectionMultiSelectToolbar">
           <LightTooltip :text="t('connectionGroup.createGroup')" side="bottom" :delay="0" :close-delay="0" nowrap>
@@ -269,11 +213,6 @@ defineExpose({ focusSearch, locateTabInSidebar });
         </template>
         <template v-else>
           <span data-sidebar-toolbar-actions class="flex shrink-0 items-center gap-0.5">
-            <LightTooltip :text="t('sidebar.collapseAll')" side="bottom" :delay="0" :close-delay="0" nowrap>
-              <Button variant="ghost" size="icon" class="h-5 w-5" @click="collapseAllTreeNodes">
-                <ChevronsDownUp class="h-3 w-3" />
-              </Button>
-            </LightTooltip>
             <LightTooltip :text="t('connectionGroup.createGroup')" side="bottom" :delay="0" :close-delay="0" nowrap>
               <Button variant="ghost" size="icon" class="h-5 w-5" @click="createNewGroup">
                 <FolderPlus class="h-3 w-3" />

@@ -12,6 +12,7 @@ import { useI18n } from "vue-i18n";
 import { provideTabUiState } from "@/lib/tabs/tabUiState";
 import { dataTableTabView } from "@/lib/tabs/dataTableView";
 import TableDataViewSwitcher from "@/components/layout/TableDataViewSwitcher.vue";
+import TableDataToolboxMenu from "@/components/grid/TableDataToolboxMenu.vue";
 import {
   Check,
   CheckSquare2,
@@ -26,10 +27,6 @@ import {
   Inbox,
   RefreshCcw,
   Wrench,
-  Toolbox,
-  Database,
-  Download,
-  Upload,
   X,
   Pin,
   Rows3,
@@ -53,7 +50,7 @@ import { DynamicScroller, DynamicScrollerItem } from "vue-virtual-scroller";
 import "splitpanes/dist/splitpanes.css";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import CustomContextMenu, { type ContextMenuItem } from "@/components/ui/CustomContextMenu.vue";
 import { Switch } from "@/components/ui/switch";
 import LightTooltip from "@/components/ui/LightTooltip.vue";
@@ -179,7 +176,6 @@ type DataGridHandle = DataGridColumnLayoutHandle & {
   onToolbarRefresh: () => Promise<void> | void;
   focusSearch: () => boolean;
   openGoToColumn: () => boolean;
-  openCellDetailSearch: () => boolean;
   nullColumnsHidden: boolean;
   allNullColumnCount: number;
   canToggleAllNullColumns: boolean;
@@ -864,6 +860,16 @@ function handleTableDataGenerate() {
   };
 }
 
+/** 「数据工具」菜单里的导出项：表格数据视图与导出入口分开，这里转发给网格实例。 */
+function handleTableToolboxExport(format: "csv" | "json" | "sql" | "xlsx") {
+  const grid = dataGridRef.value;
+  if (!grid) return;
+  if (format === "csv") void grid.exportCsv();
+  else if (format === "json") void grid.exportJson();
+  else if (format === "sql") void grid.exportSql();
+  else void grid.exportXlsx();
+}
+
 // Column info panel handlers
 async function onHandleClickColumn(matchedCols: Array<{ name: string; table: string; schema?: string }>, errorMsg?: string) {
   if (!props.activeTab.connectionId || !props.activeTab.database) return;
@@ -1192,7 +1198,7 @@ function resumeBatchExecution(action: BatchSqlRecoveryAction) {
 
 function handleModRTarget(target: Element): boolean {
   if (target.closest("[data-query-editor-root]")) return queryEditorRef.value?.openReplace() ?? false;
-  if (target.closest("[data-cell-detail-editor-root]")) return dataGridRef.value?.openCellDetailSearch() ?? false;
+  if (target.closest("[data-cell-detail-editor-root]")) return false;
   if (target.closest("[data-grid-root], [data-elasticsearch-json-response-root]")) return refreshData();
   if (canReloadUnavailableDataTab(props.activeTab)) return refreshData();
   return false;
@@ -1975,7 +1981,6 @@ defineExpose({
                   </template>
                 </template>
                 <template #result-toolbar-actions="{ compact }">
-                  <DataGridColumnLayoutPopover :grid="dataGridRef" :compact="compact" />
                   <QueryResultToolbarActions
                     :active-view="activeOutputView"
                     :can-show-explain="canShowExplainOutput"
@@ -1987,6 +1992,9 @@ defineExpose({
                     @select-profile="emit('update:activeOutputView', activeTab.id, 'profile')"
                     @export-archive="exportResultArchive"
                   />
+                </template>
+                <template v-if="activeTab.result?.columns.length" #row-number-header>
+                  <DataGridColumnLayoutPopover :grid="dataGridRef" compact content-align="start" trigger-class="text-muted-foreground" />
                 </template>
                 <template v-if="activeTab.result && isQueryExecutionErrorResult(activeTab.result)" #error-actions="{ errorMessage }">
                   <QueryErrorActions
@@ -2028,48 +2036,13 @@ defineExpose({
     <!-- Data mode: full-height grid -->
     <template v-else-if="activeTab.mode === 'data'">
       <div class="flex-1 min-h-0 flex flex-col">
-        <div ref="dataToolbarRef" class="h-9 shrink-0 border-b bg-background/80 px-3 flex items-center gap-2 text-xs overflow-hidden">
+        <!-- 视图切换与「数据工具」在数据视图里已并入网格顶栏（见 DataGrid 的 #topbar-leading），
+             这里只在「表结构」视图、以及网格未挂载（加载中 / 空 / 错误）时提供这条 32px 工具条，
+             保证切换入口始终可达。 -->
+        <div v-if="activeTableDataView === 'structure' || !activeTab.result" ref="dataToolbarRef" class="h-8 shrink-0 border-b bg-background/80 px-3 flex items-center gap-2 text-xs overflow-hidden">
           <TableDataViewSwitcher :active-view="activeTableDataView" @select-view="selectTableDataView" />
           <span class="ml-auto" />
-          <template v-if="activeTableDataView === 'data'">
-            <DropdownMenu v-if="activeTab.result && activeDataTabTableMeta && activeTab.connectionId">
-              <DropdownMenuTrigger as-child>
-                <Button variant="ghost" size="sm" class="h-5 text-xs px-1.5 shrink-0" :title="t('tableToolbox.title')"
-                  ><Toolbox class="h-3.5 w-3.5" /><span v-if="!dataToolbarCompact">{{ t("tableToolbox.title") }}</span></Button
-                >
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" class="w-max min-w-44 gap-0 overflow-hidden rounded-md border bg-popover p-0 text-popover-foreground shadow-xl">
-                <div class="border-b bg-muted/40 px-3 py-2">
-                  <div class="text-xs font-semibold">{{ t("tableToolbox.title") }}</div>
-                </div>
-                <div class="p-1">
-                  <DropdownMenuItem class="gap-2" @click="handleTableDataGenerate">
-                    <Database class="h-4 w-4" />
-                    {{ t("tableToolbox.generateData") }}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem class="gap-2" @click="handleTableImport">
-                    <Download class="h-4 w-4" />
-                    {{ t("tableToolbox.importData") }}
-                  </DropdownMenuItem>
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger class="gap-2">
-                      <Upload class="h-4 w-4" />
-                      {{ t("tableToolbox.exportData") }}
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuPortal>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem @click="dataGridRef?.exportCsv()"> CSV </DropdownMenuItem>
-                        <DropdownMenuItem @click="dataGridRef?.exportJson()"> JSON </DropdownMenuItem>
-                        <DropdownMenuItem @click="dataGridRef?.exportSql()"> SQL INSERT </DropdownMenuItem>
-                        <DropdownMenuItem @click="dataGridRef?.exportXlsx()"> XLSX </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuPortal>
-                  </DropdownMenuSub>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </template>
-          <template v-else>
+          <template v-if="activeTableDataView === 'structure'">
             <DropdownMenu>
               <DropdownMenuTrigger as-child>
                 <Button variant="ghost" size="sm" class="h-5 gap-1 px-1.5 text-xs shrink-0" :title="t('structureEditor.density')" :aria-label="t('structureEditor.density')">
@@ -2132,6 +2105,11 @@ defineExpose({
             @sort="(column: string, columnIndex: number, direction: 'asc' | 'desc' | null, whereInput?: string, mode?: DataGridSortMode) => emit('sort', activeTab.id, column, columnIndex, direction, whereInput, mode)"
             @change-query-timeout="(connectionId: string) => emit('openConnectionSettings', connectionId, 'advanced')"
           >
+            <template #topbar-leading="{ compact }">
+              <TableDataViewSwitcher :active-view="activeTableDataView" @select-view="selectTableDataView" />
+              <span class="h-4 w-px shrink-0 bg-border" aria-hidden="true" />
+              <TableDataToolboxMenu v-if="activeDataTabTableMeta && activeTab.connectionId" :compact="compact" @generate="handleTableDataGenerate" @import-data="handleTableImport" @export-data="handleTableToolboxExport" />
+            </template>
             <template v-if="activeTab.result?.columns.length" #row-number-header>
               <DataGridColumnLayoutPopover :grid="dataGridRef" compact content-align="start" trigger-class="text-muted-foreground" />
             </template>

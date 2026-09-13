@@ -1488,7 +1488,15 @@ watch([() => props.specialPageTabs?.settingsActive, () => props.specialPageTabs?
                             >
                               <Pin class="h-3 w-3 fill-current" aria-hidden="true" />
                             </button>
-                            <button v-if="!isTabBarCollapsed" class="rounded hover:bg-muted-foreground/20 p-0.5 shrink-0" :aria-label="t('contextMenu.closeTab')" :title="t('contextMenu.closeTab')" @pointerdown.stop @click.stop="closeTab(entry.tab)">
+                            <button
+                              v-if="!isTabBarCollapsed"
+                              class="shrink-0 rounded p-0.5 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:bg-muted-foreground/20"
+                              :class="isTabActive(entry.tab) ? 'opacity-60' : 'pointer-events-none opacity-0'"
+                              :aria-label="t('contextMenu.closeTab')"
+                              :title="t('contextMenu.closeTab')"
+                              @pointerdown.stop
+                              @click.stop="closeTab(entry.tab)"
+                            >
                               <X class="h-3 w-3" />
                             </button>
                           </div>

@@ -118,26 +118,12 @@ describe("EDITOR_SETTINGS_DRAFT_KEYS", () => {
     expect(EDITOR_SETTINGS_DRAFT_KEYS).toContain("multiStatementDefaultView");
   });
 
-  it("includes the cell detail button visibility", () => {
-    expect(EDITOR_SETTINGS_DRAFT_KEYS).toContain("dataGridCellDetailButtonVisible");
-  });
-
   it("includes completionTriggerMode", () => {
     expect(EDITOR_SETTINGS_DRAFT_KEYS).toContain("completionTriggerMode");
   });
 
   it("includes the SQL variable substitution master switch", () => {
     expect(EDITOR_SETTINGS_DRAFT_KEYS).toContain("sqlVariableSubstitutionEnabled");
-  });
-});
-
-describe("cell detail button settings control", () => {
-  it("binds the switch through apply and both reset paths", () => {
-    expect(settingsDialogSource).toContain("const editDataGridCellDetailButtonVisible = ref(settingsStore.editorSettings.dataGridCellDetailButtonVisible)");
-    expect(settingsDialogSource).toContain("dataGridCellDetailButtonVisible: editDataGridCellDetailButtonVisible.value");
-    expect(settingsDialogSource).toContain("editDataGridCellDetailButtonVisible.value = settingsStore.editorSettings.dataGridCellDetailButtonVisible");
-    expect(settingsDialogSource.match(/editDataGridCellDetailButtonVisible\.value = DEFAULT_EDITOR_SETTINGS\.dataGridCellDetailButtonVisible/g)).toHaveLength(2);
-    expect(settingsDialogSource).toContain('id="data-grid-cell-detail-button-visible" v-model="editDataGridCellDetailButtonVisible"');
   });
 });
 
@@ -321,13 +307,13 @@ describe("editorSettingsDraftChanged", () => {
 });
 
 describe("editorSettingsPatchFromDraft", () => {
-  it("applies, cancels, and re-enables the cell detail button visibility", () => {
-    const visible = editorSettingsDraftFromSettings(makeSettings({ dataGridCellDetailButtonVisible: true }));
-    const hidden = editorSettingsDraftFromSettings(makeSettings({ dataGridCellDetailButtonVisible: false }));
+  it("applies, cancels, and re-enables the data grid quick entry preference", () => {
+    const enabled = editorSettingsDraftFromSettings(makeSettings({ dataGridQuickEntry: true }));
+    const disabled = editorSettingsDraftFromSettings(makeSettings({ dataGridQuickEntry: false }));
 
-    expect(editorSettingsPatchFromDraft(hidden, visible)).toEqual({ dataGridCellDetailButtonVisible: false });
-    expect(editorSettingsPatchFromDraft(visible, visible)).toEqual({});
-    expect(editorSettingsPatchFromDraft(visible, hidden)).toEqual({ dataGridCellDetailButtonVisible: true });
+    expect(editorSettingsPatchFromDraft(disabled, enabled)).toEqual({ dataGridQuickEntry: false });
+    expect(editorSettingsPatchFromDraft(enabled, enabled)).toEqual({});
+    expect(editorSettingsPatchFromDraft(enabled, disabled)).toEqual({ dataGridQuickEntry: true });
   });
 
   it("includes the multi-statement default view when changed", () => {

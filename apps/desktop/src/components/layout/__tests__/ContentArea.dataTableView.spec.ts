@@ -15,9 +15,15 @@ vi.mock("@/components/grid/DataGrid.vue", () => ({
     inheritAttrs: false,
     props: { tableInfoTab: { type: String, default: undefined }, autoShowTableInfo: { type: Boolean, default: undefined } },
     setup:
-      (props, { attrs }) =>
+      (props, { attrs, slots }) =>
       () =>
-        h("div", { ...attrs, "data-data-grid": "", "data-table-info-tab": props.tableInfoTab, "data-auto-show-table-info": props.autoShowTableInfo }),
+        h(
+          "div",
+          { ...attrs, "data-data-grid": "", "data-table-info-tab": props.tableInfoTab, "data-auto-show-table-info": props.autoShowTableInfo },
+          // 视图切换与「数据工具」在数据视图里由网格顶栏的 #topbar-leading 插槽承载，
+          // 桩件要渲染它，断言才拿得到切换按钮（与线上结构一致）。
+          slots["topbar-leading"]?.({ compact: false }),
+        ),
   }),
 }));
 vi.mock("@/components/structure/TableStructureEditor.vue", () => ({

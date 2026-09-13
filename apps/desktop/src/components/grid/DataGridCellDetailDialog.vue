@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import DataGridValueTransform from "@/components/grid/DataGridValueTransform.vue";
 import { computed, nextTick, ref, watch } from "vue";
-import { Code2, Copy, Download, Eye, FileUp, Info, Pencil } from "@lucide/vue";
+import { Code2, Copy, Download, Eye, FileUp, Info } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -31,10 +31,6 @@ const props = defineProps<{
   importBinaryValue: (detail: DataGridCellDetail | null) => void | Promise<void>;
   /** BLOB 文本预览与编辑写回一致，仅在 MySQL 连接开启。 */
   databaseType?: DatabaseType;
-}>();
-
-const emit = defineEmits<{
-  edit: [];
 }>();
 
 const open = defineModel<boolean>("open", { default: false });
@@ -159,9 +155,6 @@ watch(
               <Button v-if="detail.formattedJson" :variant="jsonView ? 'secondary' : 'ghost'" size="sm" class="h-6 gap-1 px-2 text-xs" :title="t('grid.formattedJson')" @click="toggleJsonFormatted">
                 <Code2 class="h-3 w-3" />
                 {{ t("grid.formattedJson") }}
-              </Button>
-              <Button v-if="detail.isEditable" variant="ghost" size="icon" class="h-6 w-6" :title="t('grid.editValue')" @click="emit('edit')">
-                <Pencil class="h-3 w-3" />
               </Button>
               <Button variant="ghost" size="icon" class="h-6 w-6" :title="t('grid.copyValue')" @click="copyCurrentValue">
                 <Copy class="h-3 w-3" />

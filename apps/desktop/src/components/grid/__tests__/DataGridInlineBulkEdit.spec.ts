@@ -29,7 +29,7 @@ describe("DataGrid inline bulk editing", () => {
   });
 
   it("starts a cell editor instead of opening the bulk edit dialog", () => {
-    const keydown = functionBody("onGridKeydown", "copyDetailValue");
+    const keydown = functionBody("onGridKeydown", "detailClipboardText");
     expect(keydown).toContain("beginInlineBulkEdit(inlineBulkEditValue)");
     expect(keydown).not.toContain("openBulkEditDialog");
   });

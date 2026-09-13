@@ -253,7 +253,7 @@ describe("DataGrid edit-table-structure shortcut", () => {
 
   it("routes through the existing guarded action and keeps the button path", () => {
     const start = dataGridSource.indexOf("async function onGridKeydown");
-    const end = dataGridSource.indexOf("function copyDetailValue", start);
+    const end = dataGridSource.indexOf("function detailClipboardText", start);
     const keydown = dataGridSource.slice(start, end);
 
     expect(keydown).toMatch(

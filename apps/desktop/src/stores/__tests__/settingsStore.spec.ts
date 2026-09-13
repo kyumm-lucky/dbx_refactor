@@ -423,16 +423,6 @@ describe("normalizeEditorSettings", () => {
     expect(invalid.dataGridBooleanDisplayMode).toBe("dropdown");
   });
 
-  it("defaults the cell detail hover button on and preserves only boolean values", () => {
-    expect(normalizeEditorSettings({}).dataGridCellDetailButtonVisible).toBe(true);
-    expect(normalizeEditorSettings({ dataGridCellDetailButtonVisible: true }).dataGridCellDetailButtonVisible).toBe(true);
-    expect(normalizeEditorSettings({ dataGridCellDetailButtonVisible: false }).dataGridCellDetailButtonVisible).toBe(false);
-
-    for (const invalidValue of [0, 1, "false", null]) {
-      expect(normalizeEditorSettings({ dataGridCellDetailButtonVisible: invalidValue as never }).dataGridCellDetailButtonVisible).toBe(true);
-    }
-  });
-
   it("defaults the crosshair highlight off and preserves only boolean values", () => {
     expect(normalizeEditorSettings({}).dataGridCrosshairHighlight).toBe(false);
     expect(normalizeEditorSettings({ dataGridCrosshairHighlight: true }).dataGridCrosshairHighlight).toBe(true);
@@ -457,11 +447,6 @@ describe("normalizeEditorSettings", () => {
     expect(normalizeEditorSettings({ fontFamily: `'Fira Code', 'Cascadia Code', 'Cascadia Mono', 'JetBrains Mono', monospace` }).fontFamily).toBe(DEFAULT_EDITOR_FONT_FAMILY);
     // An explicit pick is left alone.
     expect(normalizeEditorSettings({ fontFamily: `'Fira Code', monospace` }).fontFamily).toBe(`'Fira Code', monospace`);
-  });
-
-  it("shows cell detail metadata by default and preserves collapsed state", () => {
-    expect(normalizeEditorSettings({}).cellDetailMetadataCollapsed).toBe(false);
-    expect(normalizeEditorSettings({ cellDetailMetadataCollapsed: true }).cellDetailMetadataCollapsed).toBe(true);
   });
 
   it("normalizes the global query timeout and inherited connection ids", () => {
@@ -1096,8 +1081,8 @@ describe("settingsStore persisted settings initialization", () => {
     });
   });
 
-  it("loads, persists, and reloads the cell detail button visibility", async () => {
-    let persistedSettings: Record<string, unknown> = { dataGridCellDetailButtonVisible: false };
+  it("loads, persists, and reloads the data grid quick entry preference", async () => {
+    let persistedSettings: Record<string, unknown> = { dataGridQuickEntry: false };
     const loadEditorSettings = vi.fn(async () => JSON.parse(JSON.stringify(persistedSettings)));
     const saveEditorSettings = vi.fn(async (settings: Record<string, unknown>) => {
       persistedSettings = JSON.parse(JSON.stringify(settings));
@@ -1108,14 +1093,14 @@ describe("settingsStore persisted settings initialization", () => {
     const store = useSettingsStore();
     await store.initEditorSettings();
 
-    expect(store.editorSettings.dataGridCellDetailButtonVisible).toBe(false);
-    await store.updateEditorSettingsAndPersist({ dataGridCellDetailButtonVisible: true });
-    expect(saveEditorSettings).toHaveBeenLastCalledWith(expect.objectContaining({ dataGridCellDetailButtonVisible: true }));
+    expect(store.editorSettings.dataGridQuickEntry).toBe(false);
+    await store.updateEditorSettingsAndPersist({ dataGridQuickEntry: true });
+    expect(saveEditorSettings).toHaveBeenLastCalledWith(expect.objectContaining({ dataGridQuickEntry: true }));
 
     setActivePinia(createPinia());
     const restartedStore = useSettingsStore();
     await restartedStore.initEditorSettings();
-    expect(restartedStore.editorSettings.dataGridCellDetailButtonVisible).toBe(true);
+    expect(restartedStore.editorSettings.dataGridQuickEntry).toBe(true);
   });
 
   it("defaults the crosshair highlight to off, persists an opt-in, and reloads it", async () => {

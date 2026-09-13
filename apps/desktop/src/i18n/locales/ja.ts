@@ -6522,8 +6522,6 @@ export default withEnglishFallback({
     dataGridQuickEntryDescription: "有効にすると、セル編集や下部の空行入力はフォーカスが外れた時点でデータベースに保存されます。頻繁な入力に便利ですが、誤操作による書き込みのリスクがあります。",
     dataGridAutoTransposeSingleRow: "1 行のクエリ結果を自動で転置表示",
     dataGridAutoTransposeSingleRowDescription: "有効にすると、1 行かつ複数列の SQL クエリ結果が自動的に転置表示に切り替わります。",
-    dataGridCellDetailButtonVisible: "セル詳細ボタンを表示",
-    dataGridCellDetailButtonVisibleDescription: "セルにカーソルを合わせたときにセル詳細ボタンを表示します。",
     dataGridCrosshairHighlight: "行と列の十字ハイライト",
     dataGridCrosshairHighlightDescription: "有効にすると、アクティブなセルの行と列全体を淡くハイライトします（Excel と同様）。フォーカスされたセルは選択スタイルを維持します。",
     tableColumnTemplateFields: "新規テーブルのプリセット列",

@@ -226,7 +226,9 @@ describe("legacy WebView CSS fallbacks", () => {
     expect(globalsCss).toContain(".hover\\:bg-primary\\/15:hover");
     const activeConnectionSources = `${connectionTreeSource}\n${activeConnectionFilterSource}`;
     expect(activeConnectionSources).toContain("showActiveConnectionsOnly");
-    expect(connectionTreeSource).toContain("text-primary bg-primary/10 border-primary/30");
+    // 侧边栏列表选项触发器改成了无边框图标按钮（简化设计）：只保留 primary 文字 + 淡底色，
+    // 这两个工具类在 globals.css 里仍有 legacy WebView 的 rgba() 回退。
+    expect(connectionTreeSource).toContain("text-primary bg-primary/10");
     expect(activeConnectionFilterSource).toContain("text-primary bg-primary/10 border-primary/30");
   });
 

@@ -55,7 +55,6 @@ export const EDITOR_SETTINGS_DRAFT_KEYS = [
   "defaultAutoKeepResults",
   "multiStatementDefaultView",
   "dataGridAutoTransposeSingleRow",
-  "dataGridCellDetailButtonVisible",
   "dataGridCrosshairHighlight",
   "pageSize",
   "tableOpenPageSize",

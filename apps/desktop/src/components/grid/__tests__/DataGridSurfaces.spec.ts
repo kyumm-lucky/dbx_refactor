@@ -9,9 +9,6 @@ import type { DataGridCellDetail } from "@/lib/dataGrid/dataGridDetail";
 const mocks = vi.hoisted(() => ({
   editor: { create: vi.fn(), destroy: vi.fn(), setValue: vi.fn(), openSearch: vi.fn() },
   updateSettings: vi.fn(),
-  renderWkt: vi.fn(),
-  panelCancel: vi.fn(),
-  panelOpenSearch: vi.fn(),
 }));
 
 vi.mock("vue-i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
@@ -80,19 +77,8 @@ vi.mock("@/components/grid/DataGridValueTransform.vue", async () => ({ default: 
 vi.mock("@/composables/useCellDetailEditor", () => ({ useCellDetailEditor: () => mocks.editor }));
 vi.mock("@/composables/useTheme", () => ({ useTheme: () => ({ isDark: { value: false }, themePalette: { value: {} } }) }));
 vi.mock("@/stores/settingsStore", () => ({ useSettingsStore: () => ({ editorSettings: { cellDetailJsonFormatted: true, theme: "default", fontSize: 13, fontFamily: "monospace" }, updateEditorSettings: mocks.updateSettings }) }));
-vi.mock("@/lib/dataGrid/geometryPreview", () => ({ isHexGeometry: () => false, renderWktOnCanvas: mocks.renderWkt }));
-vi.mock("@/composables/useDataGridCellDetail", async () => {
-  const { ref } = await import("vue");
-  return {
-    useDataGridCellDetail: ({ onCancel }: { onCancel: () => void }) => {
-      mocks.panelCancel.mockImplementation(onCancel);
-      return { geometryPreviewOpen: ref(false), geometryCanvas: ref(), detailsEditorContainer: ref(), sideJsonPreviewContainer: ref(), openSearch: mocks.panelOpenSearch };
-    },
-  };
-});
 
 import DataGridCellDetailDialog from "@/components/grid/DataGridCellDetailDialog.vue";
-import DataGridCellDetailPanel from "@/components/grid/DataGridCellDetailPanel.vue";
 import DataGridColumnHeader from "@/components/grid/DataGridColumnHeader.vue";
 import DataGridCopyColumnNamesDialog from "@/components/grid/DataGridCopyColumnNamesDialog.vue";
 import DataGridFilterBuilder from "@/components/grid/DataGridFilterBuilder.vue";
@@ -103,9 +89,6 @@ import DataGridQueryControls from "@/components/grid/DataGridQueryControls.vue";
 import DataGridSearchBar from "@/components/grid/DataGridSearchBar.vue";
 
 const dataGridSource = readFileSync("apps/desktop/src/components/grid/DataGrid.vue", "utf8");
-const dataGridCellDetailEditSource = readFileSync("apps/desktop/src/composables/useDataGridCellDetailEdit.ts", "utf8");
-const cellDetailPanelSource = readFileSync("apps/desktop/src/components/grid/DataGridCellDetailPanel.vue", "utf8");
-const cellDetailHeaderSource = readFileSync("apps/desktop/src/components/grid/DataGridCellDetailHeader.vue", "utf8");
 const globalsCss = readFileSync("apps/desktop/src/styles/globals.css", "utf8");
 
 function detail(patch: Partial<DataGridCellDetail> = {}): DataGridCellDetail {
@@ -1037,7 +1020,7 @@ describe("DataGridQueryControls", () => {
       onEnsureRule: ensureRule,
     });
 
-    const filterButton = findOne(mounted.root, (node) => node.type === "button" && String(node.props.class).includes("-translate-x-1"));
+    const filterButton = findOne(mounted.root, (node) => node.type === "button" && node.props["data-grid-filter-button"] !== undefined);
     dispatch(filterButton, "click");
     await nextTick();
     await nextTick();
@@ -1077,7 +1060,7 @@ describe("DataGridQueryControls", () => {
       onEnsureRule: ensureRule,
     });
 
-    const filterButton = findOne(mounted.root, (node) => node.type === "button" && String(node.props.class).includes("-translate-x-1"));
+    const filterButton = findOne(mounted.root, (node) => node.type === "button" && node.props["data-grid-filter-button"] !== undefined);
     dispatch(filterButton, "click");
     await nextTick();
 
@@ -1206,14 +1189,14 @@ describe("DataGridQueryControls", () => {
 
     expect(hostText(mounted.root)).not.toContain("grid.filterQuickView");
     expect(hostText(mounted.root)).not.toContain("grid.filterConditionView");
-    const quickFilterButtons = findAll(mounted.root, (node) => node.type === "button" && String(node.props.class).includes("-translate-x-1"));
+    const quickFilterButtons = findAll(mounted.root, (node) => node.type === "button" && node.props["data-grid-filter-button"] !== undefined);
     expect(quickFilterButtons).toHaveLength(1);
     expect(quickFilterButtons[0].props["aria-label"]).toBe("grid.filter");
 
     await mounted.setProps({ filterEditorView: "conditions", filterBuilderOpen: false });
     await nextTick();
     expect(findOne(mounted.root, (node) => node.type === "textarea" && node.props.placeholder === "WHERE")).toBeTruthy();
-    const filterButtons = findAll(mounted.root, (node) => node.type === "button" && String(node.props.class).includes("-translate-x-1"));
+    const filterButtons = findAll(mounted.root, (node) => node.type === "button" && node.props["data-grid-filter-button"] !== undefined);
     expect(filterButtons).toHaveLength(1);
     expect(filterButtons[0].props["aria-label"]).toBe("grid.filter");
     expect(filterButtons[0].props["aria-expanded"]).toBe(false);
@@ -1394,53 +1377,12 @@ describe("DataGridTextFilterWorkbench", () => {
   });
 });
 
-describe("cell detail surfaces", () => {
-  it("keeps detail tabs and editor actions usable when the panel narrows", () => {
-    const tabsHeader = cellDetailHeaderSource;
-    const tabViewport = tabsHeader.match(/<div class="([^"]*overflow-x-auto[^"]*)">\s*<TabsList/);
-    const tabList = tabsHeader.match(/<TabsList class="([^"]+)">/);
-    const triggerClasses = Array.from(tabsHeader.matchAll(/<TabsTrigger\b[^>]*class="([^"]+)"/g), ([, classes]) => classes.split(/\s+/));
-
-    expect(tabViewport?.[1]?.split(/\s+/)).toEqual(expect.arrayContaining(["min-w-0", "flex-1", "overflow-x-auto"]));
-    expect(tabList?.[1]?.split(/\s+/)).toEqual(expect.arrayContaining(["flex", "w-max", "min-w-full"]));
-    expect(triggerClasses).toHaveLength(3);
-    for (const classes of triggerClasses) {
-      expect(classes).toEqual(expect.arrayContaining(["min-w-max", "flex-1", "shrink-0"]));
-    }
-    expect(dataGridSource).not.toContain("activeCellDetailTabsGridClass");
-
-    const valueEditorLifecycleStart = dataGridSource.indexOf("watch(valueEditorContainer");
-    const valueEditorLifecycleEnd = dataGridSource.indexOf("const detailEdit = useDataGridCellDetailEdit", valueEditorLifecycleStart);
-    const valueEditorLifecycle = dataGridSource.slice(valueEditorLifecycleStart, valueEditorLifecycleEnd);
-    expect(valueEditorLifecycle).toContain("const editor = valueDetailEditor;");
-    expect(valueEditorLifecycle).toContain("if (valueDetailEditor !== editor) return;");
-    expect(valueEditorLifecycle).toContain("if (editor.getValue() !== detailEditValue.value)");
-    expect(valueEditorLifecycle).toContain("editor.setValue(detailEditValue.value, activeCellDetail.value?.type);");
-
-    const valueEditorStart = dataGridSource.indexOf("<TabsContent v-if=\"activeCellDetailTabs.includes('valueEditor')\"");
-    const valueEditorEnd = dataGridSource.indexOf("</TabsContent>", valueEditorStart);
-    const valueEditor = dataGridSource.slice(valueEditorStart, valueEditorEnd);
-    expect(valueEditor).toMatch(/<TabsContent[^>]*class="[^"]*\bmin-w-0\b[^"]*">/);
-    expect(valueEditor).toMatch(/<div class="[^"]*\bmin-w-0\b[^"]*\bflex-wrap\b[^"]*">/);
-
-    expect(cellDetailPanelSource).toMatch(/<TabsContent value="details" class="[^"]*\bmin-w-0\b[^"]*">/);
-    expect(cellDetailPanelSource).toMatch(/<div class="[^"]*\bmin-w-0\b[^"]*\bflex-wrap\b[^"]*">/);
-  });
-
+describe("DataGridCellDetailDialog", () => {
   it("presents printable LONG BLOB bytes as text and copies the presented value", async () => {
     const copyText = vi.fn();
-    const blobDetail = detail({
-      type: "LONGBLOB",
-      value: "0x2332303035383035",
-      rawValue: "0x2332303035383035",
-      rawValuePreview: "0x2332303035383035",
-      displayValue: "#2005805",
-      displayValuePreview: "#2005",
-      formattedJson: "",
-    });
-    const dialog = mountComponent(DataGridCellDetailDialog, {
+    const mounted = mountComponent(DataGridCellDetailDialog, {
       open: true,
-      detail: blobDetail,
+      detail: detail({ type: "LONGBLOB", value: "0x2332303035383035", rawValue: "0x2332303035383035", rawValuePreview: "0x2332303035383035", displayValue: "#2005805", displayValuePreview: "#2005", formattedJson: "" }),
       typeColorClass: () => "",
       openImagePreview: vi.fn(),
       copyText,
@@ -1450,85 +1392,18 @@ describe("cell detail surfaces", () => {
       importBinaryValue: vi.fn(),
       databaseType: "mysql",
     });
-    const panel = mountComponent(DataGridCellDetailPanel, {
-      detail: blobDetail,
-      panelIsBottom: true,
-      metadataCollapsed: false,
-      valueFillsHeight: false,
-      editing: false,
-      sideJsonView: false,
-      showCompactJson: false,
-      canCompactJson: false,
-      typeColorClass: () => "",
-      canDownloadBinaryValue: () => true,
-      downloadBinaryValue: vi.fn(),
-      canImportBinaryValue: () => false,
-      importBinaryValue: vi.fn(),
-      openImagePreview: vi.fn(),
-      canCopySqlCondition: () => true,
-      databaseType: "mysql",
-    });
 
-    expect(hostText(dialog.root)).toContain("#2005");
-    expect(hostText(dialog.root)).not.toContain("#2005805");
-    expect(hostText(panel.root)).toContain("#2005");
-    expect(hostText(panel.root)).not.toContain("#2005805");
+    expect(hostText(mounted.root)).toContain("#2005");
+    expect(hostText(mounted.root)).not.toContain("#2005805");
     dispatch(
-      findOne(dialog.root, (node) => node.props.title === "grid.copyValue"),
+      findOne(mounted.root, (node) => node.props.title === "grid.copyValue"),
       "click",
     );
     expect(copyText).toHaveBeenCalledWith("#2005805");
   });
 
-  it("keeps non-MySQL BLOB detail previews in hex", () => {
-    const panel = mountComponent(DataGridCellDetailPanel, {
-      detail: detail({ type: "BLOB", value: "0x2332303035383035", rawValue: "0x2332303035383035", rawValuePreview: "0x2332303035383035", displayValue: "BLOB [8 bytes]", displayValuePreview: "BLOB [8 bytes]", formattedJson: "" }),
-      panelIsBottom: true,
-      metadataCollapsed: false,
-      valueFillsHeight: false,
-      editing: false,
-      sideJsonView: false,
-      showCompactJson: false,
-      canCompactJson: false,
-      typeColorClass: () => "",
-      canDownloadBinaryValue: () => true,
-      downloadBinaryValue: vi.fn(),
-      canImportBinaryValue: () => false,
-      importBinaryValue: vi.fn(),
-      openImagePreview: vi.fn(),
-      canCopySqlCondition: () => true,
-      databaseType: "sqlite",
-    });
-
-    expect(hostText(panel.root)).toContain("0x2332303035383035");
-  });
-
-  it("keeps non-text LONG BLOB values in hex", () => {
-    const panel = mountComponent(DataGridCellDetailPanel, {
-      detail: detail({ type: "LONGBLOB", value: "0x89504e470d0a1a0a", rawValue: "0x89504e470d0a1a0a", rawValuePreview: "0x89504e470d0a1a0a", formattedJson: "" }),
-      panelIsBottom: true,
-      metadataCollapsed: false,
-      valueFillsHeight: false,
-      editing: false,
-      sideJsonView: false,
-      showCompactJson: false,
-      canCompactJson: false,
-      typeColorClass: () => "",
-      canDownloadBinaryValue: () => true,
-      downloadBinaryValue: vi.fn(),
-      canImportBinaryValue: () => false,
-      importBinaryValue: vi.fn(),
-      openImagePreview: vi.fn(),
-      canCopySqlCondition: () => true,
-      databaseType: "mysql",
-    });
-
-    expect(hostText(panel.root)).toContain("0x89504e470d0a1a0a");
-  });
-
-  it("copies the presented value, emits edit, closes, and replaces the JSON result", async () => {
+  it("copies the presented value, imports binary values, and closes", async () => {
     const copyText = vi.fn();
-    const edit = vi.fn();
     const updateOpen = vi.fn();
     const importBinaryValue = vi.fn();
     const mounted = mountComponent(DataGridCellDetailDialog, {
@@ -1541,7 +1416,6 @@ describe("cell detail surfaces", () => {
       downloadBinaryValue: vi.fn(),
       canImportBinaryValue: () => true,
       importBinaryValue,
-      onEdit: edit,
       "onUpdate:open": updateOpen,
     });
     await nextTick();
@@ -1550,11 +1424,6 @@ describe("cell detail surfaces", () => {
     const copyValue = findOne(mounted.root, (node) => node.props.title === "grid.copyValue");
     dispatch(copyValue, "click");
     expect(copyText).toHaveBeenCalledWith('{\n  "a": 1\n}');
-    dispatch(
-      findOne(mounted.root, (node) => node.props.title === "grid.editValue"),
-      "click",
-    );
-    expect(edit).toHaveBeenCalledOnce();
     dispatch(
       findOne(mounted.root, (node) => node.props.title === "grid.importBinaryValue"),
       "click",
@@ -1569,114 +1438,6 @@ describe("cell detail surfaces", () => {
     const dialog = findOne(mounted.root, (node) => node.props["data-stub"] === "Dialog");
     dialog.props["onUpdate:open"](false);
     expect(updateOpen).toHaveBeenCalledWith(false);
-  });
-
-  it("forwards panel actions and only starts JSON editing from preview whitespace", async () => {
-    const startEdit = vi.fn();
-    const copyValue = vi.fn();
-    const cancel = vi.fn();
-    const mounted = mountComponent(DataGridCellDetailPanel, {
-      detail: detail({ formattedJson: "" }),
-      panelIsBottom: false,
-      metadataCollapsed: false,
-      valueFillsHeight: false,
-      editing: false,
-      sideJsonView: false,
-      showCompactJson: false,
-      canCompactJson: false,
-      typeColorClass: () => "",
-      canDownloadBinaryValue: () => false,
-      downloadBinaryValue: vi.fn(),
-      canImportBinaryValue: () => false,
-      importBinaryValue: vi.fn(),
-      openImagePreview: vi.fn(),
-      canCopySqlCondition: () => true,
-      onStartEdit: startEdit,
-      onCopyValue: copyValue,
-      onCancel: cancel,
-    });
-
-    dispatch(
-      findOne(mounted.root, (node) => node.props.title === "grid.editValue"),
-      "click",
-    );
-    dispatch(
-      findOne(mounted.root, (node) => node.props.title === "grid.copyValue"),
-      "click",
-    );
-    dispatch(
-      findOne(mounted.root, (node) => node.type === "pre"),
-      "dblclick",
-    );
-    expect(startEdit).toHaveBeenCalledTimes(2);
-    expect(copyValue).toHaveBeenCalledOnce();
-    mocks.panelCancel();
-    expect(cancel).toHaveBeenCalledOnce();
-    mounted.exposed.value.openSearch();
-    expect(mocks.panelOpenSearch).toHaveBeenCalledOnce();
-
-    await mounted.setProps({ detail: detail() });
-    const jsonPreview = findOne(mounted.root, (node) => node.props["data-cell-detail-json-preview"] === "");
-    const doubleClickCapture = jsonPreview.props.onDblclickCapture;
-    const textLine = {
-      ownerDocument: {
-        createRange: () => ({
-          selectNodeContents: vi.fn(),
-          getClientRects: () => [{ left: 10, right: 110, top: 20, bottom: 40 }],
-        }),
-      },
-    };
-    const lineTarget = { closest: (selector: string) => (selector === ".cm-line" ? textLine : null) };
-
-    doubleClickCapture({ target: lineTarget, clientX: 60, clientY: 30 });
-    expect(startEdit).toHaveBeenCalledTimes(2);
-
-    doubleClickCapture({ target: lineTarget, clientX: 160, clientY: 30 });
-    doubleClickCapture({ target: { closest: () => null }, clientX: 60, clientY: 80 });
-    expect(startEdit).toHaveBeenCalledTimes(4);
-  });
-
-  it("only enables JSON comparison for changed drafts and prevents editor blur on pointer down", async () => {
-    const compareJson = vi.fn();
-    const mounted = mountComponent(DataGridCellDetailPanel, {
-      detail: detail(),
-      panelIsBottom: true,
-      metadataCollapsed: false,
-      valueFillsHeight: true,
-      editing: true,
-      sideJsonView: false,
-      showCompactJson: true,
-      canCompactJson: true,
-      showCompareJson: true,
-      canCompareJson: false,
-      typeColorClass: () => "",
-      canDownloadBinaryValue: () => false,
-      downloadBinaryValue: vi.fn(),
-      canImportBinaryValue: () => false,
-      importBinaryValue: vi.fn(),
-      openImagePreview: vi.fn(),
-      canCopySqlCondition: () => true,
-      onCompareJson: compareJson,
-    });
-
-    const disabledCompare = findOne(mounted.root, (node) => node.props.title === "grid.compareJson");
-    expect(disabledCompare.props.disabled).toBe(true);
-    dispatch(disabledCompare, "click");
-    expect(compareJson).not.toHaveBeenCalled();
-
-    await mounted.setProps({ canCompareJson: true });
-    const enabledCompare = findOne(mounted.root, (node) => node.props.title === "grid.compareJson");
-    expect(dispatch(enabledCompare, "mousedown").defaultPrevented).toBe(true);
-    dispatch(enabledCompare, "click");
-    expect(compareJson).toHaveBeenCalledOnce();
-  });
-
-  it("snapshots comparison values before opening and suppresses modal-induced blur commits", () => {
-    expect(dataGridCellDetailEditSource).toContain("detailValueDiffSnapshot.value = snapshot;");
-    expect(dataGridCellDetailEditSource).toContain("detailValueDiffOpen.value = true;");
-    expect(dataGridSource).toContain("if (!detailValueDiffOpen.value && !detailTransformOpen.value) commitValueEditorEdit();");
-    expect(dataGridSource).toContain(':disabled="!canCompareDetailJson" @mousedown.prevent @click="openDetailJsonCompare"');
-    expect(dataGridSource).toContain('v-model:open="detailValueDiffOpen" :snapshot="detailValueDiffSnapshot"');
   });
 });
 
