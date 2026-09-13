@@ -377,7 +377,7 @@ describe("TableStructureEditor rail layout", () => {
   it("renders the vertical section rail instead of the horizontal tab strip", async () => {
     const root = await mountStructureEditor({ layout: "rail" });
 
-    const rail = root.querySelector('[data-structure-rail]');
+    const rail = root.querySelector("[data-structure-rail]");
     expect(rail).not.toBeNull();
     expect(rail?.getAttribute("aria-orientation")).toBe("vertical");
     expect(rail?.querySelectorAll('[role="tab"]').length).toBeGreaterThan(0);
@@ -417,7 +417,7 @@ describe("TableStructureEditor rail layout", () => {
   it("keeps the standalone editor tabs when no layout is requested", async () => {
     const root = await mountStructureEditor({});
 
-    expect(root.querySelector('[data-structure-rail]')).toBeNull();
+    expect(root.querySelector("[data-structure-rail]")).toBeNull();
     expect(root.querySelector('[data-tab-trigger="columns"]')).not.toBeNull();
     expect(root.textContent).toContain("structureEditor.density");
   });

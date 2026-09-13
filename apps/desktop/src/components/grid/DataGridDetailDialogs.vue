@@ -96,11 +96,7 @@ function onColumnDetailKeydown(event: KeyboardEvent) {
                 <a v-if="field.imagePreviewUrl" :href="field.imagePreviewUrl" role="button" class="mb-2 block max-h-48 overflow-hidden rounded border bg-muted/20" @click.prevent="openImagePreview(field.imagePreviewUrl, field.column)"
                   ><img :src="field.imagePreviewUrl" :alt="field.column" loading="lazy" decoding="async" referrerpolicy="no-referrer" class="max-h-48 w-full object-contain"
                 /></a>
-                <pre
-                  class="dbx-data-grid-value-font max-h-[120px] overflow-auto text-xs whitespace-pre-wrap break-words"
-                  :class="{ 'italic text-muted-foreground': field.isNull ?? field.value === null }"
-                  >{{ field.rawValuePreview }}</pre
-                >
+                <pre class="dbx-data-grid-value-font max-h-[120px] overflow-auto text-xs whitespace-pre-wrap break-words" :class="{ 'italic text-muted-foreground': field.isNull ?? field.value === null }">{{ field.rawValuePreview }}</pre>
                 <div v-if="field.isValuePreviewTruncated" class="mt-1 text-[11px] text-muted-foreground">{{ t("grid.largeValuePreviewHint", { count: field.rawValuePreview.length }) }}</div>
                 <div v-if="field.formattedJson" class="mt-2 space-y-1">
                   <div class="text-muted-foreground">{{ t("grid.formattedJson") }}</div>
