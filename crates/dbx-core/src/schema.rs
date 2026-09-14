@@ -6,10 +6,11 @@ use crate::connection::{
 use crate::db;
 use crate::models::connection::{ConnectionConfig, DatabaseType};
 use crate::query::{agent_execute_query_params, should_discard_pool_after_error, QueryExecutionOptions};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::future::Future;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
 mod kingbase;
@@ -3408,6 +3409,10 @@ mod tests {
             gbase_server: String::new(),
             informix_server: String::new(),
             external_config: None,
+            plugin_id: None,
+            plugin_connection_provider: None,
+            plugin_connection_type: None,
+            connection_secrets: HashMap::new(),
             jdbc_driver_class: None,
             jdbc_driver_paths: Vec::new(),
             one_time: false,
@@ -3635,8 +3640,14 @@ done
                     kind: "external".to_string(),
                     database_type: Some("jdbc".to_string()),
                 }],
+                ..PluginManifest::default()
             },
             path: dir.clone(),
+            compatibility: crate::plugins::PluginCompatibility {
+                compatible: true,
+                backend_executable: Some(dir.join("plugin.sh")),
+                ..Default::default()
+            },
         };
         let session = std::sync::Arc::new(
             PluginDriverSession::start_for_test(plugin, "jdbc".to_string(), PluginRuntimeEnv::default()).await.unwrap(),
@@ -7549,16 +7560,193 @@ pub async fn list_functions_core(
     database: &str,
     schema: &str,
 ) -> Result<Vec<db::FunctionInfo>, String> {
-    retry_metadata_connection(state, connection_id, Some(database), || async {
+    let postgres_functions = retry_metadata_connection(state, connection_id, Some(database), || async {
         let pool_key = state.get_or_create_metadata_pool_for_session(connection_id, Some(database), None).await?;
         let pool = clone_metadata_pool(state, &pool_key).await.ok_or("Pool not found")?;
 
         match &pool {
-            PoolKind::Postgres(p) => db::postgres::list_functions(p, schema).await,
-            _ => Ok(vec![]),
+            PoolKind::Postgres(p) => Ok(Some(db::postgres::list_functions(p, schema).await?)),
+            _ => Ok(None),
         }
     })
+    .await?;
+
+    if let Some(functions) = postgres_functions {
+        return Ok(functions);
+    }
+
+    // Non-Postgres: reuse sidebar list_objects + get_object_source paths.
+    list_functions_via_objects(state, connection_id, database, schema).await
+}
+
+/// Build FunctionInfo for non-Postgres pools by reusing list_objects + get_object_source
+/// (same paths the sidebar uses for PROCEDURE/FUNCTION).
+async fn list_functions_via_objects(
+    state: &AppState,
+    connection_id: &str,
+    database: &str,
+    schema: &str,
+) -> Result<Vec<db::FunctionInfo>, String> {
+    let object_types = ["PROCEDURE".to_string(), "FUNCTION".to_string()];
+    let objects =
+        list_objects_core(state, connection_id, database, schema, None, None, None, Some(&object_types), None).await?;
+
+    // Bound concurrent get_object_source calls (N+1) without requiring AppState: Clone.
+    const CONCURRENCY: usize = 8;
+    let mut functions = Vec::with_capacity(objects.len());
+    for chunk in objects.chunks(CONCURRENCY) {
+        let chunk_results = futures::future::join_all(
+            chunk
+                .iter()
+                .map(|object| load_function_info_via_object(state, connection_id, database, schema, object.clone())),
+        )
+        .await;
+        functions.extend(chunk_results.into_iter().flatten());
+    }
+
+    Ok(functions)
+}
+
+fn schema_diff_routine_kind(object_type: &str) -> Option<(&'static str, db::ObjectSourceKind)> {
+    let object_type_upper = object_type.to_ascii_uppercase();
+    if object_type_upper.contains("PROC") {
+        Some(("PROCEDURE", db::ObjectSourceKind::Procedure))
+    } else if object_type_upper.contains("FUNC") {
+        Some(("FUNCTION", db::ObjectSourceKind::Function))
+    } else {
+        None
+    }
+}
+
+async fn load_function_info_via_object(
+    state: &AppState,
+    connection_id: &str,
+    database: &str,
+    schema: &str,
+    object: db::ObjectInfo,
+) -> Option<db::FunctionInfo> {
+    let (function_type, source_kind) = schema_diff_routine_kind(&object.object_type)?;
+
+    let definition = match get_object_source_core(
+        state,
+        connection_id,
+        database,
+        schema,
+        &object.name,
+        source_kind.clone(),
+        object.signature.as_deref(),
+        None,
+    )
     .await
+    {
+        Ok(source) if !source.source.trim().is_empty() => source.source,
+        Ok(_) | Err(_) => {
+            // Retry the alternate routine kind when the primary getter is empty/fails.
+            let alternate = match source_kind {
+                db::ObjectSourceKind::Procedure => db::ObjectSourceKind::Function,
+                db::ObjectSourceKind::Function => db::ObjectSourceKind::Procedure,
+                other => other,
+            };
+            match get_object_source_core(
+                state,
+                connection_id,
+                database,
+                schema,
+                &object.name,
+                alternate,
+                object.signature.as_deref(),
+                None,
+            )
+            .await
+            {
+                Ok(source) if !source.source.trim().is_empty() => source.source,
+                // Skip objects with no readable source so empty definitions are not treated as loaded.
+                _ => return None,
+            }
+        }
+    };
+
+    Some(db::FunctionInfo {
+        name: object.name,
+        function_type: function_type.to_string(),
+        data_type: String::new(),
+        definition: strip_routine_definer_clause(&definition),
+        arguments: object.signature.unwrap_or_default(),
+    })
+}
+
+/// MySQL's SHOW CREATE PROCEDURE/FUNCTION prefixes `CREATE DEFINER=`user`@`host``.
+/// The definer account typically differs across same-structure databases on
+/// different servers while the routine body is identical, so drop the clause
+/// before schema-diff comparison (same spirit as DBeaver's removeDefiner
+/// option). Definitions without the clause pass through unchanged; the
+/// `^CREATE DEFINER` anchor keeps definer mentions inside a routine body alone.
+fn strip_routine_definer_clause(definition: &str) -> String {
+    static DEFINER_PREFIX: OnceLock<Regex> = OnceLock::new();
+    let definer_prefix = DEFINER_PREFIX.get_or_init(|| {
+        Regex::new(r#"(?is)^\s*CREATE\s+DEFINER\s*=\s*(`(?:[^`]|``)*`|"(?:[^"]|"")*"|[A-Za-z0-9_$]+)@(`(?:[^`]|``)*`|"(?:[^"]|"")*"|[A-Za-z0-9_$.%*-]+)"#).unwrap()
+    });
+    match definer_prefix.find(definition) {
+        Some(found) => format!("CREATE {}", definition[found.end()..].trim_start()),
+        None => definition.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod schema_diff_routine_kind_tests {
+    use super::schema_diff_routine_kind;
+    use crate::db::ObjectSourceKind;
+
+    #[test]
+    fn classifies_procedure_and_function_object_types() {
+        assert_eq!(schema_diff_routine_kind("PROCEDURE"), Some(("PROCEDURE", ObjectSourceKind::Procedure)));
+        assert_eq!(schema_diff_routine_kind("StoredProc"), Some(("PROCEDURE", ObjectSourceKind::Procedure)));
+        assert_eq!(schema_diff_routine_kind("FUNCTION"), Some(("FUNCTION", ObjectSourceKind::Function)));
+        assert_eq!(schema_diff_routine_kind("user_function"), Some(("FUNCTION", ObjectSourceKind::Function)));
+        assert!(schema_diff_routine_kind("TABLE").is_none());
+        assert!(schema_diff_routine_kind("VIEW").is_none());
+    }
+}
+
+#[cfg(test)]
+mod strip_routine_definer_clause_tests {
+    use super::strip_routine_definer_clause;
+
+    #[test]
+    fn strips_backquoted_definer_prefix() {
+        assert_eq!(
+            strip_routine_definer_clause("CREATE DEFINER=`root`@`localhost` PROCEDURE `p`() BEGIN SELECT 1; END"),
+            "CREATE PROCEDURE `p`() BEGIN SELECT 1; END"
+        );
+    }
+
+    #[test]
+    fn strips_bare_definer_prefix() {
+        assert_eq!(
+            strip_routine_definer_clause("CREATE DEFINER=app_user@10.0.0.% FUNCTION `f`() RETURNS int RETURN 1"),
+            "CREATE FUNCTION `f`() RETURNS int RETURN 1"
+        );
+    }
+
+    #[test]
+    fn keeps_definitions_without_definer() {
+        let def = "CREATE PROCEDURE `p`() BEGIN SELECT 1; END";
+        assert_eq!(strip_routine_definer_clause(def), def);
+    }
+
+    #[test]
+    fn keeps_definer_mentions_inside_the_body() {
+        let def = "CREATE PROCEDURE `p`() BEGIN -- CREATE DEFINER=`x`@`y` stays\nSELECT 1; END";
+        assert_eq!(strip_routine_definer_clause(def), def);
+    }
+
+    #[test]
+    fn strips_definer_after_leading_whitespace() {
+        assert_eq!(
+            strip_routine_definer_clause("  CREATE DEFINER=`root`@`%` PROCEDURE `p`() BEGIN END"),
+            "CREATE PROCEDURE `p`() BEGIN END"
+        );
+    }
 }
 
 pub async fn list_sequences_core(
