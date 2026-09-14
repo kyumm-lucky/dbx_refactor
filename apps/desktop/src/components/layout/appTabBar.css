@@ -849,6 +849,12 @@
 .app-tab-bar.classic-tab-layout:not(.vertical-tab-layout):not(:has(.wrap-mode)) .tab-group-entry {
   height: 100%;
   max-height: none;
+  /* 经典布局的 pill 比行高低（--dbx-tab-h 对 --dbx-tabstrip-h），而 pill 自己的
+   * align-self: center 只在 flex 父元素里生效。包裹层是块级时 pill 贴在行顶部，
+   * 同行的新增查询加号（.tab-section--horizontal 的直接子元素）却被父级居中，
+   * 两者相差 5.5px。让包裹层居中，pill 才回到整行的中线上。 */
+  display: flex;
+  align-items: center;
 }
 
 @keyframes tab-group-collapse {
