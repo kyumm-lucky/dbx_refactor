@@ -64,8 +64,10 @@ describe("Group strip special page tabs", () => {
   it("keeps special page tabs and their update badge in the focused group", () => {
     expect(groupTabBarSource).toContain("queryStore.focusedGroupId === props.groupId");
     expect(groupTabBarSource).toContain("data-settings-page-tab");
+    expect(groupTabBarSource).toContain("data-plugin-center-tab");
     expect(groupTabBarSource).toContain("data-driver-store-tab");
     expect(groupTabBarSource).toContain("@click=\"emit('activate-settings')\"");
+    expect(groupTabBarSource).toContain("@click=\"emit('activate-plugin-center')\"");
     expect(groupTabBarSource).toContain("@click=\"emit('activate-driver-store')\"");
     expect(groupTabBarSource).toContain('t("toolbar.driverManager")');
     expect(groupTabBarSource).toContain("aria-label=\"t('toolbar.updatableDriverCount')\"");
@@ -75,6 +77,8 @@ describe("Group strip special page tabs", () => {
   it("routes special-page actions and preserves ordinary-tab dirty closing", () => {
     expect(groupSource).toContain(':special-page-tabs="toolbar.specialPageTabs.value"');
     expect(groupSource).toContain('@activate-settings="toolbar.activateSettingsPage()"');
+    expect(groupSource).toContain('@activate-plugin-center="toolbar.activatePluginCenter()"');
+    expect(groupSource).toContain('@close-plugin-center="toolbar.closePluginCenter()"');
     expect(groupSource).toContain('@close-driver-store="toolbar.closeDriverStore()"');
     expect(groupTabBarSource).toContain('@mousedown.middle.prevent="closeTab(entry.tab)"');
     expect(groupTabBarSource).toContain('@click.stop="closeTab(entry.tab)"');
@@ -84,6 +88,7 @@ describe("Group strip special page tabs", () => {
   it("uses one presentation path for active special pages and inactive ordinary tabs", () => {
     expect(groupTabBarSource).toContain("return !specialPageActive.value && tab.id === props.activeTabId;");
     expect(groupTabBarSource).toContain("specialPageTabClass(!!specialPageTabs?.settingsActive)");
+    expect(groupTabBarSource).toContain("specialPageTabClass(!!specialPageTabs?.pluginCenterActive)");
     expect(groupTabBarSource).toContain("specialPageTabClass(!!specialPageTabs?.driverStoreActive)");
     // The active tab is styled as a lifted block by appTabBar.css, so the
     // component must not inject an inline indicator that would win over it.

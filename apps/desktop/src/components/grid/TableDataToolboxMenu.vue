@@ -7,6 +7,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal
 const props = defineProps<{
   /** 窄宽度时只留图标（与其它工具条控件一致的收起行为）。 */
   compact?: boolean;
+  /** 导入入口必须跟库能力走：不支持导入的库（如 HANA）不显示该项，否则向导会停在「选项」步。 */
+  canImport: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -34,7 +36,7 @@ const { t } = useI18n();
           <Database class="h-4 w-4" />
           {{ t("tableToolbox.generateData") }}
         </DropdownMenuItem>
-        <DropdownMenuItem class="gap-2" @click="emit('importData')">
+        <DropdownMenuItem v-if="props.canImport" class="gap-2" @click="emit('importData')">
           <Download class="h-4 w-4" />
           {{ t("tableToolbox.importData") }}
         </DropdownMenuItem>
