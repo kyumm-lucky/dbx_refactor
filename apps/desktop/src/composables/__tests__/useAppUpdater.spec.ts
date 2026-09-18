@@ -21,7 +21,7 @@ vi.mock("@/lib/backend/tauriRuntime", () => ({ isTauriRuntime: () => true }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: mocks.listen }));
 vi.mock("@tauri-apps/plugin-process", () => ({ relaunch: mocks.relaunch }));
 vi.mock("@/composables/useToast", () => ({ useToast: () => ({ toast: mocks.toast }) }));
-const settings = reactive({ updateDownloadSource: "official", ignoredUpdateVersion: "", updateNotificationsEnabled: true });
+const settings = reactive({ updateDownloadSource: "official", ignoredUpdateVersion: "", updateNotificationsEnabled: true, autoDownloadUpdates: true });
 vi.mock("@/stores/settingsStore", () => ({ useSettingsStore: () => ({ editorSettings: settings, updateEditorSettingsAndPersist: mocks.persist }) }));
 const info = { current_version: "1.0.0", latest_version: "1.1.0", update_available: true, portable_mode: false, manual_update_only: false, release_name: "v1.1.0", release_url: "https://example.com", release_notes: "Changes" };
 const cache = { cache_id: "cached", version: "1.1.0", portable_mode: false, release_url: "https://example.com", release_notes: "Changes", downloaded_at: 1 };
@@ -58,6 +58,7 @@ beforeEach(() => {
   settings.updateDownloadSource = "official";
   settings.ignoredUpdateVersion = "";
   settings.updateNotificationsEnabled = true;
+  settings.autoDownloadUpdates = true;
   mocks.checkForUpdates.mockResolvedValue(info);
   mocks.downloadUpdate.mockResolvedValue(cache);
   mocks.getDownloadedUpdate.mockResolvedValue(null);
@@ -70,6 +71,96 @@ afterEach(() => {
   vi.useRealTimers();
 });
 describe("silent update lifecycle", () => {
+  it("checks and shows a badge without downloading when automatic downloads are disabled", async () => {
+    settings.autoDownloadUpdates = false;
+    const updater = mount();
+    await updater.initialize();
+    await flush();
+    expect(mocks.checkForUpdates).toHaveBeenCalled();
+    expect(mocks.downloadUpdate).not.toHaveBeenCalled();
+    expect(updater.hasUpdateAvailable.value).toBe(true);
+    expect(updater.showUpdateDialog.value).toBe(false);
+    await updater.checkUpdates();
+    expect(updater.showUpdateDialog.value).toBe(true);
+    expect(mocks.downloadUpdate).not.toHaveBeenCalled();
+    await updater.downloadUpdateInBackground();
+    expect(mocks.downloadUpdate).toHaveBeenCalledOnce();
+    expect(updater.updateDownloaded.value).toBe(true);
+    expect(mocks.installDownloadedUpdate).not.toHaveBeenCalled();
+  });
+  it("surfaces a newer release instead of a stale package with automatic downloads disabled", async () => {
+    settings.autoDownloadUpdates = false;
+    mocks.getDownloadedUpdate.mockResolvedValue(cache);
+    mocks.checkForUpdates.mockResolvedValue({ ...info, latest_version: "1.2.0", release_name: "v1.2.0" });
+    const updater = mount();
+    await updater.initialize();
+    await flush();
+    expect(updater.updateInfo.value?.latest_version).toBe("1.2.0");
+    expect(mocks.discardDownloadedUpdate).toHaveBeenCalledWith(cache.cache_id);
+    expect(mocks.downloadUpdate).not.toHaveBeenCalled();
+    expect(updater.updateDownloaded.value).toBe(false);
+    expect(updater.hasUpdateAvailable.value).toBe(true);
+    await updater.installDownloadedUpdate();
+    expect(mocks.installDownloadedUpdate).not.toHaveBeenCalled();
+    mocks.downloadUpdate.mockResolvedValue({ ...cache, version: "1.2.0" });
+    await updater.downloadUpdateInBackground();
+    expect(mocks.downloadUpdate).toHaveBeenCalledWith("official", "1.2.0", expect.any(String), "Changes");
+    expect(updater.updateDownloaded.value).toBe(true);
+  });
+  it("preserves a prepared package with automatic downloads disabled", async () => {
+    settings.autoDownloadUpdates = false;
+    mocks.getDownloadedUpdate.mockResolvedValue(cache);
+    const updater = mount();
+    await updater.initialize();
+    await flush();
+    expect(mocks.discardDownloadedUpdate).not.toHaveBeenCalled();
+    expect(mocks.downloadUpdate).not.toHaveBeenCalled();
+    expect(updater.updateInfo.value?.latest_version).toBe(cache.version);
+    expect(updater.hasUpdateAvailable.value).toBe(true);
+    await updater.installDownloadedUpdate();
+    expect(mocks.installDownloadedUpdate).toHaveBeenCalledWith(cache.cache_id, cache.version);
+  });
+  it("starts a silent download when the preference is enabled", async () => {
+    settings.autoDownloadUpdates = false;
+    const updater = mount();
+    await updater.initialize();
+    await flush();
+    settings.autoDownloadUpdates = true;
+    await vi.waitFor(() => expect(updater.updateDownloaded.value).toBe(true));
+    expect(mocks.downloadUpdate).toHaveBeenCalledOnce();
+    expect(updater.showUpdateDialog.value).toBe(false);
+  });
+  it("cancels an automatic download when the preference is disabled", async () => {
+    const pending = deferred<typeof cache>();
+    mocks.downloadUpdate.mockReturnValue(pending.promise);
+    mocks.cancelUpdateDownload.mockImplementation(async () => pending.reject(new Error("cancelled")));
+    const updater = mount();
+    const checking = updater.checkUpdates({ silent: true });
+    await vi.waitFor(() => expect(mocks.downloadUpdate).toHaveBeenCalledOnce());
+    settings.autoDownloadUpdates = false;
+    await vi.waitFor(() => expect(updater.phase.value).toBe("idle"));
+    await checking;
+    expect(mocks.cancelUpdateDownload).toHaveBeenCalledOnce();
+    expect(updater.hasUpdateAvailable.value).toBe(true);
+  });
+  it("does not cancel a manually started background download when the preference changes", async () => {
+    settings.autoDownloadUpdates = false;
+    const updater = mount();
+    await updater.checkUpdates();
+    const pending = deferred<typeof cache>();
+    mocks.downloadUpdate.mockReturnValue(pending.promise);
+    const downloading = updater.downloadUpdateInBackground();
+    await flush();
+    settings.autoDownloadUpdates = true;
+    await nextTick();
+    settings.autoDownloadUpdates = false;
+    await flush();
+    expect(mocks.cancelUpdateDownload).not.toHaveBeenCalled();
+    updater.showUpdateDialog.value = false;
+    pending.resolve(cache);
+    await downloading;
+    expect(updater.updateDownloaded.value).toBe(true);
+  });
   it("automatically downloads without surfacing or installing, even while idle", async () => {
     const updater = mount();
     await updater.checkUpdates({ silent: true });
@@ -101,7 +192,8 @@ describe("silent update lifecycle", () => {
     const updater = mount({ prepareForUpdate: prepare });
     await updater.initialize();
     await updater.installDownloadedUpdate();
-    expect(mocks.checkForUpdates).not.toHaveBeenCalled();
+    // Only the startup recheck runs (same latest version keeps the cache); installing never needs fresh metadata or a re-download.
+    expect(mocks.checkForUpdates).toHaveBeenCalledTimes(1);
     expect(mocks.downloadUpdate).not.toHaveBeenCalled();
     expect(mocks.installDownloadedUpdate).toHaveBeenCalledWith("cached", "1.1.0");
     expect(prepare.mock.invocationCallOrder[0]).toBeLessThan(mocks.installDownloadedUpdate.mock.invocationCallOrder[0]);
@@ -290,5 +382,72 @@ describe("silent update lifecycle", () => {
     pendingCancel.resolve();
     await vi.waitFor(() => expect(mocks.downloadUpdate).toHaveBeenCalledTimes(2));
     expect(updater.updateDownloaded.value).toBe(true);
+  });
+
+  it("replaces a downloaded update when a newer version is released", async () => {
+    const newer = { ...info, latest_version: "1.2.0", release_name: "v1.2.0" };
+    const replacement = { ...cache, version: "1.2.0" };
+    mocks.getDownloadedUpdate.mockResolvedValue(cache);
+    mocks.checkForUpdates.mockResolvedValue(newer);
+    mocks.downloadUpdate.mockResolvedValue(replacement);
+    const updater = mount();
+    await updater.initialize();
+    await vi.waitFor(() => expect(mocks.downloadUpdate).toHaveBeenCalled());
+    expect(mocks.discardDownloadedUpdate).toHaveBeenCalledWith("cached");
+    expect(mocks.downloadUpdate).toHaveBeenCalledWith("official", "1.2.0", expect.any(String), "Changes");
+    expect(updater.updateDownloaded.value).toBe(true);
+    expect(updater.updateInfo.value?.latest_version).toBe("1.2.0");
+    expect(updater.phase.value).toBe("ready");
+  });
+
+  it("keeps a downloaded update when the released version is not newer", async () => {
+    mocks.getDownloadedUpdate.mockResolvedValue(cache);
+    mocks.checkForUpdates.mockResolvedValue({ ...info, latest_version: "1.1.0" });
+    const updater = mount();
+    await updater.initialize();
+    await flush();
+    expect(mocks.checkForUpdates).toHaveBeenCalled();
+    expect(mocks.discardDownloadedUpdate).not.toHaveBeenCalled();
+    expect(mocks.downloadUpdate).not.toHaveBeenCalled();
+    expect(updater.phase.value).toBe("ready");
+    expect(updater.updateDownloaded.value).toBe(true);
+  });
+
+  it("keeps a downloaded update when the remote reports an older version", async () => {
+    const updater = mount();
+    await updater.checkUpdates({ silent: true });
+    expect(updater.updateDownloaded.value).toBe(true);
+    mocks.checkForUpdates.mockResolvedValue({ ...info, latest_version: "1.0.5" });
+    await updater.checkUpdates({ silent: true });
+    expect(mocks.discardDownloadedUpdate).not.toHaveBeenCalled();
+    expect(mocks.downloadUpdate).toHaveBeenCalledOnce();
+    expect(updater.phase.value).toBe("ready");
+  });
+
+  it("does not disturb an installation that starts while a recheck is in flight", async () => {
+    mocks.getDownloadedUpdate.mockResolvedValue(cache);
+    const gate = deferred<typeof info>();
+    mocks.checkForUpdates.mockReturnValue(gate.promise);
+    const release = vi.fn();
+    const updater = mount({ prepareForUpdate: async () => release });
+    await updater.initialize();
+    await updater.installDownloadedUpdate();
+    gate.resolve(info);
+    await flush();
+    expect(updater.phase.value).toBe("restart");
+    expect(mocks.discardDownloadedUpdate).not.toHaveBeenCalled();
+    expect(mocks.downloadUpdate).not.toHaveBeenCalled();
+  });
+
+  it("keeps the ready package when discarding a superseded update fails", async () => {
+    mocks.getDownloadedUpdate.mockResolvedValue(cache);
+    mocks.checkForUpdates.mockResolvedValue({ ...info, latest_version: "1.2.0" });
+    mocks.discardDownloadedUpdate.mockRejectedValue(new Error("file busy"));
+    const updater = mount();
+    await updater.initialize();
+    await flush();
+    expect(mocks.downloadUpdate).not.toHaveBeenCalled();
+    expect(updater.updateDownloaded.value).toBe(true);
+    expect(updater.updateCheckMessage.value).toContain("file busy");
   });
 });

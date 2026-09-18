@@ -138,6 +138,7 @@ import { useSavedSqlStore } from "@/stores/savedSqlStore";
 import { decorateDatabaseSavedSqlTreeNodes, indexSavedSqlFilesByDatabase, stripDatabaseSavedSqlTreeNodes, withDatabaseSavedSqlRoot } from "@/lib/savedSql/savedSqlDatabaseTree";
 import { encodeSqlServerLinkedSchema, parseSqlServerLinkedSchema } from "@/lib/database/sqlServerLinkedServers";
 import { inferMongoCompletionFields, type MongoCompletionField } from "@/lib/mongo/mongoCompletion";
+import { flattenElasticsearchMappingFields, type ElasticsearchCompletionField } from "@/lib/elasticsearch/elasticsearchCompletion";
 import { isMongoLegacyDriverProfile } from "@/lib/mongo/mongoCapabilities";
 import { mongoCollectionKindFromNode, toMongoCollectionKind, visibleMongoCollections } from "@/lib/sidebar/mongoCollectionMutation";
 import { completionSchemasFromTree, completionTablesFromTree } from "@/lib/metadata/completionTreeIndex";
@@ -486,6 +487,7 @@ export const useConnectionStore = defineStore("connection", () => {
   const primaryVisibleObjectNames = ref<Record<string, string[]>>({});
   const sqlServerCompletionContextCache = ref<Record<string, SqlServerCompletionContext>>({});
   const elasticsearchCompletionIndicesCache = ref<Record<string, string[]>>({});
+  const elasticsearchCompletionFieldsCache = ref<Record<string, ElasticsearchCompletionField[]>>({});
   const redisCompletionKeysCache = ref<Record<string, string[]>>({});
   const redisCommandDocsCache = ref<Record<string, RedisCommandDocumentation[]>>({});
   const redisCommandDocsCacheGeneration = new Map<string, number>();
@@ -559,6 +561,7 @@ export const useConnectionStore = defineStore("connection", () => {
     schema?: string;
     tableName?: string;
   } | null>(null);
+  const mongoDatabaseDumpSource = ref<{ connectionId: string; database: string; mode: "dump" | "restore" } | null>(null);
   const mongoImportSource = ref<{
     connectionId: string;
     database: string;
@@ -2272,7 +2275,7 @@ export const useConnectionStore = defineStore("connection", () => {
     });
   }
 
-  function invalidateMetadataCachesForNode(node: TreeNode) {
+  function invalidateMetadataCachesForNode(node: TreeNode, options?: { skipObjectCacheInvalidation?: boolean }) {
     if (!node.connectionId) return;
     const tableName = node.tableName || (node.type === "table" || node.type === "view" || node.type === "materialized_view" || node.type === "mongo-collection" || node.type === "dynamodb-table" ? node.label : undefined);
     const match = {
@@ -2282,7 +2285,9 @@ export const useConnectionStore = defineStore("connection", () => {
       tableName,
     };
     invalidateMetadataCaches(match);
-    void invalidateObjectDdlCache(match);
+    // Connection-node refresh already awaited a strict object-cache invalidation;
+    // skip the fire-and-forget duplicate so no late async deletion trails it.
+    if (!options?.skipObjectCacheInvalidation) void invalidateObjectDdlCache(match);
   }
 
   function invalidateMetadataCache(connectionId: string, database?: string, schema?: string, tableName?: string) {
@@ -3507,6 +3512,9 @@ export const useConnectionStore = defineStore("connection", () => {
     }
     for (const key of Object.keys(elasticsearchCompletionIndicesCache.value)) {
       if (key === exactCacheKey || key.startsWith(cachePrefix)) delete elasticsearchCompletionIndicesCache.value[key];
+    }
+    for (const key of Object.keys(elasticsearchCompletionFieldsCache.value)) {
+      if (key === exactCacheKey || key.startsWith(cachePrefix)) delete elasticsearchCompletionFieldsCache.value[key];
     }
     for (const key of Object.keys(redisCompletionKeysCache.value)) {
       if (key === exactCacheKey || key.startsWith(cachePrefix)) delete redisCompletionKeysCache.value[key];
@@ -6600,34 +6608,34 @@ export const useConnectionStore = defineStore("connection", () => {
               children: [],
             });
           }
-          if (supportsXuguChildMetadata) {
-            children.push(
-              {
-                id: `${parentId}:__table-partitions`,
-                label: "tree.partitions",
-                type: "group-table-partitions",
-                connectionId,
-                database,
-                schema,
-                catalog,
-                tableName: table,
-                isExpanded: false,
-                children: [],
-              },
-              {
-                id: `${parentId}:__table-subpartitions`,
-                label: "tree.subpartitions",
-                type: "group-table-subpartitions",
-                connectionId,
-                database,
-                schema,
-                catalog,
-                tableName: table,
-                isExpanded: false,
-                children: [],
-              },
-            );
-          }
+        }
+        if (supportsXuguChildMetadata || effectiveDbType === "oceanbase-oracle") {
+          children.push(
+            {
+              id: `${parentId}:__table-partitions`,
+              label: "tree.partitions",
+              type: "group-table-partitions",
+              connectionId,
+              database,
+              schema,
+              catalog,
+              tableName: table,
+              isExpanded: false,
+              children: [],
+            },
+            {
+              id: `${parentId}:__table-subpartitions`,
+              label: "tree.subpartitions",
+              type: "group-table-subpartitions",
+              connectionId,
+              database,
+              schema,
+              catalog,
+              tableName: table,
+              isExpanded: false,
+              children: [],
+            },
+          );
         }
       }
 
@@ -7054,9 +7062,9 @@ export const useConnectionStore = defineStore("connection", () => {
     }
   }
 
-  async function refreshTreeNode(node: TreeNode) {
+  async function refreshTreeNode(node: TreeNode, options?: { skipObjectCacheInvalidation?: boolean }) {
     invalidateCompletionCachesForNode(node);
-    invalidateMetadataCachesForNode(node);
+    invalidateMetadataCachesForNode(node, options);
     if (objectTypesForGroupNode(node.type)) {
       clearLoadedChildrenCache(node.id, { deletePersisted: false });
       await loadObjectGroupChildren(node, { force: true });
@@ -7067,7 +7075,7 @@ export const useConnectionStore = defineStore("connection", () => {
     const parentId = objectGroupRefreshParentId(node);
     const parentNode = parentId ? findNode(treeNodes.value, parentId) : null;
     if (parentNode) {
-      await refreshTreeNode(parentNode);
+      await refreshTreeNode(parentNode, options);
       return;
     }
 
@@ -7117,6 +7125,18 @@ export const useConnectionStore = defineStore("connection", () => {
         activeTreeRefreshGenerations.delete(node.id);
       }
     }
+  }
+
+  /**
+   * Connection-node refresh: fully invalidate the connection's object caches
+   * (DDL + object metadata, memory and persisted) and surface deletion
+   * failures before the tree reload runs. Tree-reload failures propagate
+   * unmarked and keep the original connect-failure handling.
+   */
+  async function refreshConnectionTreeNode(node: TreeNode): Promise<void> {
+    if (node.type !== "connection" || !node.connectionId) return refreshTreeNode(node);
+    await invalidateObjectDdlCache({ connectionId: node.connectionId }, { strict: true });
+    await refreshTreeNode(node, { skipObjectCacheInvalidation: true });
   }
 
   async function refreshTreeNodeForTableNameFilter(node: TreeNode, scopeKey: string, revision: number) {
@@ -7958,6 +7978,21 @@ export const useConnectionStore = defineStore("connection", () => {
     elasticsearchCompletionIndicesCache.value[cacheKey] = indices;
     evictOldestCacheEntries(elasticsearchCompletionIndicesCache.value, COMPLETION_CACHE_MAX);
     return elasticsearchCompletionIndicesCache.value[cacheKey];
+  }
+
+  async function listElasticsearchCompletionFields(connectionId: string, index: string): Promise<ElasticsearchCompletionField[]> {
+    if (!index) return [];
+    const cacheKey = `${connectionId}:${index}`;
+    const cached = elasticsearchCompletionFieldsCache.value[cacheKey];
+    if (cached) return cached;
+    return withCompletionInFlight(`${cacheKey}:es-fields`, async () => {
+      await ensureConnected(connectionId);
+      const mapping = await api.elasticsearchGetIndexMetadata(connectionId, index, "mapping");
+      const fields = flattenElasticsearchMappingFields(mapping);
+      elasticsearchCompletionFieldsCache.value[cacheKey] = fields;
+      evictOldestCacheEntries(elasticsearchCompletionFieldsCache.value, COMPLETION_CACHE_MAX);
+      return fields;
+    });
   }
 
   // Upper bound on cached key names per db, to keep completion memory bounded
@@ -9223,6 +9258,7 @@ export const useConnectionStore = defineStore("connection", () => {
     collapseAllTreeNodes,
     refreshSidebarObjectPagination,
     refreshTreeNode,
+    refreshConnectionTreeNode,
     refreshDatabaseTreeNode,
     refreshObjectListTreeNode,
     connectedIds,
@@ -9372,6 +9408,7 @@ export const useConnectionStore = defineStore("connection", () => {
     refreshCompletionSchemas,
     refreshCompletionDatabases,
     listElasticsearchCompletionIndices,
+    listElasticsearchCompletionFields,
     listRedisCompletionKeys,
     listRedisCompletionCommandDocs,
     listMongoCompletionCollections,
@@ -9394,6 +9431,7 @@ export const useConnectionStore = defineStore("connection", () => {
     diagramSource,
     docsSource,
     tableImportSource,
+    mongoDatabaseDumpSource,
     mongoImportSource,
     mongoImportCompleted,
     tableDataGenerateSource,

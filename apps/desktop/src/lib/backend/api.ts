@@ -420,6 +420,7 @@ export const pendingOpenSqlFiles = forward("pendingOpenSqlFiles");
 export const pendingOpenDbFiles = forward("pendingOpenDbFiles");
 export const pendingOpenConnectionLinks = forward("pendingOpenConnectionLinks");
 export const pendingOpenAiConfigLinks = forward("pendingOpenAiConfigLinks");
+export const pendingOpenPluginInstallLinks = forward("pendingOpenPluginInstallLinks");
 export const readExternalSqlFile = forward("readExternalSqlFile");
 export const readExternalSqlFileSnapshot = forward("readExternalSqlFileSnapshot");
 export const inspectExternalSqlFile = forward("inspectExternalSqlFile");
@@ -494,6 +495,13 @@ export const cancelMongodbImport = forward("cancelMongodbImport");
 export const releaseMongodbImportSource = forward("releaseMongodbImportSource");
 export const exportMongodbQuery = forward("exportMongodbQuery");
 export const cancelMongodbExport = forward("cancelMongodbExport");
+export const inspectMongodbDatabaseDump = forward("inspectMongodbDatabaseDump");
+export const prepareMongodbRestoreSource = forward("prepareMongodbRestoreSource");
+export const releaseMongodbRestoreSource = forward("releaseMongodbRestoreSource");
+export const dumpMongodbDatabase = forward("dumpMongodbDatabase");
+export const restoreMongodbDatabase = forward("restoreMongodbDatabase");
+export const cancelMongodbDatabaseDump = forward("cancelMongodbDatabaseDump");
+export type { MongoDumpFormat, MongoDumpSourceInput, MongoDumpCatalog, MongoDumpCollection, MongoRestoreSourcePreview, MongoDatabaseDumpRequest, MongoDatabaseRestoreRequest, MongoDatabaseDumpProgress } from "./mongodbDumpTypes";
 
 // Database Export
 export const beginDatabaseBackupSnapshot = forward("beginDatabaseBackupSnapshot");
@@ -508,6 +516,7 @@ export const exportQueryResultXlsx = forward("exportQueryResultXlsx");
 export const exportQueryResultsXlsx = forward("exportQueryResultsXlsx");
 export const exportQueryResultJson = forward("exportQueryResultJson");
 export const exportQueryResultMarkdown = forward("exportQueryResultMarkdown");
+export const exportQueryResultHtml = forward("exportQueryResultHtml");
 export const startTableExport = forward("startTableExport");
 export const cancelTableExport = forward("cancelTableExport");
 export const startQueryResultExport = forward("startQueryResultExport");
@@ -814,6 +823,9 @@ export const mongoInsertDocuments = forward("mongoInsertDocuments");
 export const documentUpdateDocument = forward("documentUpdateDocument");
 export const mongoUpdateDocument = forward("mongoUpdateDocument");
 export const mongoUpdateDocuments = forward("mongoUpdateDocuments");
+export const mongoReplaceDocument = forward("mongoReplaceDocument");
+export const mongoBulkWrite = forward("mongoBulkWrite");
+export const mongoExplainFind = forward("mongoExplainFind");
 export const documentDeleteDocument = forward("documentDeleteDocument");
 export const documentSaveMeilisearchBatch = forward("documentSaveMeilisearchBatch");
 export const meilisearchSearchDocuments = forward("meilisearchSearchDocuments");
@@ -1033,6 +1045,8 @@ export type {
   TableImportProgress,
   MongoImportFormat,
   MongoImportTypeMode,
+  MongoImportInferredType,
+  MongoImportColumn,
   MongoImportIssue,
   MongoImportParseOptions,
   MongoImportPreviewRequest,

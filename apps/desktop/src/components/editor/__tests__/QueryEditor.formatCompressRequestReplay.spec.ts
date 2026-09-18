@@ -14,7 +14,11 @@ import { DEFAULT_EDITOR_SETTINGS } from "@/stores/settingsStore";
 // QueryEditor.vue survives across the editor mounts in this file, so every test
 // must advance its ids monotonically (never reuse a smaller id) to mirror the
 // production counter.
-const ORIGINAL_SQL = "select id, name\nfrom users\nwhere id = 1";
+//
+// The sample is long enough that formatting cannot collapse it onto one line:
+// the default style joins a statement that fits onto one line, and the replay
+// assertions below need a multi-line result.
+const ORIGINAL_SQL = "select id, name, email, status, created_at, updated_at, tenant_id\nfrom users\nwhere status = 'active'\nand tenant_id = 42\nand deleted_at is null";
 const COMPRESSED_SQL = compressSqlText(ORIGINAL_SQL, "mysql");
 // 编辑器用应用默认的格式化设置（关键字小写），期望值必须走同一份设置。
 const FORMATTED_SQL = await formatSqlForEditing(COMPRESSED_SQL, "mysql", DEFAULT_EDITOR_SETTINGS.sqlFormatter);

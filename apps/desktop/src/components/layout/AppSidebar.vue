@@ -24,7 +24,7 @@ const emit = defineEmits<{
   // 工具栏已无导入/导出触发点，App.vue 仍在监听这两个事件
   import: [source: "dbx" | "navicat" | "dbeaver" | "datagrip"];
   export: [];
-  startResize: [event: MouseEvent];
+  startResize: [event: PointerEvent];
   collapse: [];
   "open-settings": [initialTab: string];
   "add-to-ai": [nodes: TreeNode | TreeNode[]];
@@ -73,8 +73,10 @@ function createNewGroup() {
   void connectionTreeRef.value?.createNewGroup();
 }
 
-function focusSearch(): boolean {
-  return connectionTreeRef.value?.focusSearch() ?? false;
+// App.vue 会把触发 ⌘F 的元素传进来：命中侧边栏内某张表的搜索控件时直接聚焦它，
+// 否则退回聚焦侧边栏的搜索框。
+function focusSearch(target: Element | null = null): boolean {
+  return connectionTreeRef.value?.focusSearch(target) ?? false;
 }
 
 function locateTabInSidebar(tab: QueryTab) {
@@ -160,7 +162,7 @@ defineExpose({ focusSearch, locateTabInSidebar });
 </script>
 
 <template>
-  <div class="app-sidebar-panel h-full shrink-0 relative select-none" :class="classicLayout ? '' : 'rounded-md border border-border/80 bg-background'" :style="{ width: sidebarWidth + 'px' }" @keydown="onSidebarKeydown">
+  <div data-app-sidebar class="app-sidebar-panel h-full shrink-0 relative select-none" :class="classicLayout ? '' : 'rounded-md border border-border/80 bg-background'" :style="{ width: sidebarWidth + 'px' }" @keydown="onSidebarKeydown">
     <div class="h-full flex flex-col overflow-hidden">
       <div class="app-sidebar-toolbar flex items-center gap-px px-3 text-xs font-medium text-muted-foreground border-b bg-muted/20" :class="classicLayout ? 'h-9' : 'h-10'">
         <span v-if="showConnectionMultiSelectToolbar" class="flex min-w-0 self-stretch items-center" data-tauri-drag-region>
@@ -235,7 +237,7 @@ defineExpose({ focusSearch, locateTabInSidebar });
         <ConnectionTree ref="connectionTreeRef" @open-settings="(initialTab) => emit('open-settings', initialTab)" @add-to-ai="(nodes) => emit('add-to-ai', nodes)" />
       </div>
     </div>
-    <div class="panel-resize-handle panel-resize-handle--right" @mousedown="emit('startResize', $event)" />
+    <div class="panel-resize-handle panel-resize-handle--right" @pointerdown="emit('startResize', $event)" />
     <Dialog v-model:open="showDeleteSelectedConfirm">
       <DialogContent class="sm:max-w-[400px]">
         <DialogHeader>

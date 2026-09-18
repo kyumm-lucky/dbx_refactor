@@ -32,6 +32,22 @@ export function supportsExecutionTargetPicker(databaseType?: DatabaseType): bool
   return !!databaseType && (databaseType === "redis" || isHttpJsonRestDatabaseType(databaseType) || !NON_SQL_EXECUTION_TARGET_TYPES.has(databaseType));
 }
 
+/** Remove the MySQL CLI's trailing vertical-output command before execution. */
+export function stripMysqlClientDisplayCommand(sql: string): string {
+  const trimmed = sql.trimEnd();
+  const hasTrailingSemicolon = trimmed.endsWith(";");
+  const withoutTrailingSemicolon = hasTrailingSemicolon ? trimmed.slice(0, -1).trimEnd() : trimmed;
+  if (!withoutTrailingSemicolon.endsWith("\\G") && !withoutTrailingSemicolon.endsWith("\\g")) return sql;
+
+  const markerStart = withoutTrailingSemicolon.length - 2;
+  const lineStart = withoutTrailingSemicolon.lastIndexOf("\n", markerStart - 1) + 1;
+  const linePrefix = withoutTrailingSemicolon.slice(lineStart, markerStart);
+  if (linePrefix.includes("--") || linePrefix.includes("#")) return sql;
+
+  const executableSql = withoutTrailingSemicolon.slice(0, markerStart).trimEnd();
+  return `${executableSql}${hasTrailingSemicolon ? ";" : ""}${sql.slice(trimmed.length)}`;
+}
+
 export function hasMultipleExecutionTargets(sql: string, databaseType?: DatabaseType, parameterOptions?: SqlParameterOptions): boolean {
   if (databaseType === "redis") {
     return redisExecutableCommandCount(sql) > 1;
@@ -744,6 +760,8 @@ function splitStatementRangeAtSoftStarts(sql: string, statement: RawStatement, d
   if (isSapHanaScriptBlockStatement(statement.sql, databaseType)) return [statement];
   // Routine bodies contain top-level-looking SET/INSERT/SELECT lines that are not independent statements.
   if (isMysqlRoutineBlockDatabase(databaseType) && startsWithMysqlRoutineBlock(statement.sql, parameterOptions)) return [statement];
+  // SQL Server control-flow batches use line-oriented BEGIN/EXEC tokens inside one IF/ELSE statement.
+  if (isSqlServerIfElseControlFlowBatch(sql, statement, databaseType, parameterOptions)) return [statement];
 
   const lineStarts = topLevelSoftStatementLineStarts(sql, statement, databaseType, parameterOptions);
   if (lineStarts.length <= 1) return [statement];
@@ -803,6 +821,10 @@ function splitStatementRangeAtSoftStarts(sql: string, statement: RawStatement, d
       continue;
     }
 
+    if (currentBodyKeyword === "MERGE" && isMergeActionContinuation(sql, statement.from, lineStart.from, lineStart.keyword, databaseType, parameterOptions)) {
+      continue;
+    }
+
     if (currentBodyKeyword === "ALTER" && isClickHouseAlterTableUpdateContinuation(sql, boundaries[boundaries.length - 1].from, lineStart.from, lineStart.keyword, databaseType)) {
       // ClickHouse mutations use UPDATE as the first ALTER TABLE action, not as
       // a standalone statement. Keep this dialect-specific to preserve soft boundaries elsewhere.
@@ -843,6 +865,13 @@ function splitStatementRangeAtSoftStarts(sql: string, statement: RawStatement, d
   }
 
   return ranges.length > 0 ? ranges : [statement];
+}
+
+function isSqlServerIfElseControlFlowBatch(sql: string, statement: RawStatement, databaseType?: DatabaseType, parameterOptions?: SqlParameterOptions): boolean {
+  if (databaseType !== "sqlserver" || !startsWithSqlWords(sql, statement.from, ["IF"], databaseType, parameterOptions)) return false;
+
+  const words = topLevelWordsBefore(sql, statement.from, statement.to, 64, databaseType, parameterOptions);
+  return words.includes("ELSE") && words.includes("BEGIN") && words.includes("END");
 }
 
 function topLevelSoftStatementLineStarts(sql: string, statement: RawStatement, databaseType?: DatabaseType, parameterOptions?: SqlParameterOptions): Array<{ hitFrom: number; from: number; keyword: string }> {
@@ -1066,6 +1095,12 @@ function isMysqlAlterTableTruncatePartitionContinuation(sql: string, statementFr
   if (databaseType !== "mysql" || keyword !== "TRUNCATE") return false;
   if (!startsWithSqlWords(sql, statementFrom, ["ALTER", "TABLE"], databaseType)) return false;
   return nextSqlWord(sql, lineStartFrom + keyword.length, databaseType) === "PARTITION";
+}
+
+function isMergeActionContinuation(sql: string, statementFrom: number, lineStartFrom: number, keyword: string, databaseType?: DatabaseType, parameterOptions?: SqlParameterOptions): boolean {
+  if (keyword !== "INSERT" || !startsWithSqlWords(sql, statementFrom, ["MERGE"], databaseType, parameterOptions)) return false;
+  const words = topLevelWordsBefore(sql, statementFrom, lineStartFrom, 5, databaseType, parameterOptions);
+  return words[words.length - 1] === "THEN" && words.includes("WHEN") && words.includes("MATCHED");
 }
 
 function startsWithMysqlCreateTable(sql: string, statementFrom: number): boolean {
@@ -1399,7 +1434,10 @@ function startsLineComment(sql: string, pos: number, databaseType?: DatabaseType
 }
 
 function startsHashLineComment(sql: string, pos: number, databaseType?: DatabaseType, parameterOptions?: SqlParameterOptions): boolean {
-  if (databaseType === "sqlserver" || sql[pos] !== "#") return false;
+  // `#` is a MySQL-family line-comment marker. Oracle-family engines also allow
+  // it in unquoted identifiers (for example `V$DATAFILE.FILE#`), so treating it
+  // as a comment there truncates otherwise valid statements.
+  if ((databaseType !== undefined && ORACLE_LIKE_PL_SQL_DATABASES.has(databaseType)) || databaseType === "sqlserver" || sql[pos] !== "#") return false;
   return readSqlBracedParameterAt(sql, pos, parameterOptions)?.syntax !== "mybatis";
 }
 

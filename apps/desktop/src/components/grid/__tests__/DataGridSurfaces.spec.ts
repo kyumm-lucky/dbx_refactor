@@ -17,6 +17,7 @@ vi.mock("@lucide/vue", async () => {
   const icon = createPassthroughStub("Icon", "i");
   return {
     Check: icon,
+    CaseSensitive: icon,
     ChevronDown: icon,
     ChevronUp: icon,
     ChevronLeft: icon,
@@ -208,14 +209,14 @@ describe("DataGridSearchBar", () => {
     dispatch(suggestion, "mouseenter");
     expect(hoverSuggestion).toHaveBeenCalledWith(0);
 
-    const previousButton = findOne(mounted.root, (node) => node.props["aria-label"] === "search.prevMatch");
-    const nextButton = findOne(mounted.root, (node) => node.props["aria-label"] === "search.nextMatch");
+    const previousButton = findOne(mounted.root, (node) => node.props["aria-label"] === "editor.search.prevMatch");
+    const nextButton = findOne(mounted.root, (node) => node.props["aria-label"] === "editor.search.nextMatch");
     expect(dispatch(previousButton, "mousedown").defaultPrevented).toBe(true);
     dispatch(previousButton, "click");
     dispatch(nextButton, "click");
     expect(navigate.mock.calls).toEqual([[-1], [1]]);
 
-    const closeButton = findOne(mounted.root, (node) => node.props["aria-label"] === "search.close");
+    const closeButton = findOne(mounted.root, (node) => node.props["aria-label"] === "editor.search.close");
     dispatch(closeButton, "click");
     expect(close).toHaveBeenCalledOnce();
 

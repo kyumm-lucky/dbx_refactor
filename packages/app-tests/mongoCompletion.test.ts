@@ -134,10 +134,10 @@ test("prioritizes common read helpers and keeps destructive helpers last", () =>
   const getCollectionMethodLabels = labels('db.getCollection("order-events").');
 
   assert.deepEqual(labels("").slice(0, 5), ["db.collection.find", "db.collection.aggregate", "db.getCollection", "use", "db.version"]);
-  assert.deepEqual(methodLabels.slice(0, 5), ["find", "findOne", "aggregate", "countDocuments", "distinct"]);
-  assert.deepEqual(getCollectionMethodLabels.slice(0, 5), ["find", "findOne", "aggregate", "countDocuments", "distinct"]);
+  assert.deepEqual(methodLabels.slice(0, 6), ["find", "findOne", "aggregate", "countDocuments", "estimatedDocumentCount", "distinct"]);
+  assert.deepEqual(getCollectionMethodLabels.slice(0, 6), ["find", "findOne", "aggregate", "countDocuments", "estimatedDocumentCount", "distinct"]);
   assert.deepEqual(methodLabels.slice(-3), ["dropIndex", "dropIndexes", "drop"]);
-  assert.deepEqual(labels("db.users.find({})."), ["limit", "sort", "skip", "count"]);
+  assert.deepEqual(labels("db.users.find({})."), ["limit", "sort", "skip", "count", "explain"]);
 });
 
 test("keeps dotted collection names ahead of methods until the collection is resolved", () => {
@@ -162,7 +162,7 @@ test("suggests cursor methods after find result chains", () => {
 
   assert.deepEqual(
     allItems.map((item) => item.label),
-    ["limit", "sort", "skip", "count"],
+    ["limit", "sort", "skip", "count", "explain"],
   );
   assert.deepEqual(
     prefixedItems.map((item) => item.label),
@@ -170,7 +170,7 @@ test("suggests cursor methods after find result chains", () => {
   );
   assert.deepEqual(
     formattedChainItems.map((item) => item.label),
-    ["limit", "sort", "skip", "count"],
+    ["limit", "sort", "skip", "count", "explain"],
   );
   assert.deepEqual(
     formattedPrefixedItems.map((item) => item.label),
@@ -246,6 +246,14 @@ test("treats $in, $nin and $all elements as values rather than sub-filters", () 
   // `$or` / `$and` arrays still hold sub-filters, so their objects complete fields.
   assert.ok(labels("db.users.find({ $or: [{ ").includes("name"));
   assert.equal(labels("db.users.find({ $or: [{ ").includes("$oid"), false);
+});
+
+test("offers the newly supported count and database commands", () => {
+  assert.ok(labels("db.users.estim", { fields }).includes("estimatedDocumentCount"));
+  const dbLevel = labels("db.");
+  assert.ok(dbLevel.includes("stats"));
+  assert.ok(dbLevel.includes("serverStatus"));
+  assert.ok(labels("").includes("db.stats"));
 });
 
 test("offers the newer shell value constructors", () => {
@@ -491,8 +499,11 @@ test("suggests only helpers the shell parser accepts", () => {
   assert.ok(methodLabels.includes("count"));
   assert.ok(methodLabels.includes("drop"));
   assert.ok(methodLabels.includes("distinct"));
+  assert.ok(methodLabels.includes("estimatedDocumentCount"));
+  assert.ok(methodLabels.includes("replaceOne"));
+  assert.ok(methodLabels.includes("bulkWrite"));
   // Suggesting a helper DBX cannot run just hands the user a command that fails.
-  for (const unsupported of ["bulkWrite", "estimatedDocumentCount", "replaceOne"]) {
+  for (const unsupported of ["renameCollection", "mapReduce", "watch"]) {
     assert.equal(methodLabels.includes(unsupported), false, `${unsupported} is not executable`);
   }
   // Cursor methods are not collection methods.

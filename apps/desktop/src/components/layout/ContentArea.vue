@@ -4,6 +4,7 @@ import { safeLocalStorageGet, safeLocalStorageSet } from "@/lib/backend/safeStor
 import { appendDebugLog, isDebugLoggingEnabled } from "@/lib/backend/debugLog";
 import { canReloadUnavailableDataTab, restoredDataTabReloadFilters } from "@/lib/table/tableDataRefresh";
 import { defaultViewForResult } from "@/lib/query/queryResultDefaultView";
+import { queryResultMessages } from "@/lib/query/queryResultMessages";
 import { isQueryExecutionErrorResult } from "@/lib/query/queryResultError";
 import { hasQueryOutput as tabHasQueryOutput } from "@/lib/query/queryOutput";
 import { batchSqlRecoveryState, type BatchSqlRecoveryAction } from "@/lib/query/batchSqlRecovery";
@@ -29,6 +30,7 @@ import {
   Wrench,
   X,
   Pin,
+  Pencil,
   Rows3,
   SquareDashed,
   Minus,
@@ -44,11 +46,14 @@ import {
   RotateCcw,
   SkipForward,
   ListX,
+  LocateFixed,
 } from "@lucide/vue";
 import { Splitpanes, Pane } from "splitpanes";
 import { DynamicScroller, DynamicScrollerItem } from "vue-virtual-scroller";
 import "splitpanes/dist/splitpanes.css";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import CustomContextMenu, { type ContextMenuItem } from "@/components/ui/CustomContextMenu.vue";
@@ -133,6 +138,7 @@ import { TABLE_FONT_SIZE_MAX, TABLE_FONT_SIZE_MIN, useSettingsStore, type DataGr
 import { useToast } from "@/composables/useToast";
 import { isTauriRuntime } from "@/lib/backend/tauriRuntime";
 import { canCancelQueryExecution, isActiveResultLoading, queryExecutionLabelKey } from "@/lib/sql/queryExecutionState";
+import { sqlErrorEditorOffset, logSqlErrorPosition } from "@/lib/sql/errorPosition";
 import {
   executionSummaryItems,
   isPreviewTab,
@@ -147,6 +153,7 @@ import {
   tabularResultItems,
   type ExecutionSummaryItem,
 } from "@/lib/tabs/tabPresentation";
+import { beginPanelResize, endPanelResize } from "@/lib/app/panelResizeState";
 import { defaultQueryResultArchiveFileName } from "@/lib/query/queryResultArchive";
 import { saveQueryResultArchiveFile } from "@/lib/query/queryResultArchiveFile";
 import { isTableDataEditable } from "@/lib/table/tableEditing";
@@ -169,7 +176,7 @@ import { useToolbarOverflow } from "@/composables/useToolbarOverflow";
 import { formatElapsedSeconds } from "@/lib/common/elapsedTime";
 import { copyToClipboard } from "@/lib/common/clipboard";
 import type { CustomSaveHandler } from "@/composables/useDataGridEditor";
-import type { DataTableTabView, QueryTab, TableInfoTab, TreeNode, VectorCollectionMeta } from "@/types/database";
+import type { DataTableTabView, QueryMessage, QueryTab, TableInfoTab, TreeNode, VectorCollectionMeta } from "@/types/database";
 import type { SqlObjectNavigationTarget } from "@/lib/sql/sqlNavigation";
 import { sqlFormatDialectForDbType, type SqlFormatDialect } from "@/lib/sql/sqlFormatter";
 import { productionContextForDatabase } from "@/lib/database/productionSafety";
@@ -178,7 +185,7 @@ import { connectionIsEffectivelyReadOnly } from "@/lib/database/readOnlyWriteAcc
 
 type DataGridHandle = DataGridColumnLayoutHandle & {
   onToolbarRefresh: () => Promise<void> | void;
-  focusSearch: () => boolean;
+  focusSearch: (target?: Element | null) => boolean;
   openGoToColumn: () => boolean;
   nullColumnsHidden: boolean;
   allNullColumnCount: number;
@@ -200,7 +207,7 @@ type DataGridHandle = DataGridColumnLayoutHandle & {
 };
 
 type SearchableBrowserHandle = {
-  focusSearch: () => boolean;
+  focusSearch: (target?: Element | null) => boolean;
   refresh?: () => boolean;
   insertCommand?: (command: string) => Promise<boolean>;
   executeCommand?: (command: string) => Promise<boolean>;
@@ -357,6 +364,9 @@ const activeDataTabTableMeta = computed(() => tableMetaForDataTab(props.activeTa
 const activeResultExecutionTarget = computed(() => queryStore.activeResultExecutionTarget(props.activeTab.id));
 const activeResultConnection = computed(() => (activeResultExecutionTarget.value ? connectionStore.getConfig(activeResultExecutionTarget.value.connectionId) : props.activeConnection));
 const activeResultConnectionId = computed(() => activeResultExecutionTarget.value?.connectionId ?? props.activeTab.connectionId);
+// Row/column locate only makes sense for SQL editor tabs: data/preview tabs have
+// no user statement to map the backend position onto.
+const activeResultErrorPosition = computed(() => (props.activeTab.mode === "query" ? props.activeTab.result?.error?.errorPosition : undefined));
 const activeResultDatabase = computed(() => activeResultExecutionTarget.value?.database ?? props.activeTab.database);
 const activeResultSchema = computed(() => activeResultExecutionTarget.value?.schema ?? props.activeTab.schema);
 const activeEffectiveDatabaseType = computed(() => effectiveDatabaseTypeForConnection(activeResultConnection.value));
@@ -527,6 +537,9 @@ const resultArchiveExporting = ref(false);
 const canExportResultArchive = computed(() => props.activeTab.mode === "query" && (!!props.activeTab.result || !!props.activeTab.results?.length || !!props.activeTab.resultRuns?.length));
 const resultAutoSave = computed(() => props.activeTab.resultAutoSave === true);
 const activeResultRunItem = computed(() => resultRuns.value.find((run) => run.active));
+const resultRunRenameOpen = ref(false);
+const resultRunRenameId = ref<string | null>(null);
+const resultRunRenameTitle = ref("");
 const activeResultIsLoading = computed(() => !props.activeTab.redisMonitorActive && isActiveResultLoading(props.activeTab));
 const showResultRunTabs = computed(() => resultRuns.value.length > 0 && resultRunDisplayMode.value === "tabs");
 const showResultRunSelector = computed(() => resultRuns.value.length > 0 && resultRunDisplayMode.value === "list");
@@ -579,12 +592,21 @@ const batchExecutionPercent = computed(() => {
   return progress?.total ? Math.round((progress.completed / progress.total) * 100) : 0;
 });
 const hasTabularResult = computed(() => {
-  if (props.activeTab.result?.columns.length) return true;
+  if (props.activeTab.result?.columns.length && props.activeTab.result.server_message !== true) return true;
   return visibleResultItems.value.length > 0;
 });
 const canShowResultOutput = computed(() => hasTabularResult.value || props.activeTab.isExecuting);
 const canShowExplainOutput = computed(() => !!props.activeTab.explainPlan || !!props.activeTab.explainError || !!props.activeTab.explainTableResult || !!props.activeTab.explainTableError || props.activeTab.isExplaining === true);
-const resultMessageCount = computed(() => props.activeTab.result?.messages?.length ?? 0);
+// A batch can attach server messages to more than one statement result (for
+// example a `DO $$ RAISE NOTICE $$` block followed by a SELECT). The messages
+// view is scoped to the whole run, so collect every result's messages instead
+// of only the active result's — otherwise a statement with no result set
+// silently loses its notices once a later statement owns the active result.
+const resultMessages = computed<QueryMessage[]>(() => {
+  const results = props.activeTab.results?.length ? props.activeTab.results : props.activeTab.result ? [props.activeTab.result] : [];
+  return results.flatMap(queryResultMessages);
+});
+const resultMessageCount = computed(() => resultMessages.value.length);
 const canShowMessagesOutput = computed(() => resultMessageCount.value > 0);
 const showStandaloneResultToolbar = computed(() => activeElasticsearchJsonResponse.value || props.activeOutputView !== "result" || !props.activeTab.result || !hasTabularResult.value);
 const standaloneResultToolbarCompact = computed(() => isDataGridToolbarCompact(standaloneResultToolbarWidth.value, standaloneResultToolbarViewportWidth.value));
@@ -716,7 +738,11 @@ function handleHideResultsPane() {
   }
 }
 
+function onResultsSplitResize() {
+  beginPanelResize();
+}
 function onResultsResized(payload: { panes: { size: number }[] }) {
+  endPanelResize();
   const resultsPane = payload.panes[1];
   if (resultsPane?.size != null && resultsPane.size >= 20 && resultsPane.size <= 85) {
     resultsPaneSize.value = resultsPane.size;
@@ -798,7 +824,7 @@ watch(
     // view when its own tab finishes executing.
     if (props.editorOnly) return;
     if (props.activeTab.isExecuting) return;
-    if (hasExecutionSummary.value && !hasTabularResult.value && props.activeOutputView === "result") {
+    if (hasExecutionSummary.value && (!hasTabularResult.value || props.activeTab.result?.server_message === true) && props.activeOutputView === "result") {
       const result = props.activeTab.result;
       emit("update:activeOutputView", props.activeTab.id, result ? defaultViewForResult(result) : "summary");
     }
@@ -975,7 +1001,7 @@ function onHandleCloseColumnPanel() {
   columnInfoError.value = undefined;
 }
 
-function focusSearch(): boolean {
+function focusSearch(target: Element | null = null): boolean {
   if (elasticsearchJsonResponsePanelRef.value?.focusSearch()) return true;
   if (props.activeTab.mode === "mongo") return documentBrowserRef.value?.focusSearch() ?? false;
   if (props.activeTab.mode === "redis") return redisKeyBrowserRef.value?.focusSearch() ?? false;
@@ -983,15 +1009,15 @@ function focusSearch(): boolean {
   if (props.activeTab.mode === "zookeeper") return zookeeperKeyBrowserRef.value?.focusSearch() ?? false;
   if (props.activeTab.mode === "consul") return consulWorkspaceRef.value?.focusSearch() ?? false;
   if (props.activeTab.mode === "databases") return databaseBrowserRef.value?.focusSearch() ?? false;
-  if (props.activeTab.mode === "objects") return objectBrowserRef.value?.focusSearch() ?? false;
+  if (props.activeTab.mode === "objects") return objectBrowserRef.value?.focusSearch(target) ?? false;
   if (props.activeTab.mode === "structure") return tableStructureEditorRef.value?.focusSearch() ?? false;
   if (props.activeTab.mode === "query") {
     // The shared result surface (resultOnly) owns the grid, not the editor;
     // route its search to the DataGrid instead of the missing QueryEditor.
-    if (props.resultOnly) return dataGridRef.value?.focusSearch() ?? false;
+    if (props.resultOnly) return dataGridRef.value?.focusSearch(target) ?? false;
     return queryEditorRef.value?.openSearch() ?? false;
   }
-  return dataGridRef.value?.focusSearch() ?? false;
+  return dataGridRef.value?.focusSearch(target) ?? false;
 }
 
 function openGoToColumn(): boolean {
@@ -1112,8 +1138,31 @@ async function closeResultRunsToRight(runId: string) {
   await selectResultRun(runId);
 }
 
+function openResultRunRename(run: (typeof resultRuns.value)[number]) {
+  resultRunRenameId.value = run.id;
+  resultRunRenameTitle.value = run.title || t("tabs.runN", { n: run.sequence });
+  resultRunRenameOpen.value = true;
+  nextTick(() => {
+    const input = document.querySelector<HTMLInputElement>("[data-result-run-name-input]");
+    input?.focus();
+    input?.select();
+  });
+}
+
+function saveResultRunRename() {
+  if (!resultRunRenameId.value) return;
+  if (queryStore.renameResultRun(props.activeTab.id, resultRunRenameId.value, resultRunRenameTitle.value)) {
+    resultRunRenameOpen.value = false;
+  }
+}
+
 function resultRunContextMenuItems(run: (typeof resultRuns.value)[number]): ContextMenuItem[] {
   return [
+    {
+      label: t("tabs.renameResultRun"),
+      action: () => openResultRunRename(run),
+      icon: Pencil,
+    },
     {
       label: t(run.pinned ? "tabs.unpinResultRun" : "tabs.pinResultRun"),
       action: () => toggleResultRunPinned(run.id),
@@ -1323,6 +1372,72 @@ function focusStatementRange(range: { from: number; to: number } | null): boolea
   return true;
 }
 
+function focusErrorPosition(offset: number): boolean {
+  if (!queryEditorRef.value) return false;
+  queryEditorRef.value.focusErrorPosition(offset);
+  return true;
+}
+
+/**
+ * Jump to the driver-reported row/column of the active result's error. Falls back
+ * to a cross-surface event when this surface only renders the shared result pane
+ * (the editor lives in another group).
+ */
+function locateActiveResultError() {
+  const result = props.activeTab.result;
+  logSqlErrorPosition("locate:invoke", {
+    tabId: props.activeTab.id,
+    mode: props.activeTab.mode,
+    hasEditorRef: Boolean(queryEditorRef.value),
+    activeResultIndex: props.activeTab.activeResultIndex,
+    statementIndex: result?.statement_index,
+    hasBackendError: Boolean(result?.error),
+    errorPosition: result?.error?.errorPosition ?? null,
+    editorLength: props.activeTab.sql.length,
+    resultIsError: Boolean(result && isQueryExecutionErrorResult(result)),
+  });
+  const mapped = sqlErrorEditorOffset({
+    editorSql: props.activeTab.sql,
+    result,
+    resultIndex: result?.statement_index ?? props.activeTab.activeResultIndex,
+    databaseType: activeEffectiveDatabaseType.value,
+    parameterOptions: activeSqlStatementParameterOptions.value,
+  });
+  if (!mapped) {
+    logSqlErrorPosition("locate:unavailable", {
+      tabId: props.activeTab.id,
+      reason: "sqlErrorEditorOffset returned undefined (see the preceding 'unresolved:result-source-range' log)",
+    });
+    toast(t("editor.errorPositionUnavailable"), 3000);
+    return;
+  }
+  logSqlErrorPosition("locate:focus", { tabId: props.activeTab.id, offset: mapped.offset, line: mapped.line, column: mapped.column });
+  if (queryEditorRef.value) {
+    queryEditorRef.value.focusErrorPosition(mapped.offset);
+  } else {
+    emit("focusErrorOffset", props.activeTab.id, mapped.offset);
+  }
+}
+
+function locateExecutionSummaryError(item: ExecutionSummaryItem) {
+  const mapped = item.result
+    ? sqlErrorEditorOffset({
+        editorSql: props.activeTab.sql,
+        result: item.result,
+        resultIndex: item.statementIndex,
+        databaseType: activeEffectiveDatabaseType.value,
+        parameterOptions: activeSqlStatementParameterOptions.value,
+      })
+    : undefined;
+  if (mapped) {
+    if (!focusErrorPosition(mapped.offset)) {
+      emit("focusErrorOffset", props.activeTab.id, mapped.offset);
+    }
+    return;
+  }
+  focusExecutionSummaryItem(item);
+}
+
 defineExpose({
   focusSearch,
   openGoToColumn,
@@ -1343,6 +1458,8 @@ defineExpose({
   executeRedisCommand,
   previewStatementRange,
   focusStatementRange,
+  focusErrorPosition,
+  locateActiveResultError,
 });
 </script>
 
@@ -1355,7 +1472,7 @@ defineExpose({
     </div>
     <!-- Query mode: editor + results -->
     <template v-if="activeTab.mode === 'query'">
-      <Splitpanes horizontal class="query-output-splitpanes flex-1 min-h-0 overflow-hidden" @resized="onResultsResized">
+      <Splitpanes horizontal class="query-output-splitpanes flex-1 min-h-0 overflow-hidden" @resize="onResultsSplitResize" @resized="onResultsResized">
         <Pane v-if="!resultOnly" class="min-h-0" :size="editorPaneSize" :min-size="resultsPaneOpen ? 15 : 100">
           <div class="h-full flex flex-col relative">
             <div v-if="activeProductionContext.active" class="production-watermark pointer-events-none absolute inset-0 z-10 grid select-none" aria-hidden="true">
@@ -1894,14 +2011,26 @@ defineExpose({
                         :title="item.error || item.sql"
                         :aria-label="item.error || item.sql || t('executionSummary.noSql')"
                         @click="previewExecutionSummaryItem(item)"
-                        @dblclick="focusExecutionSummaryItem(item)"
+                        @dblclick="locateExecutionSummaryError(item)"
                         @keydown.enter.prevent="focusExecutionSummaryItem(item)"
                       />
                       <div class="pointer-events-none relative z-[1] font-mono text-muted-foreground">#{{ item.statementIndex + 1 }}</div>
-                      <div class="relative z-[1] min-w-0 cursor-pointer" @click="previewExecutionSummaryItem(item)" @dblclick="focusExecutionSummaryItem(item)">
+                      <div class="relative z-[1] min-w-0 cursor-pointer" @click="previewExecutionSummaryItem(item)" @dblclick="locateExecutionSummaryError(item)">
                         <div class="truncate font-mono text-[11px] text-foreground">{{ item.sql || t("executionSummary.noSql") }}</div>
                         <div v-if="item.error" class="mt-0.5 flex min-w-0 items-center gap-1 text-[11px] text-destructive">
+                          <span v-if="item.errorPosition" class="shrink-0 rounded border border-destructive/30 bg-destructive/5 px-1 tabular-nums">{{ t("executionSummary.lineColumn", { line: item.errorPosition.line, column: item.errorPosition.column }) }}</span>
                           <span data-native-clipboard class="min-w-0 flex-1 cursor-text select-text truncate" :title="item.error" @mousedown.stop @click.stop @dblclick.stop>{{ item.error }}</span>
+                          <LightTooltip v-if="item.errorPosition" :text="t('editor.locateError', { line: item.errorPosition.line, column: item.errorPosition.column })" side="bottom" :delay="0" :close-delay="0" nowrap>
+                            <button
+                              type="button"
+                              class="pointer-events-auto flex h-5 w-5 shrink-0 items-center justify-center rounded text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
+                              :aria-label="t('editor.locateError', { line: item.errorPosition.line, column: item.errorPosition.column })"
+                              @mousedown.stop
+                              @click.stop="locateExecutionSummaryError(item)"
+                            >
+                              <LocateFixed class="h-3 w-3" />
+                            </button>
+                          </LightTooltip>
                           <LightTooltip :text="t('grid.copy')" side="bottom" :delay="0" :close-delay="0" nowrap>
                             <button type="button" class="pointer-events-auto flex h-5 w-5 shrink-0 items-center justify-center rounded text-destructive/70 hover:bg-destructive/10 hover:text-destructive" :aria-label="t('grid.copy')" @mousedown.stop @click.stop="copyExecutionSummaryError(item.error)">
                               <Copy class="h-3 w-3" />
@@ -1936,7 +2065,7 @@ defineExpose({
               </div>
             </div>
 
-            <QueryMessagesView v-else-if="activeOutputView === 'messages'" class="flex-1 min-h-0" :messages="activeTab.result?.messages ?? []" />
+            <QueryMessagesView v-else-if="activeOutputView === 'messages'" class="flex-1 min-h-0" :messages="resultMessages" />
 
             <template v-else>
               <ElasticsearchJsonResponsePanel v-if="activeElasticsearchJsonResponse" ref="elasticsearchJsonResponsePanelRef" class="flex-1 min-h-0" :status="activeElasticsearchJsonResponse.status" :body="activeElasticsearchJsonResponse.body" />
@@ -2063,6 +2192,8 @@ defineExpose({
                     :error-message="String(errorMessage)"
                     :backend-error="activeTab.result.error"
                     :connection-id="activeResultConnectionId"
+                    :error-position="activeResultErrorPosition"
+                    @locate-error="locateActiveResultError"
                     @change-connection-timeout="activeResultConnectionId && emit('openConnectionSettings', activeResultConnectionId, 'advanced')"
                     @change-query-timeout="activeResultConnectionId && emit('openConnectionSettings', activeResultConnectionId, 'advanced')"
                     @fix-with-ai="(message) => emit('fixWithAi', activeTab.id, message)"
@@ -2506,6 +2637,19 @@ defineExpose({
     <template v-else-if="activeTab.mode === 'dameng-roles' && activeConnection">
       <DamengRoleAdmin :key="activeTab.id" :connection="activeConnection" />
     </template>
+
+    <Dialog v-model:open="resultRunRenameOpen">
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ t("tabs.renameResultRun") }}</DialogTitle>
+        </DialogHeader>
+        <Input v-model="resultRunRenameTitle" data-result-run-name-input :aria-label="t('tabs.resultRunName')" maxlength="120" @keydown.enter.prevent="saveResultRunRename" />
+        <DialogFooter>
+          <Button variant="outline" @click="resultRunRenameOpen = false">{{ t("common.cancel") }}</Button>
+          <Button :disabled="!resultRunRenameTitle.trim()" @click="saveResultRunRename">{{ t("common.save") }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 

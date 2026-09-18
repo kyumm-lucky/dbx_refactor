@@ -1,5 +1,6 @@
 import type { DatabaseType } from "@/types/database.ts";
 import { isSchemaAware, usesDatabaseObjectTreeMode } from "@/lib/database/databaseCapabilities.ts";
+import { DATABASE_SCHEMA_QUALIFIED_TYPES } from "@/lib/database/databaseCapabilitySets";
 import { jdbcDriverProfileUsesSchemaQualification } from "@/lib/database/jdbcDialect";
 import * as api from "@/lib/backend/api.ts";
 import { parseSqlServerLinkedSchema, sqlServerLinkedTableName } from "@/lib/database/sqlServerLinkedServers.ts";
@@ -38,6 +39,31 @@ export interface BuildTableSelectSqlOptions {
 }
 
 const DATABASE_QUALIFIED_TABLE_TYPES = new Set<DatabaseType>(["mysql", "clickhouse", "doris", "starrocks", "goldendb"]);
+
+// `includeDatabaseName === false` drops the schema qualifier — the "database
+// name" on schema-aware engines — except for databases that can only address
+// objects through their full qualified name (`catalog.schema.table` /
+// `database.schema.table`), where dropping it would break the query.
+export function dropsSchemaQualifier(databaseType: DatabaseType | undefined, includeDatabaseName?: boolean): boolean {
+  return includeDatabaseName === false && databaseType !== undefined && !DATABASE_SCHEMA_QUALIFIED_TYPES.has(databaseType);
+}
+
+/**
+ * Strip optional schema/database qualifiers from table metadata used to build
+ * generated SQL. Mirrors `dropsSchemaQualifier` so copy-as-INSERT/UPDATE
+ * extractors honor "Include database name in generated SQL" the same way
+ * SELECT templates do (#9326).
+ */
+export function tableMetaWithoutOptionalDatabaseQualifier<T extends { schema?: string; database?: string; catalog?: string }>(tableMeta: T | undefined, databaseType: DatabaseType | undefined, includeDatabaseName?: boolean): T | undefined {
+  if (!tableMeta || !dropsSchemaQualifier(databaseType, includeDatabaseName)) return tableMeta;
+  // Doris/StarRocks external-catalog tables are only addressable through the
+  // 3-part `catalog.database.table` form; stripping the middle segment would
+  // retarget the generated SQL, so keep the qualifiers (same rule as
+  // `qualifiedTableName`).
+  if (tableMeta.catalog && tableMeta.catalog !== "internal" && (databaseType === "doris" || databaseType === "starrocks")) return tableMeta;
+  if (tableMeta.schema === undefined && tableMeta.database === undefined) return tableMeta;
+  return { ...tableMeta, schema: undefined, database: undefined };
+}
 
 function sqlStatementSpans(sql: string, dialectId: string): Array<{ start: number; end: number }> {
   const spans: Array<{ start: number; end: number }> = [];
@@ -193,6 +219,7 @@ export function qualifiedTableName(options: Pick<BuildTableSelectSqlOptions, "da
   }
   if ((databaseType === "gaussdb" || databaseType === "opengauss" || databaseType === "postgres" || databaseType === "kingbase") && identifierQuote != null) {
     const quotedTable = quoteTableData(tableName);
+    if (dropsSchemaQualifier(databaseType, includeDatabaseName)) return quotedTable;
     const trimmedSchema = schema?.trim();
     if (trimmedSchema) {
       return `${quoteTableData(trimmedSchema)}.${quotedTable}`;
@@ -201,6 +228,7 @@ export function qualifiedTableName(options: Pick<BuildTableSelectSqlOptions, "da
   }
   if (databaseType === "jdbc" && jdbcDriverProfileUsesSchemaQualification(driverProfile)) {
     const quotedTable = quoteTableData(tableName);
+    if (dropsSchemaQualifier(databaseType, includeDatabaseName)) return quotedTable;
     const trimmedSchema = schema?.trim();
     return trimmedSchema ? `${quoteTableData(trimmedSchema)}.${quotedTable}` : quotedTable;
   }
@@ -223,6 +251,7 @@ export function qualifiedTableName(options: Pick<BuildTableSelectSqlOptions, "da
   }
   if (databaseType === "informix" && identifierQuote != null) {
     const quotedTable = quoteTableData(tableName);
+    if (dropsSchemaQualifier(databaseType, includeDatabaseName)) return quotedTable;
     const trimmedSchema = schema?.trim();
     return trimmedSchema ? `${quoteTableData(trimmedSchema)}.${quotedTable}` : quotedTable;
   }
@@ -232,6 +261,12 @@ export function qualifiedTableName(options: Pick<BuildTableSelectSqlOptions, "da
       if (linked) {
         return quoteIdentifiers === false ? [linked.server, linked.catalog, linked.schema, tableName].map((name) => quoteTableIdentifierIfNeeded(databaseType, name)).join(".") : sqlServerLinkedTableName(linked, tableName);
       }
+    }
+    // The schema qualifier is the "database name" on schema-aware engines
+    // (Oracle's SYSTEM, PG's public, ...). `dropsSchemaQualifier` keeps it
+    // for databases whose queries would not resolve without it.
+    if (dropsSchemaQualifier(databaseType, includeDatabaseName)) {
+      return quoteTable(tableName);
     }
     return `${quoteTable(schema)}.${quoteTable(tableName)}`;
   }

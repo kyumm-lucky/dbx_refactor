@@ -151,6 +151,46 @@ class OceanBaseOracleAgentTest {
     }
 
     @Test
+    void supportsCommitAndRollbackForInteractiveTransactions() {
+        List<String> calls = new ArrayList<>();
+        OceanBaseOracleAgent agent = new OceanBaseOracleAgent();
+        TestSupport.setPrivateConnection(agent, transactionConnection(calls));
+
+        agent.beginManualTransaction(null);
+        Assertions.assertEquals(List.of("setAutoCommit:false"), calls);
+        agent.commitManualTransaction();
+        Assertions.assertEquals(List.of("setAutoCommit:false", "commit", "setAutoCommit:true"), calls);
+
+        agent.beginManualTransaction(null);
+        agent.rollbackManualTransaction();
+        Assertions.assertEquals(
+            List.of("setAutoCommit:false", "commit", "setAutoCommit:true", "setAutoCommit:false", "rollback", "setAutoCommit:true"),
+            calls
+        );
+    }
+
+    @Test
+    void failedCommitKeepsTransactionOpenSoItCanBeRolledBack() throws SQLException {
+        List<String> calls = new ArrayList<>();
+        boolean[] failCommit = {true};
+        OceanBaseOracleAgent agent = new OceanBaseOracleAgent();
+        Connection connection = transactionConnection(calls, failCommit);
+        TestSupport.setPrivateConnection(agent, connection);
+
+        agent.beginManualTransaction(null);
+        Assertions.assertThrows(RuntimeException.class, agent::commitManualTransaction);
+        Assertions.assertFalse(connection.getAutoCommit());
+
+        failCommit[0] = false;
+        Assertions.assertDoesNotThrow(agent::rollbackManualTransaction);
+        Assertions.assertTrue(connection.getAutoCommit());
+        Assertions.assertEquals(
+            List.of("setAutoCommit:false", "commit", "rollback", "setAutoCommit:true"),
+            calls
+        );
+    }
+
+    @Test
     void synchronizesSessionTimeoutForEveryQueryEntryPoint() {
         List<String> sql = new ArrayList<>();
         List<Integer> queryTimeouts = new ArrayList<>();
@@ -425,11 +465,11 @@ class OceanBaseOracleAgentTest {
         OceanBaseOracleAgent agent = new OceanBaseOracleAgent();
         TestSupport.setPrivateConnection(agent, preparedConnection(new ArrayList<>(),
             resultSet(
-                new String[]{"INDEX_NAME", "COLUMN_NAME", "COLUMN_POSITION", "UNIQUENESS", "CONSTRAINT_TYPE", "INDEX_TYPE"},
-                new Object[][]{}
+                new String[]{"DDL"},
+                new Object[][]{{"CREATE TABLE \"AUDIT_LOG\" (\"CREATED_AT\" TIMESTAMP DEFAULT SYSDATE NOT NULL, \"INTERNAL_NOTE\" VARCHAR2(100))"}}
             ),
             resultSet(
-                new String[]{"CONSTRAINT_NAME", "COLUMN_NAME", "TABLE_NAME", "REF_COLUMN_NAME"},
+                new String[]{"INDEX_NAME"},
                 new Object[][]{}
             ),
             resultSet(
@@ -452,7 +492,7 @@ class OceanBaseOracleAgentTest {
 
         String ddl = agent.getTableDdl("APP", "AUDIT_LOG");
 
-        Assertions.assertTrue(ddl.contains("\"CREATED_AT\" TIMESTAMP NOT NULL DEFAULT SYSDATE"), ddl);
+        Assertions.assertTrue(ddl.contains("\"CREATED_AT\" TIMESTAMP DEFAULT SYSDATE NOT NULL"), ddl);
         Assertions.assertTrue(
             ddl.contains("COMMENT ON COLUMN \"APP\".\"AUDIT_LOG\".\"CREATED_AT\" IS 'Created timestamp';"),
             ddl
@@ -468,11 +508,11 @@ class OceanBaseOracleAgentTest {
         OceanBaseOracleAgent agent = new OceanBaseOracleAgent();
         TestSupport.setPrivateConnection(agent, preparedConnection(sql,
             resultSet(
-                new String[]{"INDEX_NAME", "COLUMN_NAME", "COLUMN_POSITION", "UNIQUENESS", "CONSTRAINT_TYPE", "INDEX_TYPE"},
-                new Object[][]{}
+                new String[]{"DDL"},
+                new Object[][]{{"CREATE TABLE \"USERS\" (\"ID\" NUMBER PRIMARY KEY, \"NAME\" VARCHAR2(100)) PARTITION BY RANGE(\"ID\") (PARTITION P1 VALUES LESS THAN(MAXVALUE))"}}
             ),
             resultSet(
-                new String[]{"CONSTRAINT_NAME", "COLUMN_NAME", "TABLE_NAME", "REF_COLUMN_NAME"},
+                new String[]{"INDEX_NAME"},
                 new Object[][]{}
             ),
             resultSet(
@@ -527,11 +567,11 @@ class OceanBaseOracleAgentTest {
         OceanBaseOracleAgent agent = new OceanBaseOracleAgent();
         TestSupport.setPrivateConnection(agent, dbaFallbackPrivilegeConnection(sql,
             resultSet(
-                new String[]{"INDEX_NAME", "COLUMN_NAME", "COLUMN_POSITION", "UNIQUENESS", "CONSTRAINT_TYPE", "INDEX_TYPE"},
-                new Object[][]{}
+                new String[]{"DDL"},
+                new Object[][]{{"CREATE TABLE \"USERS\" (\"ID\" NUMBER PRIMARY KEY, \"NAME\" VARCHAR2(100)) PARTITION BY RANGE(\"ID\") (PARTITION P1 VALUES LESS THAN(MAXVALUE))"}}
             ),
             resultSet(
-                new String[]{"CONSTRAINT_NAME", "COLUMN_NAME", "TABLE_NAME", "REF_COLUMN_NAME"},
+                new String[]{"INDEX_NAME"},
                 new Object[][]{}
             ),
             resultSet(
@@ -576,11 +616,11 @@ class OceanBaseOracleAgentTest {
         OceanBaseOracleAgent agent = new OceanBaseOracleAgent();
         TestSupport.setPrivateConnection(agent, privilegeFailingDdlConnection(sql,
             resultSet(
-                new String[]{"INDEX_NAME", "COLUMN_NAME", "COLUMN_POSITION", "UNIQUENESS", "CONSTRAINT_TYPE", "INDEX_TYPE"},
-                new Object[][]{}
+                new String[]{"DDL"},
+                new Object[][]{{"CREATE TABLE \"USERS\" (\"ID\" NUMBER PRIMARY KEY, \"NAME\" VARCHAR2(100)) PARTITION BY RANGE(\"ID\") (PARTITION P1 VALUES LESS THAN(MAXVALUE))"}}
             ),
             resultSet(
-                new String[]{"CONSTRAINT_NAME", "COLUMN_NAME", "TABLE_NAME", "REF_COLUMN_NAME"},
+                new String[]{"INDEX_NAME"},
                 new Object[][]{}
             ),
             resultSet(
@@ -600,6 +640,59 @@ class OceanBaseOracleAgentTest {
             sql.stream().anyMatch(statement -> statement.toUpperCase(Locale.ROOT).contains("FROM DBA_TAB_PRIVS")),
             String.valueOf(sql)
         );
+    }
+
+    @Test
+    void tableDdlPreservesPartitionsAndNativeLocalIndexes() {
+        var agent = new OceanBaseOracleAgent();
+        String nativeTable = "CREATE TABLE \"T\" (\"ID\" NUMBER, CONSTRAINT \"CK\" CHECK (\"ID\" > 0)) "
+            + "REPLICA_NUM = 1 PARTITION BY RANGE(\"ID\") (PARTITION P1 VALUES LESS THAN(MAXVALUE))";
+        String nativeIndex = "CREATE INDEX \"APP\".\"IX\" ON \"APP\".\"T\"(\"ID\") LOCAL;";
+        TestSupport.setPrivateConnection(agent, preparedConnection(new ArrayList<>(),
+            resultSet(new String[]{"DDL"}, new Object[][]{{nativeTable}}),
+            resultSet(new String[]{"INDEX_NAME"}, new Object[][]{{"IX"}}),
+            resultSet(new String[]{"DDL"}, new Object[][]{{nativeIndex}}),
+            resultSet(new String[]{"COMMENTS"}, new Object[][]{{"Owner's table"}}),
+            resultSet(new String[]{"COLUMN_NAME", "COMMENTS"}, new Object[][]{}),
+            resultSet(new String[]{"GRANTEE", "PRIVILEGE", "GRANTABLE"}, new Object[][]{}),
+            resultSet(new String[]{"GRANTEE", "COLUMN_NAME", "PRIVILEGE", "GRANTABLE"}, new Object[][]{})
+        ));
+        String ddl = agent.getTableDdl("APP", "T");
+        Assertions.assertTrue(ddl.startsWith(nativeTable.replace("CREATE TABLE \"T\"", "CREATE TABLE \"APP\".\"T\"") + ";"), ddl);
+        Assertions.assertTrue(ddl.contains(nativeIndex), ddl);
+        Assertions.assertTrue(ddl.contains("COMMENT ON TABLE \"APP\".\"T\" IS 'Owner''s table';"), ddl);
+    }
+
+    @Test
+    void emptyMetadataDdlFailsInsteadOfReturningAnIncompleteTable() {
+        var agent = new OceanBaseOracleAgent();
+        TestSupport.setPrivateConnection(agent, preparedConnection(new ArrayList<>(),
+            resultSet(new String[]{"DDL"}, new Object[][]{{" "}})));
+        Assertions.assertThrows(RuntimeException.class, () -> agent.getTableDdl("APP", "T"));
+    }
+
+    @Test
+    void partitionsPreserveDictionaryOrderCompositeKeysAndNullHashBounds() {
+        List<String> sql = new ArrayList<>();
+        var agent = new OceanBaseOracleAgent();
+        TestSupport.setPrivateConnection(agent, preparedConnection(sql,
+            resultSet(new String[]{"COLUMN_NAME"}, new Object[][]{{"ID"}, {"A\"B"}}),
+            resultSet(new String[]{"NAME", "POSITION", "HIGH_VALUE", "PARTITION_TYPE"}, new Object[][]{
+                {"P1", 1, "100, 'East'", "RANGE"}, {"PM", 2, "MAXVALUE, MAXVALUE", "RANGE"}}),
+            resultSet(new String[]{"COLUMN_NAME"}, new Object[][]{{"REGION"}}),
+            resultSet(new String[]{"NAME", "POSITION", "HIGH_VALUE", "PARTITION_TYPE"}, new Object[][]{
+                {"S1", 1, null, "HASH"}})
+        ));
+        var partitions = agent.listPartitions("APP", "T");
+        Assertions.assertEquals(List.of("P1", "PM"), partitions.stream().map(com.dbx.agent.PartitionInfo::name).toList());
+        Assertions.assertEquals("\"ID\", \"A\"\"B\"", partitions.get(0).partition_key());
+        Assertions.assertEquals("100, 'East'", partitions.get(0).value());
+        var subpartitions = agent.listSubpartitions("APP", "T");
+        Assertions.assertEquals("", subpartitions.get(0).value());
+        Assertions.assertEquals("HASH", subpartitions.get(0).partition_type());
+        Assertions.assertTrue(sql.get(0).contains("ORDER BY COLUMN_POSITION"));
+        Assertions.assertTrue(sql.get(1).contains("WHERE p.TABLE_OWNER = ? AND p.TABLE_NAME = ?"));
+        Assertions.assertTrue(sql.get(3).contains("ALL_TAB_SUBPARTITIONS"));
     }
 
     private static ResultSet columnResultSet(Object[][] rows) {
@@ -845,6 +938,37 @@ class OceanBaseOracleAgentTest {
 
     private static Connection executionConnection(List<String> sql) {
         return executionConnection(sql, new ArrayList<>(), List.of());
+    }
+
+    private static Connection transactionConnection(List<String> calls) {
+        return transactionConnection(calls, new boolean[] {false});
+    }
+
+    private static Connection transactionConnection(List<String> calls, boolean[] failCommit) {
+        boolean[] autoCommit = {true};
+        return proxy(Connection.class, (method, args) -> {
+            switch (method.getName()) {
+                case "getAutoCommit":
+                    return autoCommit[0];
+                case "setAutoCommit":
+                    autoCommit[0] = (Boolean) args[0];
+                    calls.add("setAutoCommit:" + autoCommit[0]);
+                    return null;
+                case "commit":
+                    calls.add("commit");
+                    if (failCommit[0]) {
+                        throw new SQLException("commit failed");
+                    }
+                    return null;
+                case "rollback":
+                    calls.add("rollback");
+                    return null;
+                case "isClosed":
+                    return false;
+                default:
+                    return defaultValue(method.getReturnType());
+            }
+        });
     }
 
     private static Connection executionConnection(
