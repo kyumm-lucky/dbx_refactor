@@ -1,4 +1,5 @@
 export const APP_FONT_SANS_CSS_VAR = "--font-sans";
+export const FONT_MONO_CSS_VAR = "--font-mono";
 export const DATA_GRID_FONT_FAMILY_CSS_VAR = "--dbx-data-grid-font-family";
 
 // System SF stack, matching the OS the app is designed against. The bundled
@@ -11,6 +12,9 @@ export const DEFAULT_DATA_GRID_FONT_FAMILY = `"SF Mono", ui-monospace, "JetBrain
 // typography spec. The old default led with Fira Code, which is still offered
 // in the font picker.
 export const DEFAULT_EDITOR_FONT_FAMILY = `"SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace`;
+// Keep in sync with the editor font default above; also the baseline
+// `--font-mono` value in tokens.css, which plugin sandboxes consume via the bridge.
+export const DEFAULT_MONO_FONT_FAMILY = DEFAULT_EDITOR_FONT_FAMILY;
 
 // Native-feeling UI option without DBX's bundled/brand font at the front of the stack.
 export const SYSTEM_UI_FONT_FAMILY = `system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;

@@ -9,6 +9,7 @@ import type { DataGridCellDetail } from "@/lib/dataGrid/dataGridDetail";
 const mocks = vi.hoisted(() => ({
   editor: { create: vi.fn(), destroy: vi.fn(), setValue: vi.fn(), openSearch: vi.fn() },
   updateSettings: vi.fn(),
+  copyToClipboard: vi.fn(),
 }));
 
 vi.mock("vue-i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
@@ -50,7 +51,16 @@ vi.mock("@/components/ui/button", async () => ({ Button: (await import("./vueHos
 vi.mock("@/components/ui/input", async () => ({ Input: (await import("./vueHostHarness")).createPassthroughStub("Input", "input") }));
 vi.mock("@/components/ui/dialog", async () => {
   const { createPassthroughStub } = await import("./vueHostHarness");
-  return { Dialog: createPassthroughStub("Dialog"), DialogContent: createPassthroughStub("DialogContent"), DialogFooter: createPassthroughStub("DialogFooter"), DialogHeader: createPassthroughStub("DialogHeader"), DialogTitle: createPassthroughStub("DialogTitle") };
+  // DialogTrigger/DialogDescription 供 DataGridCellDetailTextPreview（上游「以文本查看」）使用。
+  return {
+    Dialog: createPassthroughStub("Dialog"),
+    DialogContent: createPassthroughStub("DialogContent"),
+    DialogDescription: createPassthroughStub("DialogDescription"),
+    DialogFooter: createPassthroughStub("DialogFooter"),
+    DialogHeader: createPassthroughStub("DialogHeader"),
+    DialogTitle: createPassthroughStub("DialogTitle"),
+    DialogTrigger: createPassthroughStub("DialogTrigger"),
+  };
 });
 vi.mock("@/components/ui/dropdown-menu", async () => {
   const { createPassthroughStub } = await import("./vueHostHarness");
@@ -78,6 +88,7 @@ vi.mock("@/components/grid/DataGridValueTransform.vue", async () => ({ default: 
 vi.mock("@/composables/useCellDetailEditor", () => ({ useCellDetailEditor: () => mocks.editor }));
 vi.mock("@/composables/useTheme", () => ({ useTheme: () => ({ isDark: { value: false }, themePalette: { value: {} } }) }));
 vi.mock("@/stores/settingsStore", () => ({ useSettingsStore: () => ({ editorSettings: { cellDetailJsonFormatted: true, theme: "default", fontSize: 13, fontFamily: "monospace" }, updateEditorSettings: mocks.updateSettings }) }));
+vi.mock("@/lib/common/clipboard", () => ({ copyToClipboard: mocks.copyToClipboard }));
 
 import DataGridCellDetailDialog from "@/components/grid/DataGridCellDetailDialog.vue";
 import DataGridColumnHeader from "@/components/grid/DataGridColumnHeader.vue";
@@ -1439,6 +1450,54 @@ describe("DataGridCellDetailDialog", () => {
     const dialog = findOne(mounted.root, (node) => node.props["data-stub"] === "Dialog");
     dialog.props["onUpdate:open"](false);
     expect(updateOpen).toHaveBeenCalledWith(false);
+  });
+
+  // 上游 issue #9505：GaussDB（ZenithDriver）的 BLOB 以 `0x<hex>` 到达前端，详情里需要显式、只读的文本查看入口。
+  // 本 fork 把详情面从面板改为对话框，这里按对话框保留该能力的覆盖。
+  it("offers the read-only binary text preview instead of the value transform for binary cells", async () => {
+    const mounted = mountComponent(DataGridCellDetailDialog, {
+      open: true,
+      detail: detail({ type: "BLOB", value: "0x5b5b68656164657273203d207b7d", rawValue: "0x5b5b68656164657273203d207b7d", rawValuePreview: "0x5b5b68656164657273203d207b7d", displayValue: "BLOB [14 bytes]", displayValuePreview: "BLOB [14 bytes]", formattedJson: "" }),
+      typeColorClass: () => "",
+      openImagePreview: vi.fn(),
+      copyText: vi.fn(),
+      canDownloadBinaryValue: () => true,
+      downloadBinaryValue: vi.fn(),
+      canImportBinaryValue: () => false,
+      importBinaryValue: vi.fn(),
+      databaseType: "gaussdb",
+    });
+
+    // binary 列不再渲染 timestamp/radix 这类对 hex 无意义的文本转换，改用只读文本预览。
+    expect(findAll(mounted.root, (node) => node.props["data-stub"] === "DataGridValueTransform")).toHaveLength(0);
+    expect(hostText(mounted.root)).toContain("grid.binaryTextPreview");
+    expect(findOne(mounted.root, (node) => node.type === "textarea").value).toBe("[[headers = {}");
+
+    // 预览里的复制只读呈现的文本，不写回 canonical 的 `0x<hex>`。
+    dispatch(
+      findOne(mounted.root, (node) => node.type === "button" && hostText(node).trim() === "grid.binaryTextPreviewCopy"),
+      "click",
+    );
+    await nextTick();
+    expect(mocks.copyToClipboard).toHaveBeenCalledWith("[[headers = {}");
+  });
+
+  it("keeps the value transform entry for non-binary detail cells", () => {
+    const mounted = mountComponent(DataGridCellDetailDialog, {
+      open: true,
+      detail: detail({ type: "VARCHAR(32)", value: "hello", rawValue: "hello", rawValuePreview: "hello", displayValue: "hello", displayValuePreview: "hello", formattedJson: "" }),
+      typeColorClass: () => "",
+      openImagePreview: vi.fn(),
+      copyText: vi.fn(),
+      canDownloadBinaryValue: () => false,
+      downloadBinaryValue: vi.fn(),
+      canImportBinaryValue: () => false,
+      importBinaryValue: vi.fn(),
+      databaseType: "mysql",
+    });
+
+    expect(findAll(mounted.root, (node) => node.props["data-stub"] === "DataGridValueTransform")).toHaveLength(1);
+    expect(findAll(mounted.root, (node) => node.type === "textarea")).toHaveLength(0);
   });
 });
 

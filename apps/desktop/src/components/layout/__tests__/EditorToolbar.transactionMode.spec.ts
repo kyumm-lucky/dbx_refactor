@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { readFileSync } from "node:fs";
 import { createApp, nextTick } from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import { createI18n } from "vue-i18n";
@@ -63,6 +64,8 @@ vi.mock("@/components/common/ProductionContextBadge.vue", () => ({
 
 import EditorToolbar from "../EditorToolbar.vue";
 import { useConnectionStore } from "@/stores/connectionStore";
+
+const editorToolbarSource = readFileSync("apps/desktop/src/components/layout/EditorToolbar.vue", "utf8");
 
 function createHost(): HTMLDivElement {
   const host = document.createElement("div");
@@ -130,6 +133,18 @@ describe("EditorToolbar commit/rollback visibility", () => {
 
   const commitSelector = `button[aria-label="toolbar.commit"]`;
   const rollbackSelector = `button[aria-label="toolbar.rollback"]`;
+
+  it.each([undefined, "active-session"])("only opens independent multi-db transactions when the source has no active session (%s)", async (txnSessionId) => {
+    const host = await mountToolbar({ dbType: "oceanbase-oracle", stickyProvenReadOnlyState: true, txnSessionId });
+
+    // 本 fork 把「多库执行」收进工具条的溢出菜单（上游的常驻图标按钮随工具栏精简移除），
+    // 菜单内容 teleport 到 body 且默认不展开，因此改为断言该项的可用性规则本身：
+    // 入口由 canMultiExecute 决定，手动事务会话激活时它必须为 false。
+    expect(editorToolbarSource).toContain(':disabled="!canMultiExecute"');
+    expect(editorToolbarSource).toMatch(/const canMultiExecute = computed\(\(\) => \{[\s\S]*?if \(isTransactionActive\.value\) return false;/);
+    expect(host.querySelector('button[aria-label="toolbar.multiDbExecute"]')).toBeNull();
+    host.remove();
+  });
 
   it("hides Commit/Rollback for a clean MySQL sticky manual session", async () => {
     const host = await mountToolbar({ dbType: "mysql", stickyProvenReadOnlyState: true, txnPossiblyDirty: false, txnSessionId: "txn-1" });
