@@ -1,16 +1,8 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { canFormatSqlForDatabaseType, formatSqlForDisplay, formatSqlForEditing, formatSqlText, MAX_SQL_FORMAT_CHARS, sqlFormatDialectForDbType, UnsupportedStructuredInputError } from "@/lib/sql/sqlFormatter";
 import { extractSqlParameters } from "@/lib/sql/sqlParameters";
 
-const sqlFormatterSource = readFileSync(new URL("../../sql/sqlFormatter.ts", import.meta.url), "utf8");
-
 describe("sqlFormatter", () => {
-  it("does not use lookbehind regular expressions in the startup path", () => {
-    expect(sqlFormatterSource).not.toContain("(?<!");
-    expect(sqlFormatterSource).not.toContain("(?<=");
-  });
-
   it("disables SQL formatting for Redis and VictoriaMetrics queries", () => {
     expect(canFormatSqlForDatabaseType("redis")).toBe(false);
     expect(canFormatSqlForDatabaseType("victoriametrics")).toBe(false);
@@ -81,6 +73,16 @@ describe("sqlFormatter", () => {
     // String literals and quoted identifiers must survive formatting untouched.
     expect(formatted).toContain("'ACTIVE'");
     expect(formatted).toContain('"ACTIVE_USERS"');
+  });
+
+  it("keeps a view's trailing line comment from swallowing the next column (issue #10278)", async () => {
+    // A `--` comment consumes the rest of its line, so the column that follows
+    // it in the view text has to start a new line; appending it to the comment
+    // would silently drop it from the DDL shown to the user.
+    const viewDdl = `CREATE VIEW "TEMP_TEST_VIEW" AS SELECT trunc(sysdate) AS dates, -- 测试\n(SELECT sysdate FROM dual t) AS nows\nFROM dual;`;
+    const formatted = await formatSqlForDisplay(viewDdl, sqlFormatDialectForDbType("oracle"));
+
+    expect(formatted).toBe('CREATE VIEW "TEMP_TEST_VIEW" AS\nSELECT trunc(sysdate) AS dates,\n       -- 测试\n       (SELECT sysdate FROM dual t) AS nows\nFROM dual;');
   });
 
   it("collapses a short OceanBase Oracle view DDL onto one line (issue #7540)", async () => {

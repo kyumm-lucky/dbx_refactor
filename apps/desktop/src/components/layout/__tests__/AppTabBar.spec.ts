@@ -56,7 +56,8 @@ describe("AppTabBar close confirmation layout", () => {
     const end = tabBarSource.indexOf("</PopoverContent>", start);
     expect(start).toBeGreaterThanOrEqual(0);
     expect(end).toBeGreaterThan(start);
-    expect(tabBarSource.slice(start, end)).toContain("tabDisplayTitle(tab, t, queryStore.tabs)");
+    // 编号改由 store 侧的 syncTabTitleNumbers 一次性写回标签，取值统一走 closeConfirmTabTitle。
+    expect(tabBarSource.slice(start, end)).toContain("closeConfirmTabTitle(tab)");
   });
 });
 

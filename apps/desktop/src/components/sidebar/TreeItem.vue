@@ -73,10 +73,11 @@ import { formatSidebarObjectStorage } from "@/lib/sidebar/sidebarDatabaseStorage
 import { effectiveRedisDatabaseIndex } from "@/lib/redis/redisDatabaseIndex";
 import { dataTabOpenModeFromTreeClick } from "@/lib/sidebar/dataTabOpenPolicy";
 import { effectiveDatabaseTypeForConnection } from "@/lib/database/jdbcDialect";
-import { selectedTableVGroupMoveTargets, tableVGroupIdFromNodeId } from "@/lib/table/tableVGroup";
+import { isTableVGroupGroupableRowType, selectedTableVGroupMoveTargets, tableVGroupIdFromNodeId } from "@/lib/table/tableVGroup";
 import { findTreeNodeById } from "@/lib/sql/newQueryContext";
 import { resolveTableVGroupDropTarget, setTableVGroupDropTargetNodeId, tableVGroupDropTargetNodeId } from "@/lib/sidebar/sidebarTableVGroupDrag";
 import { connectionDisplayUrlScheme } from "@/lib/connection/connectionPresentation";
+import { redactConnectionStringSecrets } from "@/lib/connection/connectionStringRedaction";
 import { isFocusSearchShortcut } from "@/lib/editor/keyboardShortcuts";
 import { encodeSpannerResourcePath } from "@/lib/connection/spannerResourcePath";
 import { hexToRgba } from "@/lib/common/color";
@@ -200,10 +201,6 @@ const props = defineProps<{
   pendingRename?: boolean;
   highlighted?: boolean;
   commentLabelWidth?: number;
-  /** Plain (non-virtualized) renderer: make database/schema container rows
-   * stick to the top of the tree scroller while their children scroll under
-   * them (mirrors the overlay sticky header of the virtual renderer). */
-  stickyHeader?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -415,11 +412,15 @@ function getIconInfo(node: TreeNode): { icon: any; colorClass: string } | null {
       return { icon: node.isExpanded ? FolderOpen : FolderClosed, colorClass: "text-green-400" };
     case "group-extensions":
       return { icon: Package, colorClass: "text-violet-500" };
+    case "group-event-triggers":
+      return { icon: Package, colorClass: "text-violet-500" };
     case "group-tablespaces":
       return { icon: Database, colorClass: "text-orange-500" };
     case "group-datafiles":
       return { icon: node.isExpanded ? FolderOpen : FolderClosed, colorClass: "text-slate-500" };
     case "extension":
+      return { icon: Package, colorClass: "text-violet-400" };
+    case "event-trigger":
       return { icon: Package, colorClass: "text-violet-400" };
     case "load-more":
       return { icon: Plus, colorClass: "text-primary" };
@@ -515,10 +516,6 @@ function isLocalFileConnection(config: Pick<ConnectionConfig, "db_type" | "port"
   return config.db_type === "sqlite" || config.db_type === "duckdb" || config.db_type === "access" || (config.db_type === "h2" && config.port === 0);
 }
 
-function redactedConnectionString(value: string): string {
-  return value.replace(/(:\/\/[^/\s:@?#;]+):([^@\s/?#;]+)@/g, "$1:***@").replace(/([?&;](?:password|pwd|pass|token|secret|key)=)[^&;]*/gi, "$1***");
-}
-
 function hostForDisplay(host: string): string {
   if (!host.includes(":") || host.startsWith("[") || host.includes("://") || host.includes(",")) return host;
   return `[${host}]`;
@@ -533,11 +530,11 @@ function tooltipDatabaseValue(config: ConnectionConfig): string {
 
 function connectionTooltipUrl(config: ConnectionConfig): string {
   const explicit = cleanTooltipValue(config.connection_string);
-  if (explicit) return redactedConnectionString(explicit);
+  if (explicit) return redactConnectionStringSecrets(explicit);
 
   const host = cleanTooltipValue(config.host);
   if (!host) return "";
-  if (host.includes("://")) return redactedConnectionString(host);
+  if (host.includes("://")) return redactConnectionStringSecrets(host);
 
   if (isLocalFileConnection(config)) {
     if (config.db_type === "access") return `jdbc:ucanaccess://${host}`;
@@ -553,7 +550,7 @@ function connectionTooltipUrl(config: ConnectionConfig): string {
   const path = database ? `/${encodedDatabase}` : "";
   const params = cleanTooltipValue(config.url_params);
   const query = params ? (params.startsWith("?") ? params : `?${params}`) : "";
-  return redactedConnectionString(`${scheme}://${userInfo}${hostForDisplay(host)}${port}${path}${query}`);
+  return redactConnectionStringSecrets(`${scheme}://${userInfo}${hostForDisplay(host)}${port}${path}${query}`);
 }
 
 const detailTooltip = computed(() => {
@@ -637,10 +634,12 @@ const detailTooltip = computed(() => {
       ],
     };
   }
-  const comment = node.type === "column" && node.meta && "comment" in node.meta ? (node.meta as ColumnInfo).comment : node.comment;
-  if (!comment || (node.type !== "schema" && node.type !== "table" && node.type !== "view" && node.type !== "column")) return null;
+  const column = node.type === "column" ? (node.meta as ColumnInfo | undefined) : undefined;
+  const comment = column && "comment" in column ? column.comment : node.comment;
+  if ((!comment && !column) || (node.type !== "schema" && node.type !== "table" && node.type !== "view" && node.type !== "column")) return null;
   const rows: DetailTooltipRow[] = [
     { label: t("connection.name"), value: visibleLabel(node) },
+    ...(column ? [{ label: t("structureEditor.nullable"), value: t(column.is_nullable ? "structureEditor.nullable" : "structureEditor.notNull") }] : []),
     { label: t("structureEditor.comment"), value: cleanTooltipValue(comment), multiline: true },
   ].filter((row) => row.value);
   return { rows };
@@ -1374,9 +1373,10 @@ function tableReferenceDragPayload(): QueryEditorTableReferencePayload | null {
 
 function startTableReferenceDrag(payload: QueryEditorTableReferencePayload) {
   draggingTableReferencePayload = payload;
-  // 分组成员名单只收真实表：视图/物化视图投影不识别，入组会产生隐形脏数据。
+  // 分组成员名单按可分组行类型收集（表/视图/物化视图/过程/函数/触发器/序列等）；
+  // 无匹配容器的行由 scope 解析兜底拒绝，不会产生隐形脏数据。
   vgroupDragTableNames = selectedTableVGroupMoveTargets(activeNode.value, selectedTreeNodesInVisibleOrder())
-    .filter((node) => node.type === "table")
+    .filter((node) => isTableVGroupGroupableRowType(node.type))
     .map((node) => node.label);
   setActiveTableReferencePayload(payload);
   document.getSelection()?.removeAllRanges();
@@ -1401,7 +1401,8 @@ let vgroupDragTableNames: string[] = [];
 
 function tableVGroupDropTargetFor(payload: QueryEditorTableReferencePayload, event: MouseEvent) {
   if (!vgroupDragTableNames.length) return null;
-  return resolveTableVGroupDropTarget(event.clientX, event.clientY, connectionStore.treeNodes, payload);
+  // 拖拽源是树行（多选同类型），落点解析按行类别过滤跨类别容器。
+  return resolveTableVGroupDropTarget(event.clientX, event.clientY, connectionStore.treeNodes, { ...payload, objectType: activeNode.value.type });
 }
 
 function onTableReferenceMouseMove(event: MouseEvent) {
@@ -1430,7 +1431,7 @@ function onTableReferenceMouseUp(event: MouseEvent) {
     suppressNextTableReferenceClick = true;
     const dropTarget = tableVGroupDropTargetFor(payload, event);
     if (dropTarget) {
-      for (const tableName of vgroupDragTableNames) connectionStore.moveTableToVGroup(dropTarget.node, tableName, dropTarget.groupId);
+      for (const tableName of vgroupDragTableNames) connectionStore.moveTableToVGroup(dropTarget.node, tableName, dropTarget.groupId, activeNode.value.type);
     } else {
       const target = document.elementFromPoint(event.clientX, event.clientY);
       if (target instanceof Element && target.closest(`[data-query-editor-root], ${AI_ASSISTANT_TABLE_DROP_ROOT_SELECTOR}`)) {
@@ -1604,7 +1605,7 @@ function onKeydown(event: KeyboardEvent) {
     </LightTooltip>
   </div>
 
-  <div v-else :class="{ 'sidebar-tree-item--sticky': stickyHeader }" @contextmenu="onTreeItemContextMenu">
+  <div v-else @contextmenu="onTreeItemContextMenu">
     <LightTooltip :text="visibleLabel(node)" :disabled="isTooltipDisabled()" side="right" :side-offset="8" :delay="0" :close-delay="30" :surface="detailTooltip ? 'popover' : 'foreground'">
       <div
         ref="rowRef"
@@ -1692,6 +1693,14 @@ function onKeydown(event: KeyboardEvent) {
               ]"
               >{{ visibleLabel(node) }}</span
             >
+            <span
+              v-if="node.type === 'column' && node.meta"
+              class="shrink-0 rounded px-1 text-[10px] leading-4"
+              :class="(node.meta as ColumnInfo).is_nullable ? 'text-muted-foreground bg-muted/50' : 'text-amber-700 bg-amber-500/10 dark:text-amber-300'"
+              :title="t((node.meta as ColumnInfo).is_nullable ? 'structureEditor.nullable' : 'structureEditor.notNull')"
+            >
+              {{ t((node.meta as ColumnInfo).is_nullable ? "structureEditor.nullable" : "structureEditor.notNull") }}
+            </span>
             <button v-if="node.type === 'oracle-db-links'" class="ml-auto rounded p-0.5 text-muted-foreground hover:bg-muted" :aria-label="t('databaseLinks.manage')" :title="t('databaseLinks.manage')" @click.stop="showDatabaseLinks = true" @dblclick.stop>
               <TableProperties class="h-3.5 w-3.5" />
             </button>

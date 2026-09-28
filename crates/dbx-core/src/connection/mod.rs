@@ -43,6 +43,7 @@ use crate::plugins::{
     PluginRuntimeEnv, PluginRuntimeProxy,
 };
 use crate::query_cancel::RunningQueries;
+use crate::salesforce_oauth::SfBrowserOpener;
 use crate::session_credentials::SessionCredentialStore;
 use crate::storage::{normalize_duckdb_worker_max_processes, Storage, DUCKDB_WORKER_MAX_PROCESSES_DEFAULT};
 use crate::task_supervisor::TaskSupervisor;
@@ -58,6 +59,12 @@ const DEFAULT_AGENT_CONNECT_TIMEOUT_SECS: u64 = 30;
 const ACCESS_AGENT_CONNECT_TIMEOUT_SECS: u64 = 30;
 const POOL_CLOSE_TIMEOUT_SECS: u64 = 3;
 const HEALTH_CHECK_POOL_ACQUIRE_TIMEOUT: Duration = Duration::from_millis(500);
+/// Upper bound for the "is this checked-out connection still alive" query that
+/// follows a successful health checkout. Windows keeps retransmitting on a
+/// half-open TCP connection for ~21s before the read fails, so a probe without
+/// its own budget would make `check_connection_health` (and therefore
+/// `ensureConnected`) hang for the whole OS retry window.
+const HEALTH_CHECK_PROBE_TIMEOUT: Duration = Duration::from_secs(5);
 pub(crate) const METADATA_POOL_ACQUIRE_TIMEOUT: Duration = Duration::from_secs(5);
 pub(crate) const METADATA_POOL_DEFAULT_LIMIT: usize = 6;
 pub(crate) const METADATA_POOL_SQLSERVER_LIMIT: usize = 1;
@@ -110,7 +117,9 @@ pub enum PoolKind {
     SqlServer(Arc<tokio::sync::Mutex<db::sqlserver::SqlServerClient>>),
     Elasticsearch(db::elasticsearch_driver::EsClient),
     Easysearch(db::easysearch_driver::EasysearchClient),
+    Solr(db::solr_driver::SolrClient),
     Meilisearch(db::meilisearch_driver::MeilisearchClient),
+    Salesforce(db::salesforce_driver::SfClient),
     HBase(db::hbase_driver::HBaseClient),
     VectorDb(db::vector_driver::VectorClient),
     InfluxDb(db::influxdb_driver::InfluxdbClient),
@@ -360,6 +369,24 @@ struct SharedResourceBudget {
     semaphore: Arc<Semaphore>,
 }
 
+/// Cached Salesforce connected-user identity + org display name, serialized
+/// with camelCase field names for the frontend. `Deserialize` is derived too so
+/// the Web-mode MCP backend can decode the same JSON the desktop route emits.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SalesforceCurrentUser {
+    pub user_id: String,
+    pub name: String,
+    pub email: String,
+    pub organization_id: String,
+    pub username: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_admin: Option<bool>,
+    pub org_name: String,
+}
+
 pub struct AppState {
     connections: Arc<RwLock<ConnectionPoolRegistry>>,
     task_supervisor: TaskSupervisor,
@@ -383,6 +410,13 @@ pub struct AppState {
     /// PostgreSQL TLS cancel context, keyed by pool_key.
     /// Used to reconstruct a TLS connector compatible with the original connection when cancelling.
     postgres_cancel_contexts: Arc<RwLock<HashMap<String, db::postgres::PostgresCancelContext>>>,
+    /// Pool keys whose tab-scoped MySQL connection holds a transaction the user
+    /// opened explicitly and DBX deliberately kept open
+    /// (`preserve_explicit_transaction`). Keeping it here — not on the driver
+    /// connection — makes the state die with the pool: a reconnect, a rebuilt
+    /// pool, or a closed tab can never inherit a transaction that no longer
+    /// exists.
+    mysql_preserved_transactions: Arc<RwLock<HashSet<String>>>,
     pub transaction_sessions: Arc<RwLock<HashMap<String, TransactionSession>>>,
     /// `save_password=false` 连接本次运行期的临时密码（内存，进程退出即丢，
     /// 绝不落盘）。键为 `(owner_scope, connection_id)`：桌面端 owner 为空串，
@@ -393,6 +427,7 @@ pub struct AppState {
     pub write_unlock_windows: crate::write_unlock::WriteUnlockWindows,
     metadata_gates: Arc<Mutex<HashMap<String, Arc<Semaphore>>>>,
     mongo_oidc_browser_opener: std::sync::RwLock<Option<MongoOidcBrowserOpener>>,
+    salesforce_browser_opener: std::sync::RwLock<Option<SfBrowserOpener>>,
     #[cfg(feature = "mq-admin")]
     pub mq_registry: crate::mq::MqAdminRegistry,
 }
@@ -531,6 +566,13 @@ struct PoolRoutingControl {
     connections: Arc<RwLock<ConnectionPoolRegistry>>,
     pool_activity: Arc<RwLock<HashMap<String, PoolActivity>>>,
     postgres_cancel_contexts: Arc<RwLock<HashMap<String, db::postgres::PostgresCancelContext>>>,
+    /// The same set as [`AppState::mysql_preserved_transactions`]. Every detach
+    /// path (including `ClientSessionPoolCleanupGuard`'s `Drop`, which never
+    /// reaches `AppState`) has to clear the marker together with the pool:
+    /// otherwise a pool rebuilt under the same key would read a stale
+    /// `already_preserved` and keep a leftover transaction the way #9479
+    /// described, even with the opt-in turned off.
+    mysql_preserved_transactions: Arc<RwLock<HashSet<String>>>,
     task_supervisor: TaskSupervisor,
 }
 
@@ -687,9 +729,11 @@ impl PoolRoutingControl {
         {
             let mut activity = self.pool_activity.write().await;
             let mut cancel_contexts = self.postgres_cancel_contexts.write().await;
+            let mut preserved = self.mysql_preserved_transactions.write().await;
             for (key, _) in &removed {
                 activity.remove(key);
                 cancel_contexts.remove(key);
+                preserved.remove(key);
             }
         }
         self.close_removed_in_background(removed);
@@ -1383,6 +1427,55 @@ impl AppState {
         self.connections.read().await.keys().any(|key| pool_key_belongs_to_connection(key, connection_id))
     }
 
+    /// Find an already-registered metadata/workload pool for a metadata read.
+    /// Unlike `get_or_create_metadata_pool_for_session`, this is a pure lookup:
+    /// it never validates credentials, starts an agent, or opens a transport.
+    pub(crate) async fn existing_metadata_pool_key_for_session(
+        &self,
+        connection_id: &str,
+        database: Option<&str>,
+        client_session_id: Option<&str>,
+    ) -> Option<String> {
+        let config = {
+            let configs = self.configs.read().await;
+            configs.get(connection_id).cloned()
+        }?;
+        let pool_database = metadata_pool_database(Some(&config), database);
+        let mut base_pool_keys =
+            vec![base_pool_key_for_with_catalog(Some(config.db_type), connection_id, pool_database, None, false)];
+        // MongoDB document operations use a connection-level pool and send the
+        // requested database in the command. A host connection can therefore
+        // legitimately be registered either under the selected database or
+        // under the connection-level key; probe both without creating either.
+        if config.db_type == DatabaseType::MongoDb {
+            let connection_pool_key =
+                base_pool_key_for_with_catalog(Some(config.db_type), connection_id, None, None, false);
+            if !base_pool_keys.contains(&connection_pool_key) {
+                base_pool_keys.push(connection_pool_key);
+            }
+        }
+        let connections = self.connections.read().await;
+        base_pool_keys
+            .into_iter()
+            .flat_map(|base_pool_key| {
+                [
+                    pool_key_for_session_role(
+                        Some(&config),
+                        base_pool_key.clone(),
+                        client_session_id,
+                        AgentSessionRole::Metadata,
+                    ),
+                    pool_key_for_session_role(
+                        Some(&config),
+                        base_pool_key,
+                        client_session_id,
+                        AgentSessionRole::Workload,
+                    ),
+                ]
+            })
+            .find(|pool_key| connections.pools.contains_key(pool_key))
+    }
+
     /// Mutate the registry atomically. The callback is deliberately
     /// synchronous; asynchronous cleanup must use values returned from it.
     pub async fn update_connection_pools<R>(&self, update: impl FnOnce(&mut ConnectionPoolRegistry) -> R) -> R {
@@ -1395,6 +1488,7 @@ impl AppState {
             connections: self.connections.clone(),
             pool_activity: self.pool_activity.clone(),
             postgres_cancel_contexts: self.postgres_cancel_contexts.clone(),
+            mysql_preserved_transactions: self.mysql_preserved_transactions.clone(),
             task_supervisor: self.task_supervisor.clone(),
         }
     }
@@ -1522,11 +1616,13 @@ impl AppState {
             duckdb_worker_process_isolation: AtomicBool::new(false),
             duckdb_worker_max_processes: AtomicUsize::new(DUCKDB_WORKER_MAX_PROCESSES_DEFAULT),
             postgres_cancel_contexts: Arc::new(RwLock::new(HashMap::new())),
+            mysql_preserved_transactions: Arc::new(RwLock::new(HashSet::new())),
             transaction_sessions: Arc::new(RwLock::new(HashMap::new())),
             session_credentials: SessionCredentialStore::new(),
             write_unlock_windows: crate::write_unlock::WriteUnlockWindows::default(),
             metadata_gates: Arc::new(Mutex::new(HashMap::new())),
             mongo_oidc_browser_opener: std::sync::RwLock::new(None),
+            salesforce_browser_opener: std::sync::RwLock::new(None),
             #[cfg(feature = "mq-admin")]
             mq_registry: crate::mq::MqAdminRegistry::new(),
         }
@@ -1538,6 +1634,14 @@ impl AppState {
 
     pub fn mongo_oidc_browser_opener(&self) -> Option<MongoOidcBrowserOpener> {
         self.mongo_oidc_browser_opener.read().expect("MongoDB OIDC browser opener lock poisoned").clone()
+    }
+
+    pub fn set_salesforce_browser_opener(&self, opener: SfBrowserOpener) {
+        *self.salesforce_browser_opener.write().expect("Salesforce browser opener lock poisoned") = Some(opener);
+    }
+
+    pub fn salesforce_browser_opener(&self) -> Option<SfBrowserOpener> {
+        self.salesforce_browser_opener.read().expect("Salesforce browser opener lock poisoned").clone()
     }
 
     pub(crate) async fn acquire_metadata_permit(
@@ -2519,10 +2623,12 @@ impl AppState {
                 PoolKind::Postgres(pg_pool)
             }
             DatabaseType::Sqlite => {
-                if db::sqlite_worker::sqlite_ssh_worker_requested(&db_config) {
+                if db::sqlite_worker::sqlite_remote_worker_requested(&db_config) {
                     let transport_layers = self.resolved_transport_layers(&db_config).await?;
                     let worker = db::sqlite_worker::connect_sqlite_worker(
                         &self.tunnels,
+                        &self.proxy_tunnels,
+                        &self.http_tunnels,
                         &self.agent_manager,
                         self.storage.data_dir(),
                         connection_id,
@@ -2742,6 +2848,22 @@ impl AppState {
                 db::easysearch_driver::test_connection(&mut client, connect_timeout).await?;
                 PoolKind::Easysearch(client)
             }
+            DatabaseType::Solr => {
+                let mut client = db::solr_driver::SolrClient::from_config(
+                    &url,
+                    Some(&db_config.username),
+                    Some(&db_config.password),
+                    db_config.ssl,
+                    db_config.url_params.as_deref(),
+                    db_config.external_config.as_ref(),
+                    connect_timeout,
+                    Some(db_config.ca_cert_path.as_str()),
+                    Some(db_config.client_cert_path.as_str()),
+                    Some(db_config.client_key_path.as_str()),
+                )?;
+                db::solr_driver::test_connection(&mut client, connect_timeout).await?;
+                PoolKind::Solr(client)
+            }
             DatabaseType::Meilisearch => {
                 let client = db::meilisearch_driver::MeilisearchClient::new_for_config(
                     &url,
@@ -2753,6 +2875,16 @@ impl AppState {
                 )?;
                 db::meilisearch_driver::test_connection(&client, connect_timeout).await?;
                 PoolKind::Meilisearch(client)
+            }
+            DatabaseType::Salesforce => {
+                let client = db::salesforce_driver::SfClient::from_config(
+                    &url,
+                    Some(&db_config.password),
+                    db_config.external_config.as_ref(),
+                    connect_timeout,
+                )?;
+                db::salesforce_driver::SfClient::test_connection(&client, connect_timeout).await?;
+                PoolKind::Salesforce(client)
             }
             DatabaseType::Hbase => {
                 let client = db::hbase_driver::HBaseClient::new(
@@ -3293,7 +3425,7 @@ impl AppState {
         config: &ConnectionConfig,
     ) -> Result<ConnectionEndpoint, String> {
         let transport_layers = self.resolved_transport_layers(config).await?;
-        if transport_layers.is_empty() || db::sqlite_worker::sqlite_ssh_worker_requested(config) {
+        if transport_layers.is_empty() || db::sqlite_worker::sqlite_remote_worker_requested(config) {
             return Ok(ConnectionEndpoint::direct(config.host.clone(), config.port));
         }
         if config.uses_oracle_tns() {
@@ -3954,8 +4086,14 @@ impl AppState {
                             true
                         }
                         Ok(mut conn) => {
+                            // The probe runs no statement, so a shared pool can take
+                            // the connection back without COM_RESET_CONNECTION and the
+                            // setup replay, and a connection verified moments ago (by
+                            // this probe or the checkout that follows it) is not
+                            // pinged again.
+                            conn.reset_connection(false);
                             let timeout = crate::db::connection_timeout();
-                            match tokio::time::timeout(timeout, conn.ping()).await {
+                            match tokio::time::timeout(timeout, db::mysql::verify_pooled_conn(&pool, &mut conn)).await {
                                 Ok(Ok(())) => false,
                                 Ok(Err(err)) => {
                                     log::warn!("MySQL connection pool '{pool_key}' is stale: {err}");
@@ -3971,7 +4109,6 @@ impl AppState {
                 }
                 PoolKind::Postgres(pool) => {
                     let pool = pool.clone();
-                    let timeout = crate::db::connection_timeout();
                     match db::postgres::checkout_postgres_client_classified(
                         &pool,
                         None,
@@ -3979,20 +4116,33 @@ impl AppState {
                     )
                     .await
                     {
-                        Ok(client) => match tokio::time::timeout(timeout, client.simple_query("SELECT 1")).await {
-                            Ok(Ok(_)) => false,
-                            Ok(Err(err)) => {
-                                log::warn!("PostgreSQL connection pool '{pool_key}' is stale: {err}");
-                                true
+                        Ok(client) => {
+                            match tokio::time::timeout(HEALTH_CHECK_PROBE_TIMEOUT, client.simple_query("SELECT 1"))
+                                .await
+                            {
+                                Ok(Ok(_)) => false,
+                                Ok(Err(err)) => {
+                                    log::warn!("PostgreSQL connection pool '{pool_key}' is stale: {err}");
+                                    true
+                                }
+                                Err(_) => {
+                                    log::warn!(
+                                        "PostgreSQL connection pool '{pool_key}' is stale: health check timed out"
+                                    );
+                                    true
+                                }
                             }
-                            Err(_) => {
-                                log::warn!("PostgreSQL connection pool '{pool_key}' is stale: health check timed out");
-                                true
-                            }
-                        },
-                        Err(err) if err.is_pool_saturation() => {
+                        }
+                        // The 500 ms probe budget is intentionally shorter than a foreground checkout. A timeout
+                        // while waiting, creating, or recycling is inconclusive: slow remote handshakes, pool
+                        // re-creation after a keepalive eviction, and active metadata exports can legitimately
+                        // exceed it. Removing the pool here would start competing reconnects while useful work is
+                        // still running, which is exactly how a sub-second probe turns into a multi-second wait on
+                        // the user's next statement. Keep the pool and let the executor's ReconnectAndRetry path
+                        // decide, matching the MySQL branch above.
+                        Err(err @ db::PoolCheckoutError::Timeout { .. }) => {
                             log::debug!(
-                                "PostgreSQL connection pool '{pool_key}' is busy; skipping health probe: {err}"
+                                "PostgreSQL connection pool '{pool_key}' did not finish a health checkout; keeping pool: {err}"
                             );
                             false
                         }
@@ -4084,6 +4234,17 @@ impl AppState {
                         }
                     }
                 }
+                PoolKind::Solr(client) => {
+                    let mut client = client.clone();
+                    let timeout = crate::db::connection_timeout();
+                    match db::solr_driver::test_connection(&mut client, timeout).await {
+                        Ok(()) => false,
+                        Err(err) => {
+                            log::warn!("Solr connection pool '{pool_key}' is stale: {err}");
+                            true
+                        }
+                    }
+                }
                 PoolKind::Meilisearch(client) => {
                     let client = client.clone();
                     let timeout = crate::db::connection_timeout();
@@ -4091,6 +4252,17 @@ impl AppState {
                         Ok(()) => false,
                         Err(err) => {
                             log::warn!("Meilisearch connection pool '{pool_key}' is stale: {err}");
+                            true
+                        }
+                    }
+                }
+                PoolKind::Salesforce(client) => {
+                    let client = client.clone();
+                    let timeout = crate::db::connection_timeout();
+                    match db::salesforce_driver::SfClient::test_connection(&client, timeout).await {
+                        Ok(()) => false,
+                        Err(err) => {
+                            log::warn!("Salesforce connection pool '{pool_key}' is stale: {err}");
                             true
                         }
                     }
@@ -4588,14 +4760,30 @@ impl AppState {
         self.stop_keepalive_task(&pool_key).await;
         self.pool_activity.write().await.remove(&pool_key);
         self.postgres_cancel_contexts.write().await.remove(&pool_key);
+        self.mysql_preserved_transactions.write().await.remove(&pool_key);
         let removed = self.update_connection_pools(|connections| connections.remove(&pool_key)).await;
         Ok(removed.map(|pool| (pool_key, pool)))
+    }
+
+    /// Whether `pool_key` keeps a transaction the user opened explicitly open
+    /// on purpose (MySQL auto-commit tabs with `preserve_explicit_transaction`).
+    pub(crate) async fn has_preserved_explicit_transaction(&self, pool_key: &str) -> bool {
+        self.mysql_preserved_transactions.read().await.contains(pool_key)
+    }
+
+    pub(crate) async fn mark_preserved_explicit_transaction(&self, pool_key: &str) {
+        self.mysql_preserved_transactions.write().await.insert(pool_key.to_string());
+    }
+
+    pub(crate) async fn clear_preserved_explicit_transaction(&self, pool_key: &str) {
+        self.mysql_preserved_transactions.write().await.remove(pool_key);
     }
 
     pub async fn remove_pool_by_key(&self, pool_key: &str) -> bool {
         self.stop_keepalive_task(pool_key).await;
         self.pool_activity.write().await.remove(pool_key);
         self.postgres_cancel_contexts.write().await.remove(pool_key);
+        self.mysql_preserved_transactions.write().await.remove(pool_key);
         let removed = self.connections.write().await.remove(pool_key);
         if let Some(pool) = removed {
             self.pool_routing_control().close_pool_with_timeout(pool_key.to_string(), pool).await;
@@ -4775,15 +4963,17 @@ impl AppState {
         Ok(closed)
     }
 
-    pub async fn active_agent_connection_driver_keys(&self) -> HashSet<String> {
+    pub async fn active_agent_connection_driver_connections(&self) -> HashMap<String, Vec<String>> {
         let configs = self.configs.read().await;
         let connections = self.connection_pools_snapshot().await;
-        let mut keys = HashSet::new();
+        let mut connections_by_key: HashMap<String, Vec<String>> = HashMap::new();
 
         for (pool_key, pool) in connections.iter() {
             #[cfg(feature = "duckdb-sidecar")]
             if matches!(pool, PoolKind::DuckDbWorker(_)) {
-                keys.insert("duckdb".to_string());
+                if let Some(config) = config_for_pool_key(pool_key, &configs) {
+                    connections_by_key.entry("duckdb".to_string()).or_default().push(config.name.clone());
+                }
                 continue;
             }
             if !matches!(pool, PoolKind::Agent(_)) {
@@ -4796,25 +4986,33 @@ impl AppState {
                 &config.db_type,
                 config.driver_profile.as_deref(),
             ) {
-                keys.insert(agent_key.to_string());
+                connections_by_key.entry(agent_key.to_string()).or_default().push(config.name.clone());
             }
         }
 
-        keys
+        for names in connections_by_key.values_mut() {
+            names.sort();
+            names.dedup();
+        }
+        connections_by_key
     }
 
-    pub async fn prepare_agent_driver_updates(&self, driver_keys: &[String]) -> HashSet<String> {
+    pub async fn active_agent_connection_driver_keys(&self) -> HashSet<String> {
+        self.active_agent_connection_driver_connections().await.into_keys().collect()
+    }
+
+    pub async fn prepare_agent_driver_updates(&self, driver_keys: &[String]) -> HashMap<String, Vec<String>> {
         let candidates = driver_keys.iter().cloned().collect::<HashSet<_>>();
         if candidates.is_empty() {
-            return HashSet::new();
+            return HashMap::new();
         }
 
         let blockers = self
-            .active_agent_connection_driver_keys()
+            .active_agent_connection_driver_connections()
             .await
             .into_iter()
-            .filter(|key| candidates.contains(key))
-            .collect::<HashSet<_>>();
+            .filter(|(key, _)| candidates.contains(key))
+            .collect::<HashMap<_, _>>();
         if !blockers.is_empty() {
             return blockers;
         }
@@ -4824,7 +5022,11 @@ impl AppState {
         }
 
         // A connection may have started while idle runtimes were stopping.
-        self.active_agent_connection_driver_keys().await.into_iter().filter(|key| candidates.contains(key)).collect()
+        self.active_agent_connection_driver_connections()
+            .await
+            .into_iter()
+            .filter(|(key, _)| candidates.contains(key))
+            .collect()
     }
 
     pub async fn connection_identifier_quote(
@@ -5048,6 +5250,8 @@ impl AppState {
         self.http_tunnels.stop_tunnels_with_prefix(&redis_sentinel_prefix).await;
         let sqlite_worker_prefix = db::sqlite_worker::sqlite_worker_chain_id(connection_id);
         self.tunnels.stop_tunnels_with_prefix(&sqlite_worker_prefix).await;
+        self.proxy_tunnels.stop_tunnels_with_prefix(&sqlite_worker_prefix).await;
+        self.http_tunnels.stop_tunnels_with_prefix(&sqlite_worker_prefix).await;
         db::transport_layer_tunnel::stop_transport_layers(
             connection_id,
             layer_count,
@@ -5100,6 +5304,65 @@ impl AppState {
         Ok(())
     }
 
+    /// Cached connected-user identity for a Salesforce connection. Returns a
+    /// camelCase-serializable struct for the frontend (identity badge, admin
+    /// warning). Errors when the connection is not Salesforce or has no pool.
+    pub async fn salesforce_current_user(&self, connection_id: &str) -> Result<SalesforceCurrentUser, String> {
+        let db_type = {
+            let configs = self.configs.read().await;
+            configs.get(connection_id).map(|c| c.db_type)
+        };
+        if db_type != Some(DatabaseType::Salesforce) {
+            return Err("Not a Salesforce connection".to_string());
+        }
+        let pool_key = base_pool_key_for(db_type, connection_id, None, false);
+        let pool = self.pool_handle(&pool_key).await.ok_or_else(|| "Connection not found".to_string())?;
+        match pool {
+            PoolKind::Salesforce(client) => {
+                let user = client.cached_current_user().await?;
+                let org_name = client.org_display_name().await;
+                Ok(SalesforceCurrentUser {
+                    user_id: user.user_id,
+                    name: user.name,
+                    email: user.email,
+                    organization_id: user.organization_id,
+                    username: user.username,
+                    profile_name: user.profile_name,
+                    is_admin: user.is_admin,
+                    org_name,
+                })
+            }
+            _ => Err("Not a Salesforce connection".to_string()),
+        }
+    }
+
+    /// Warm the driver/pool a tab is about to use, off the user's critical path.
+    ///
+    /// The first statement of a session pays costs that the user perceives as
+    /// "the query is still loading" but that never appear in the reported
+    /// statement duration: creating the pool, spawning a JDBC/agent driver
+    /// session (JVM startup for external drivers such as Oracle), opening
+    /// tunnels, and completing TLS/startup handshakes. `get_or_create_pool_*`
+    /// performs exactly that work and verifies connectivity before returning, so
+    /// calling it while the editor is being opened moves those seconds from the
+    /// first Run to a moment where nobody is waiting on the result.
+    ///
+    /// This is deliberately *not* a health probe: it never tears an existing
+    /// pool down. Use `check_connection_health` when the caller needs a verdict.
+    pub async fn prewarm_connection_pool(
+        &self,
+        connection_id: &str,
+        database: Option<&str>,
+        catalog: Option<&str>,
+        client_session_id: Option<&str>,
+    ) -> Result<(), String> {
+        let pool_key = self
+            .get_or_create_pool_for_session_with_catalog(connection_id, database, catalog, client_session_id)
+            .await?;
+        self.touch_pool_activity(&pool_key).await;
+        Ok(())
+    }
+
     pub async fn refresh_connections(&self) {
         // Clone pool handles under a short-lived read lock, then release it
         // before performing I/O-heavy health checks to avoid blocking writers.
@@ -5126,19 +5389,30 @@ impl AppState {
                 },
                 PoolKind::Postgres(p) => {
                     match db::postgres::checkout_postgres_client_classified(p, None, timeout).await {
-                        Ok(client) => match tokio::time::timeout(timeout, client.simple_query("SELECT 1")).await {
-                            Ok(Ok(_)) => true,
-                            Ok(Err(e)) => {
-                                log::warn!("PostgreSQL connection pool '{key}' is unhealthy: {e}");
-                                false
+                        Ok(client) => {
+                            match tokio::time::timeout(HEALTH_CHECK_PROBE_TIMEOUT, client.simple_query("SELECT 1"))
+                                .await
+                            {
+                                Ok(Ok(_)) => true,
+                                Ok(Err(e)) => {
+                                    log::warn!("PostgreSQL connection pool '{key}' is unhealthy: {e}");
+                                    false
+                                }
+                                Err(_) => {
+                                    log::warn!(
+                                        "PostgreSQL connection pool '{key}' is unhealthy: health check timed out"
+                                    );
+                                    false
+                                }
                             }
-                            Err(_) => {
-                                log::warn!("PostgreSQL connection pool '{key}' is unhealthy: health check timed out");
-                                false
-                            }
-                        },
-                        Err(error) if error.is_pool_saturation() => {
-                            log::debug!("PostgreSQL connection pool '{key}' is busy; skipping health probe: {error}");
+                        }
+                        // A checkout timeout is inconclusive rather than proof of a dead pool: the budget can be
+                        // consumed by a concurrent create/recycle, and tearing the pool down here would make the
+                        // next foreground statement pay a full reconnect. Mirror `remove_stale_connection_pool`.
+                        Err(error @ db::PoolCheckoutError::Timeout { .. }) => {
+                            log::debug!(
+                                "PostgreSQL connection pool '{key}' did not finish a health checkout; keeping pool: {error}"
+                            );
                             true
                         }
                         Err(error) => {
@@ -5198,12 +5472,32 @@ impl AppState {
                         }
                     }
                 }
+                PoolKind::Solr(client) => {
+                    let mut client = client.clone();
+                    match db::solr_driver::test_connection(&mut client, timeout).await {
+                        Ok(()) => true,
+                        Err(e) => {
+                            log::warn!("Solr connection pool '{key}' is unhealthy: {e}");
+                            false
+                        }
+                    }
+                }
                 PoolKind::Meilisearch(client) => {
                     let client = client.clone();
                     match db::meilisearch_driver::test_connection(&client, timeout).await {
                         Ok(()) => true,
                         Err(e) => {
                             log::warn!("Meilisearch connection pool '{key}' is unhealthy: {e}");
+                            false
+                        }
+                    }
+                }
+                PoolKind::Salesforce(client) => {
+                    let client = client.clone();
+                    match db::salesforce_driver::SfClient::test_connection(&client, timeout).await {
+                        Ok(()) => true,
+                        Err(e) => {
+                            log::warn!("Salesforce connection pool '{key}' is unhealthy: {e}");
                             false
                         }
                     }
@@ -5599,6 +5893,8 @@ enum KeepaliveTarget {
     SqlServer(Arc<tokio::sync::Mutex<db::sqlserver::SqlServerClient>>),
     Elasticsearch(db::elasticsearch_driver::EsClient),
     Easysearch(db::easysearch_driver::EasysearchClient),
+    Salesforce(db::salesforce_driver::SfClient),
+    Solr(db::solr_driver::SolrClient),
     HBase(db::hbase_driver::HBaseClient),
     VectorDb(db::vector_driver::VectorClient),
     InfluxDb(db::influxdb_driver::InfluxdbClient),
@@ -5700,6 +5996,8 @@ fn keepalive_target_from_pool(pool: &PoolKind, config: &ConnectionConfig) -> Opt
         PoolKind::SqlServer(client) => Some(KeepaliveTarget::SqlServer(client.clone())),
         PoolKind::Elasticsearch(client) => Some(KeepaliveTarget::Elasticsearch(client.clone())),
         PoolKind::Easysearch(client) => Some(KeepaliveTarget::Easysearch(client.clone())),
+        PoolKind::Salesforce(client) => Some(KeepaliveTarget::Salesforce(client.clone())),
+        PoolKind::Solr(client) => Some(KeepaliveTarget::Solr(client.clone())),
         PoolKind::HBase(client) => Some(KeepaliveTarget::HBase(client.clone())),
         PoolKind::VectorDb(client) => Some(KeepaliveTarget::VectorDb(client.clone())),
         PoolKind::InfluxDb(client) => Some(KeepaliveTarget::InfluxDb(client.clone())),
@@ -5713,8 +6011,14 @@ fn keepalive_target_from_pool(pool: &PoolKind, config: &ConnectionConfig) -> Opt
 async fn ping_keepalive_target(target: &mut KeepaliveTarget, timeout: Duration) -> Result<(), KeepaliveError> {
     match target {
         KeepaliveTarget::Mysql(pool) => {
+            // The checkout health check is the keepalive round trip: it pings
+            // the idle connection (unless it was verified moments ago) and
+            // replaces it when it died. A ping leaves no session state behind,
+            // so return the connection without the COM_RESET_CONNECTION and
+            // setup replay a shared pool would run.
             let mut conn = db::mysql::get_conn_with_health_check(pool).await?;
-            conn.ping().await.map_err(|error| KeepaliveError::Legacy(error.to_string()))
+            conn.reset_connection(false);
+            Ok(())
         }
         KeepaliveTarget::Postgres(pool) => {
             let client = pool.get().await.map_err(|e| format!("PostgreSQL pool error: {e}"))?;
@@ -5742,6 +6046,10 @@ async fn ping_keepalive_target(target: &mut KeepaliveTarget, timeout: Duration) 
         KeepaliveTarget::Easysearch(client) => {
             db::easysearch_driver::test_connection(client, timeout).await.map_err(Into::into)
         }
+        KeepaliveTarget::Salesforce(client) => {
+            db::salesforce_driver::SfClient::test_connection(client, timeout).await.map_err(Into::into)
+        }
+        KeepaliveTarget::Solr(client) => db::solr_driver::test_connection(client, timeout).await.map_err(Into::into),
         KeepaliveTarget::HBase(client) => {
             db::hbase_driver::test_connection(client, timeout).await.map(|_| ()).map_err(Into::into)
         }
@@ -6050,22 +6358,26 @@ fn session_scoped_pool_key_for(
 
 /// 两个运行态连接配置是否视为同一连接（用于决定是否销毁连接池）。
 ///
-/// 仅当双方都是 `save_password=false` 时才忽略 `password` 字段的差异：这类连接
-/// 在 connect 时运行态配置可能携带会话密码，持久化同步后为空，这种空值差异不应
-/// 触发池重建。若任一方 `save_password=true`，密码是真实的连接参数，任何密码变更
-/// （包括用户保存了新密码）都必须销毁旧池，否则旧池会继续用旧密码认证。
+/// 始终忽略只影响前端导航的表加载策略。仅当双方都是 `save_password=false` 时才忽略
+/// `password` 字段的差异：这类连接在 connect 时运行态配置可能携带会话密码，持久化
+/// 同步后为空，这种空值差异不应触发池重建。若任一方 `save_password=true`，密码是
+/// 真实的连接参数，任何密码变更（包括用户保存了新密码）都必须销毁旧池，否则旧池会
+/// 继续用旧密码认证。
 pub fn connection_configs_pool_equivalent(a: &ConnectionConfig, b: &ConnectionConfig) -> bool {
     if a == b {
         return true;
     }
+    let mut a = a.clone();
+    let mut b = b.clone();
+    // Sidebar paging is a presentation preference and cannot change an
+    // established database session.
+    a.sidebar_auto_load_all_tables = false;
+    b.sidebar_auto_load_all_tables = false;
     if !a.save_password && !b.save_password {
-        let mut a = a.clone();
         a.password.clear();
-        let mut b = b.clone();
         b.password.clear();
-        return a == b;
     }
-    false
+    a == b
 }
 
 /// Whether transient credentials can safely survive a persisted config update.
@@ -6085,6 +6397,7 @@ pub fn connection_configs_session_credentials_compatible(a: &ConnectionConfig, b
         config.visible_databases = None;
         config.visible_schemas = None;
         config.show_system_schemas = false;
+        config.sidebar_auto_load_all_tables = false;
         config.color = None;
         config.docs_notes_path = None;
         config.connect_timeout_secs = 0;
@@ -6162,7 +6475,9 @@ fn clone_pool_kind(pool: &PoolKind) -> PoolKind {
         PoolKind::SqlServer(client) => PoolKind::SqlServer(client.clone()),
         PoolKind::Elasticsearch(client) => PoolKind::Elasticsearch(client.clone()),
         PoolKind::Easysearch(client) => PoolKind::Easysearch(client.clone()),
+        PoolKind::Solr(client) => PoolKind::Solr(client.clone()),
         PoolKind::Meilisearch(client) => PoolKind::Meilisearch(client.clone()),
+        PoolKind::Salesforce(client) => PoolKind::Salesforce(client.clone()),
         PoolKind::HBase(client) => PoolKind::HBase(client.clone()),
         PoolKind::VectorDb(client) => PoolKind::VectorDb(client.clone()),
         PoolKind::InfluxDb(client) => PoolKind::InfluxDb(client.clone()),
@@ -6221,7 +6536,13 @@ async fn close_pool_kind(pool: PoolKind) -> Result<(), String> {
         PoolKind::Easysearch(client) => {
             drop(client);
         }
+        PoolKind::Solr(client) => {
+            drop(client);
+        }
         PoolKind::Meilisearch(client) => {
+            drop(client);
+        }
+        PoolKind::Salesforce(client) => {
             drop(client);
         }
         PoolKind::HBase(client) => {
@@ -6319,10 +6640,12 @@ fn base_pool_key_for_with_catalog(
                     db_type,
                     DatabaseType::Elasticsearch
                         | DatabaseType::Easysearch
+                        | DatabaseType::Solr
                         | DatabaseType::Qdrant
                         | DatabaseType::Milvus
                         | DatabaseType::Weaviate
                         | DatabaseType::ChromaDb
+                        | DatabaseType::Salesforce
                 ));
         is_single && (!database_capabilities::is_agent_type(db_type) || shares_database_pool_with_connection(db_type))
     });
@@ -6611,7 +6934,6 @@ mod tests {
     };
     use crate::query;
     use crate::schema;
-    use crate::storage::Storage;
     use std::sync::Arc;
     use std::time::{Duration, Instant};
 
@@ -6636,6 +6958,7 @@ mod tests {
             visible_database_patterns: None,
             visible_schemas: None,
             show_system_schemas: false,
+            sidebar_auto_load_all_tables: false,
             attached_databases: Vec::new(),
             init_script: None,
             color: None,
@@ -6732,6 +7055,16 @@ mod tests {
     }
 
     #[test]
+    fn connection_configs_pool_equivalent_ignores_sidebar_table_loading_preference() {
+        let a = mysql_config(None);
+        let mut b = a.clone();
+        b.sidebar_auto_load_all_tables = true;
+
+        assert!(connection_configs_pool_equivalent(&a, &b));
+        assert!(connection_configs_pool_equivalent(&b, &a));
+    }
+
+    #[test]
     fn connection_configs_pool_equivalent_detects_saved_password_change() {
         let mut a = mysql_config(None);
         a.save_password = true;
@@ -6825,7 +7158,7 @@ mod tests {
     async fn apply_session_credential_injects_saved_password_only_for_no_save_connections() {
         let dir = std::env::temp_dir().join(format!("dbx-core-session-cred-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
-        let storage = Storage::open(&dir.join("storage.db")).await.unwrap();
+        let storage = crate::persistence::test_storage::open(&dir.join("storage.db")).await.unwrap();
         let state = AppState::new_with_plugin_dir(storage, dir.join("plugins"));
         let _ = state.session_credentials.set("", "conn-a", "s3cret");
 
@@ -6859,7 +7192,7 @@ mod tests {
     async fn apply_session_credential_reads_owner_scoped_credentials_only() {
         let dir = std::env::temp_dir().join(format!("dbx-core-session-cred-owner-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
-        let storage = Storage::open(&dir.join("storage.db")).await.unwrap();
+        let storage = crate::persistence::test_storage::open(&dir.join("storage.db")).await.unwrap();
         let state = AppState::new_with_plugin_dir(storage, dir.join("plugins"));
 
         let mut config = mysql_config(None);
@@ -6891,7 +7224,7 @@ mod tests {
     async fn pool_credential_owner_mismatch_prevents_cross_session_pool_reuse() {
         let dir = std::env::temp_dir().join(format!("dbx-core-pool-owner-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
-        let storage = Storage::open(&dir.join("storage.db")).await.unwrap();
+        let storage = crate::persistence::test_storage::open(&dir.join("storage.db")).await.unwrap();
         let state = AppState::new_with_plugin_dir(storage, dir.join("plugins"));
 
         let mut config = mysql_config(None);
@@ -7096,6 +7429,7 @@ mod tests {
             affected_rows: 0,
             execution_time_ms: 1,
             server_execute_time_us: None,
+            query_timings_ms: None,
             truncated: false,
             session_id: None,
             has_more: false,
@@ -7505,7 +7839,7 @@ mod tests {
     async fn test_app_state() -> (AppState, std::path::PathBuf) {
         let dir = std::env::temp_dir().join(format!("dbx-core-test-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
-        let storage = Storage::open(&dir.join("storage.db")).await.unwrap();
+        let storage = crate::persistence::test_storage::open(&dir.join("storage.db")).await.unwrap();
         (AppState::new(storage), dir)
     }
 
@@ -7657,8 +7991,13 @@ mod tests {
         let (state, dir) = test_app_state().await;
         let mut config = mysql_config(None);
         config.id = "dameng-conn".to_string();
+        config.name = "达梦生产".to_string();
         config.db_type = DatabaseType::Dameng;
+        let mut replica_config = config.clone();
+        replica_config.id = "dameng-replica".to_string();
+        replica_config.name = "达梦报表".to_string();
         state.configs.write().await.insert(config.id.clone(), config);
+        state.configs.write().await.insert(replica_config.id.clone(), replica_config);
         state
             .agent_manager
             .daemons
@@ -7666,14 +8005,19 @@ mod tests {
             .await
             .insert("oracle".to_string(), crate::db::agent_driver::AgentDriverClient::test_stub());
         state.connections.write().await.insert("dameng-conn".to_string(), agent_pool_stub());
+        state.connections.write().await.insert("dameng-replica".to_string(), agent_pool_stub());
 
         assert_eq!(
-            state.active_agent_connection_driver_keys().await,
-            std::collections::HashSet::from(["dameng".to_string()])
+            state.active_agent_connection_driver_connections().await,
+            std::collections::HashMap::from([(
+                "dameng".to_string(),
+                vec!["达梦报表".to_string(), "达梦生产".to_string()]
+            )])
         );
 
         state.connections.write().await.remove("dameng-conn");
-        assert!(state.active_agent_connection_driver_keys().await.is_empty());
+        state.connections.write().await.remove("dameng-replica");
+        assert!(state.active_agent_connection_driver_connections().await.is_empty());
 
         let _ = std::fs::remove_dir_all(dir);
     }
@@ -7701,6 +8045,7 @@ mod tests {
         let (state, dir) = test_app_state().await;
         let mut config = mysql_config(None);
         config.id = "dameng-conn".to_string();
+        config.name = "达梦生产".to_string();
         config.db_type = DatabaseType::Dameng;
         state.configs.write().await.insert(config.id.clone(), config);
         state.connections.write().await.insert("dameng-conn".to_string(), agent_pool_stub());
@@ -7713,7 +8058,7 @@ mod tests {
 
         let blockers = state.prepare_agent_driver_updates(&["dameng".to_string()]).await;
 
-        assert_eq!(blockers, std::collections::HashSet::from(["dameng".to_string()]));
+        assert_eq!(blockers, std::collections::HashMap::from([("dameng".to_string(), vec!["达梦生产".to_string()])]));
         assert_eq!(state.agent_manager.active_daemon_keys().await, vec!["dameng".to_string()]);
 
         let _ = std::fs::remove_dir_all(dir);
@@ -7738,7 +8083,7 @@ mod tests {
     async fn app_state_uses_explicit_agent_dir() {
         let dir = std::env::temp_dir().join(format!("dbx-core-agent-dir-test-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
-        let storage = Storage::open(&dir.join("storage.db")).await.unwrap();
+        let storage = crate::persistence::test_storage::open(&dir.join("storage.db")).await.unwrap();
         let agent_dir = dir.join("agents");
 
         let state = AppState::new_with_plugin_and_agent_dir_and_app_version(
@@ -7916,6 +8261,55 @@ mod tests {
         let _ = std::fs::remove_dir_all(dir);
     }
 
+    // A health probe that cannot finish its checkout within the 500 ms budget is
+    // inconclusive, not proof of a dead pool. Tearing the pool down used to turn
+    // one slow probe into a full reconnect on the user's next statement, which
+    // showed up as a loading indicator of several seconds next to a summary that
+    // only counted the statement itself.
+    #[tokio::test]
+    async fn postgres_health_check_keeps_pool_when_checkout_budget_is_exhausted() {
+        // Accept connections but never answer the PostgreSQL startup packet, so
+        // every attempt to create a connection runs into its own timeout.
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let mut held = Vec::new();
+            while let Ok((socket, _)) = listener.accept().await {
+                held.push(socket);
+            }
+        });
+        let mut pg_config = tokio_postgres::Config::new();
+        pg_config.host(address.ip().to_string()).port(address.port()).user("health-probe").dbname("health-probe");
+        let manager = deadpool_postgres::Manager::new(pg_config, tokio_postgres::NoTls);
+        let pool = deadpool_postgres::Pool::builder(manager)
+            .runtime(deadpool_postgres::Runtime::Tokio1)
+            .max_size(2)
+            .wait_timeout(Some(Duration::from_millis(200)))
+            .create_timeout(Some(Duration::from_millis(200)))
+            .recycle_timeout(Some(Duration::from_millis(200)))
+            .build()
+            .expect("build PostgreSQL health probe pool");
+        let (state, dir) = test_app_state().await;
+        state.connections.write().await.insert("conn".to_string(), PoolKind::Postgres(pool.clone()));
+
+        let started = Instant::now();
+        assert!(!state.remove_stale_connection_pool("conn").await);
+
+        assert!(
+            started.elapsed() >= Duration::from_millis(150),
+            "probe must actually run into the checkout budget, took {:?}",
+            started.elapsed()
+        );
+        assert!(
+            matches!(state.connections.read().await.get("conn"), Some(PoolKind::Postgres(_))),
+            "an inconclusive PostgreSQL probe must not remove the pool"
+        );
+        state.connections.write().await.remove("conn");
+        server.abort();
+        pool.close();
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
     #[tokio::test]
     async fn mysql_health_check_keeps_pool_when_connection_creation_exceeds_probe_budget() {
         let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
@@ -7954,7 +8348,7 @@ mod tests {
     async fn jdbc_plugin_env_uses_managed_jre_when_installed() {
         let dir = std::env::temp_dir().join(format!("dbx-core-jdbc-managed-jre-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
-        let storage = Storage::open(&dir.join("storage.db")).await.unwrap();
+        let storage = crate::persistence::test_storage::open(&dir.join("storage.db")).await.unwrap();
         let state = AppState::new_with_plugin_and_agent_dir_and_app_version(
             storage,
             dir.join("plugins"),
@@ -7974,7 +8368,7 @@ mod tests {
     async fn jdbc_plugin_env_keeps_wrapper_fallback_when_managed_jre_is_missing() {
         let dir = std::env::temp_dir().join(format!("dbx-core-jdbc-missing-jre-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
-        let storage = Storage::open(&dir.join("storage.db")).await.unwrap();
+        let storage = crate::persistence::test_storage::open(&dir.join("storage.db")).await.unwrap();
         let state = AppState::new_with_plugin_and_agent_dir_and_app_version(
             storage,
             dir.join("plugins"),
@@ -7992,7 +8386,7 @@ mod tests {
     async fn jdbc_plugin_env_uses_custom_java_runtime() {
         let dir = std::env::temp_dir().join(format!("dbx-core-jdbc-custom-jre-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
-        let storage = Storage::open(&dir.join("storage.db")).await.unwrap();
+        let storage = crate::persistence::test_storage::open(&dir.join("storage.db")).await.unwrap();
         let state = AppState::new_with_plugin_and_agent_dir_and_app_version(
             storage,
             dir.join("plugins"),
@@ -8724,6 +9118,20 @@ mod tests {
             assert!(!uses_tcp_probe(&config, "192.0.2.10", config.port), "{db_type:?} ip");
             assert!(uses_tcp_probe(&config, "127.0.0.1", 54000), "{db_type:?} forwarded");
         }
+    }
+
+    #[test]
+    fn salesforce_connections_never_use_a_tcp_probe() {
+        // Salesforce reaches a cloud HTTPS endpoint through one pooled client, so the
+        // manifest sets skipTcpProbe: a raw TCP pre-flight is meaningless even for a
+        // forwarded local endpoint.
+        let mut config = mysql_config(Some("app"));
+        config.db_type = DatabaseType::Salesforce;
+        config.host = "acme.my.salesforce.com".to_string();
+        config.port = 443;
+
+        assert!(!uses_tcp_probe(&config, "acme.my.salesforce.com", 443), "instance url");
+        assert!(!uses_tcp_probe(&config, "127.0.0.1", 54000), "forwarded");
     }
 
     #[test]
@@ -9796,10 +10204,15 @@ for line in sys.stdin:
         let pool = crate::db::sqlite::connect_path(":memory:").await.unwrap();
         state.connections.write().await.insert(pool_key.to_string(), PoolKind::Sqlite(pool));
         state.pool_activity.write().await.insert(pool_key.to_string(), super::PoolActivity::now());
+        // A tab that kept a user transaction and was then detached: the marker
+        // must not outlive the pool, otherwise rebuilding the same pool key
+        // would look like "already preserved".
+        state.mark_preserved_explicit_transaction(pool_key).await;
 
         assert!(state.detach_pool_by_key(pool_key, false).await);
         assert!(!state.connections.read().await.contains_key(pool_key));
         assert!(!state.pool_activity.read().await.contains_key(pool_key));
+        assert!(!state.has_preserved_explicit_transaction(pool_key).await);
 
         for _ in 0..100 {
             if state.supervised_task_count() == 0 {

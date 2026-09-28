@@ -1,15 +1,18 @@
 import { useConnectionStore } from "@/stores/connectionStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { hexToRgba } from "@/lib/common/color";
+import { isLegacyWebView } from "@/lib/ui/legacyWebView";
 import type { CSSProperties } from "vue";
 import { findConnectionGroupPath } from "@/lib/sidebar/sidebarLayout";
+import { supportsConnectionDatabaseInfo } from "@/lib/connection/connectionDatabaseInfo";
 import { splitMongoCommandRanges } from "@/lib/mongo/mongoShellCommand";
 import { executableStatementRanges, splitSqlStatementRanges, sqlStatementParameterOptionsForCompatibility, type SqlTextRange } from "@/lib/sql/sqlStatementRanges";
 import type { SqlParameterOptions } from "@/lib/sql/sqlParameters";
 import { sqlTextFingerprint } from "@/lib/sql/sqlTextFingerprint";
 import { isQueryExecutionErrorResult } from "@/lib/query/queryResultError";
 import type { SqlErrorPosition } from "@/lib/backend/errorUtils";
-import type { BatchSqlExecution, ConnectionConfig, DatabaseType, QueryResult, QueryTab } from "@/types/database";
+import { queryResultSourceNameParts } from "@/lib/sql/queryResultSource";
+import type { BatchSqlExecution, ConnectionConfig, DatabaseType, QueryResult, QueryResultRun, QueryTab } from "@/types/database";
 
 type Translate = (key: string, params?: Record<string, unknown>) => string;
 export type OutputView = "result" | "summary" | "explain" | "chart";
@@ -66,7 +69,9 @@ export function databaseDisplayNameForTab(connectionId: string, database: string
 export function isPreviewTab(tab: QueryTab): boolean {
   const connectionStore = useConnectionStore();
   const config = connectionStore.getConfig(tab.connectionId);
-  return !!config?.name.startsWith("[Preview]");
+  // Tolerant of a config that has no name yet (partially loaded or migrated
+  // connection): such a tab is simply not a preview tab.
+  return Boolean(config?.name?.startsWith("[Preview]"));
 }
 
 function queryTitle(tab: QueryTab): string | undefined {
@@ -79,54 +84,81 @@ export function isEventObjectBrowserTab(tab: QueryTab): boolean {
 }
 
 /**
- * Visible title for a tab in the strip.
+ * Display titles for a whole tab list.
  *
- * `siblingTabs` is the set of every open tab, not just the tabs of one editor
- * group: the same connection opened in two groups must still produce one
- * continuing number series rather than two tabs that both read `conn` and
- * `conn-1`.
+ * Tabs whose plain title collides (most obviously several query tabs on the
+ * same connection and database, which all render `connection@database`) get a
+ * 1-based numeric suffix so the strip stays readable. The first tab keeps no
+ * suffix when its title is unique, so single-tab windows look exactly as
+ * before.
+ *
+ * 编号不在这里计算，而是由 `syncTabTitleNumbers` 一次性写进标签（见该函数）：渲染
+ * 函数只看标签上已有的编号，这样关闭一个重名标签不会让后面的标签被重新编号
+ * （#9938）。未分配编号的标签按原样显示。
  */
-export function tabDisplayTitle(tab: QueryTab, t: Translate, siblingTabs: readonly QueryTab[]): string {
-  const title = baseTabDisplayTitle(tab, t);
-  // The oldest same-named tab keeps the bare name; each later one takes the
-  // next number, so the second is `name-1` and the third is `name-2`.
-  const ordinal = queryTabSequenceOrdinal(tab, siblingTabs);
-  return ordinal > 0 ? `${title}-${ordinal}` : title;
+export function tabDisplayTitles(tabs: QueryTab[], t: Translate): Map<string, string> {
+  const titles = new Map<string, string>();
+  for (const tab of tabs) {
+    const title = tabDisplayTitle(tab, t);
+    titles.set(tab.id, tabTitleNumber(tab, title) !== undefined ? `${title} ${tabTitleNumber(tab, title)}` : title);
+  }
+  return titles;
+}
+
+function tabTitleNumber(tab: QueryTab, title: string): number | undefined {
+  if (isPreviewTab(tab)) return undefined;
+  return tab.titleNumber !== undefined && tab.titleNumberKey === title ? tab.titleNumber : undefined;
 }
 
 /**
- * Position of an unnamed SQL query tab among the tabs it would otherwise share
- * a name with: 0 for the oldest, 1 for the next, and so on.
+ * Assigns the stable numeric suffix used by `tabDisplayTitles` to every tab
+ * whose plain title collides with another tab's.
  *
- * Ordering is by creation time, so the number identifies the tab even after
- * the user drags it elsewhere in the strip or moves it to another group.
- * Tabs that carry a name of their own — saved queries, object sources, or any
- * non-query mode — return 0 and keep that name, because those names already
- * distinguish them.
+ * The number is minted once — when the collision first appears — and is never
+ * recycled afterwards: closing the middle tab of `x 1 / x 2 / x 3` leaves
+ * `x 1 / x 3` instead of renumbering the survivor to `x 2` (#9938), and a newly
+ * created tab continues after the highest number still in use (so the next tab
+ * there becomes `x 4`). A tab that no longer collides and was never numbered
+ * stays unsuffixed, which keeps single-tab windows unchanged, while a tab that
+ * carries a number keeps it until it is closed.
+ *
+ * Callers own the tab list, so this runs from the store whenever the list or
+ * any contributing title changes — never from a render/computed path.
  */
-function queryTabSequenceOrdinal(tab: QueryTab, siblingTabs: readonly QueryTab[]): number {
-  if (tab.mode !== "query" || queryTitle(tab)) return 0;
-  const compact = useSettingsStore().editorSettings.compactTabTitle;
-  // An unnamed query tab is titled from its connection (plus the database
-  // unless titles are compact), so those two fields decide which tabs collide.
-  const peers = siblingTabs.filter((other) => other.mode === "query" && !queryTitle(other) && other.connectionId === tab.connectionId && (compact || other.database === tab.database));
-  const ordered = [...peers].sort(compareTabCreationOrder);
-  const index = ordered.findIndex((other) => other.id === tab.id);
-  // A caller that passes a partial list (or a tab that is mid-removal) must not
-  // produce a negative suffix.
-  return index < 0 ? 0 : index;
+export function syncTabTitleNumbers(tabs: QueryTab[], t: Translate): void {
+  const groups = new Map<string, QueryTab[]>();
+  for (const tab of tabs) {
+    if (isPreviewTab(tab)) continue;
+    const title = tabDisplayTitle(tab, t);
+    const group = groups.get(title);
+    if (group) group.push(tab);
+    else groups.set(title, [tab]);
+  }
+
+  for (const [title, group] of groups) {
+    const numbered = group.filter((tab) => tabTitleNumber(tab, title) !== undefined);
+    if (group.length < 2 && numbered.length === 0) {
+      // A lone, never-numbered tab shows its plain title; drop a number that a
+      // previous title left behind so state does not accumulate stale suffixes.
+      for (const tab of group) {
+        if (tab.titleNumber !== undefined) {
+          tab.titleNumber = undefined;
+          tab.titleNumberKey = undefined;
+        }
+      }
+      continue;
+    }
+    let next = numbered.reduce((highest, tab) => Math.max(highest, tab.titleNumber ?? 0), 0) + 1;
+    for (const tab of group) {
+      if (tabTitleNumber(tab, title) !== undefined) continue;
+      tab.titleNumber = next;
+      tab.titleNumberKey = title;
+      next += 1;
+    }
+  }
 }
 
-function compareTabCreationOrder(a: QueryTab, b: QueryTab): number {
-  const left = a.createdAt ?? 0;
-  const right = b.createdAt ?? 0;
-  if (left !== right) return left - right;
-  // Same-millisecond creations would otherwise order by array position, which
-  // changes when the user drags a tab.
-  return a.id.localeCompare(b.id);
-}
-
-function baseTabDisplayTitle(tab: QueryTab, t: Translate): string {
+export function tabDisplayTitle(tab: QueryTab, t: Translate): string {
   const database = databaseDisplayNameForTab(tab.connectionId, tab.database, t);
   const settingsStore = useSettingsStore();
   const compact = settingsStore.editorSettings.compactTabTitle;
@@ -230,8 +262,12 @@ function baseTabDisplayTitle(tab: QueryTab, t: Translate): string {
 export function tabTooltipLines(tab: QueryTab, t: Translate): { label: string; value: string }[] {
   const connName = connectionDisplayName(tab.connectionId);
   const groupName = connectionGroupDisplayName(tab.connectionId, t);
-  const database = databaseDisplayNameForTab(tab.connectionId, tab.database, t);
-  const lines: { label: string; value: string }[] = [{ label: t("tabs.tooltipConnection"), value: connName }, ...(groupName ? [{ label: t("tabs.tooltipGroup"), value: groupName }] : []), { label: t("tabs.tooltipDatabase"), value: database }];
+  const connection = useConnectionStore().getConfig(tab.connectionId);
+  const lines: { label: string; value: string }[] = [
+    { label: t("tabs.tooltipConnection"), value: connName },
+    ...(groupName ? [{ label: t("tabs.tooltipGroup"), value: groupName }] : []),
+    ...(!connection || supportsConnectionDatabaseInfo(connection.db_type) ? [{ label: t("tabs.tooltipDatabase"), value: databaseDisplayNameForTab(tab.connectionId, tab.database, t) }] : []),
+  ];
   if (tab.mode === "query" && queryTitle(tab)) {
     lines.unshift({ label: t("tabs.tooltipTitle"), value: tab.title });
   }
@@ -406,20 +442,26 @@ export function queryResultExecutionSql(tab: Pick<QueryTab, "result" | "resultBa
   return tab.resultSortedSql || resultSqlForGrid(tab);
 }
 
-export function tabularResultItems(results: QueryResult[] | undefined): { result: QueryResult; index: number; n: number; label?: string; displayLabel?: string; labelTruncated: boolean; title?: string }[] {
+export function tabularResultItems(results: QueryResult[] | undefined, options: { includeSourceDatabase?: boolean } = {}): { result: QueryResult; index: number; n: number; label?: string; displayLabel?: string; labelTruncated: boolean; title?: string }[] {
   if (!results) return [];
   return results
     .map((result, index) => ({ result, index }))
     .filter((item) => item.result.columns.length > 0 && item.result.server_message !== true)
     .map((item, ordinal) => {
       const label = queryResultStatementLabel(item.result);
-      const displayLabel = label ? middleEllipsis(label) : undefined;
+      const { sourceName, sourceQualifier } = item.result;
+      // 只有在标签确实由“库名.对象名”拼成时才启用短名称，避免覆盖 `-- name: xxx` 之类的自定义名称
+      const qualifiedLabel = sourceName ? (sourceQualifier ? `${sourceQualifier}.${sourceName}` : sourceName) : undefined;
+      // 关闭“结果集名称包含数据库名”时，页签与结果列表只展示对象名；
+      // 完整名称（含库名）仍保留在 title，供悬浮提示与搜索使用。
+      const displaySource = options.includeSourceDatabase === false && sourceName && qualifiedLabel === label ? sourceName : label;
+      const displayLabel = displaySource ? middleEllipsis(displaySource) : undefined;
       return {
         ...item,
         n: ordinal + 1,
-        label,
+        label: displaySource,
         displayLabel,
-        labelTruncated: !!label && displayLabel !== label,
+        labelTruncated: !!displaySource && displayLabel !== displaySource,
         title: item.result.sourceLabel || item.result.sourceStatement,
       };
     });
@@ -429,14 +471,52 @@ export function activeResultRun(tab: Pick<QueryTab, "resultRuns" | "activeResult
   return tab.resultRuns?.find((run) => run.id === tab.activeResultRunId);
 }
 
-export function resultRunItems(tab: Pick<QueryTab, "resultRuns" | "activeResultRunId">): { id: string; title: string; sequence: number; active: boolean; pinned: boolean }[] {
-  return (tab.resultRuns ?? []).map((run) => ({
-    id: run.id,
-    title: run.title,
-    sequence: run.sequence,
-    active: run.id === tab.activeResultRunId,
-    pinned: run.pinned === true,
-  }));
+/**
+ * 执行批次默认显示名：取该批次主结果的来源（库名.表名 / 表名）。
+ * 连表查询同样取 FROM 之后的第一个物理表，与结果集页签的来源解析保持一致。
+ */
+function resultRunSourceLabel(run: QueryResultRun, includeSourceDatabase: boolean, fallback: { database?: string; databaseType?: DatabaseType }): string | undefined {
+  // 优先用批次自带的来源：非活动批次的结果 payload 会被回收，payload 里的来源会丢失
+  const own = includeSourceDatabase ? run.sourceLabel || run.sourceName : run.sourceName || run.sourceLabel;
+  if (own) return own;
+  const candidates = run.result ? [run.result, ...(run.results ?? [])] : (run.results ?? []);
+  for (const result of candidates) {
+    if (!result) continue;
+    // 批次级来源缺失时回退到结果本身；关闭“结果集名称包含数据库名”时优先用对象名
+    const label = includeSourceDatabase ? result.sourceLabel || result.sourceName : result.sourceName || result.sourceLabel;
+    if (label) return label;
+  }
+  // 历史批次（功能上线前创建的）没有来源信息：用批次 SQL 重新解析，连表查询同样取第一个物理表
+  if (run.sql && fallback.databaseType) {
+    const parts = queryResultSourceNameParts(run.sql, { database: fallback.database, databaseType: fallback.databaseType });
+    if (parts) return includeSourceDatabase ? (parts.qualifier ? `${parts.qualifier}.${parts.name}` : parts.name) : parts.name;
+  }
+  return undefined;
+}
+
+export function resultRunItems(tab: Pick<QueryTab, "resultRuns" | "activeResultRunId">, options: { includeSourceDatabase?: boolean; database?: string; databaseType?: DatabaseType } = {}): { id: string; title: string; sequence: number; active: boolean; pinned: boolean; sourceLabel?: string }[] {
+  const includeSourceDatabase = options.includeSourceDatabase !== false;
+  const fallback = { database: options.database, databaseType: options.databaseType };
+  const seenBySource = new Map<string, number>();
+  return (tab.resultRuns ?? []).map((run) => {
+    const source = resultRunSourceLabel(run, includeSourceDatabase, fallback);
+    let sourceLabel = source;
+    if (source) {
+      // 同一张表被查询多次时用序号后缀区分页签（users、users (2)…）
+      const seen = (seenBySource.get(source) ?? 0) + 1;
+      seenBySource.set(source, seen);
+      if (seen > 1) sourceLabel = `${source} (${seen})`;
+    }
+    return {
+      id: run.id,
+      // 系统默认标题（Run N）由来源名取代；用户重命名/多库按目标命名过的标题优先
+      title: run.customTitle ? run.title : "",
+      sequence: run.sequence,
+      active: run.id === tab.activeResultRunId,
+      pinned: run.pinned === true,
+      sourceLabel,
+    };
+  });
 }
 
 export function resultGridCacheKey(tab: Pick<QueryTab, "id" | "activeResultRunId" | "activeResultIndex">): string {
@@ -597,7 +677,28 @@ export function tabIconClass(tab: QueryTab): string {
   if (tab.mode === "mongo") return "text-green-400";
   if (tab.mode === "vector") return "text-cyan-400";
   if (tab.mode === "structure") return "text-blue-500";
+  // query 的图标是数据库品牌 logo（TabModeIcon），不吃文字颜色；回退的
+  // Database 图标自带 text-blue-400，与 mq 模式同样返回空串。
+  if (tab.mode === "query") return "";
   return "text-blue-600 dark:text-blue-400";
+}
+
+// WebKit without color-mix() (macOS 12 Safari < 16.2) invalidates these inline
+// values at computed-value time, leaving the active tab with no background at
+// all — and it also fails to substitute var() references inside inline custom
+// properties, so the legacy branch resolves the theme token to concrete rgb
+// once per call instead of leaning on rgba(var(--dbx-foreground-rgb), …).
+function foregroundRgb(): string {
+  if (typeof document !== "undefined") {
+    const rgb = getComputedStyle(document.documentElement).getPropertyValue("--dbx-foreground-rgb").trim();
+    if (rgb) return rgb;
+  }
+  return "10, 10, 10";
+}
+
+export function appTabActiveBackground(): string {
+  if (isLegacyWebView()) return `rgba(${foregroundRgb()}, 0.18)`;
+  return "color-mix(in srgb, var(--foreground) 18%, var(--background))";
 }
 
 /**
@@ -613,7 +714,7 @@ export function tabColorStyle(tab: QueryTab, active: boolean, isClassic: boolean
   const color = connectionColor(tab.connectionId);
   if (!color) {
     if (isClassic) return undefined;
-    return active ? { "--app-tab-background": "color-mix(in srgb, var(--foreground) 18%, var(--background))", borderColor: "var(--ring)" } : undefined;
+    return active ? { "--app-tab-background": appTabActiveBackground(), borderColor: "var(--ring)" } : undefined;
   }
   if (isClassic) {
     return {

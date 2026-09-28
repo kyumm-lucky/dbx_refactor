@@ -602,6 +602,15 @@ pub struct AiStreamChunk {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct AiChatSourceBinding {
+    pub connection_id: String,
+    pub database: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schema: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AiChatMessage {
     pub role: String,
     pub content: String,
@@ -617,15 +626,36 @@ pub struct AiChatMessage {
     pub failed: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub covered_messages: Option<usize>,
+    /// Frozen target of the assistant turn. A Web confirmation card can remain
+    /// actionable after the conversation itself is rebound (#9902).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_binding: Option<AiChatSourceBinding>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AiConversation {
+    /// Immutable plugin data retained independently of sent and pending messages.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plugin_context: Option<serde_json::Value>,
     pub id: String,
     pub title: String,
     pub connection_name: String,
     pub database: String,
+    /// Connection this conversation is bound to (#9902). The binding belongs to
+    /// the conversation — not to whatever editor tab happens to be active — so
+    /// several conversations can run against different connections at once.
+    ///
+    /// Empty for conversations persisted before session-scoped binding existed,
+    /// and for legacy records whose `connection_name` matched zero or several
+    /// saved connections (a name is not unique). Callers must treat empty as
+    /// "unbound" and ask the user, never fall back to the active tab.
+    #[serde(default)]
+    pub connection_id: String,
+    /// Schema for schema-scoped engines (Postgres, Dameng). `None` when the
+    /// engine has no schema layer or the user has not picked one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schema: Option<String>,
     pub messages: Vec<AiChatMessage>,
     /// One editable "send later" input saved while an active run occupies the
     /// conversation (parent PRD §5). Persisted with the conversation so it
@@ -5668,8 +5698,8 @@ mod tests {
         let (endpoint, server) = spawn_json_capture_server("text/event-stream", response).await;
         let request = anthropic_compatible_test_request(endpoint);
         let tools = [crate::agent_events::ToolDefinition {
-            name: "get_tables",
-            description: "List tables",
+            name: "get_tables".into(),
+            description: "List tables".into(),
             parameters: serde_json::json!({
                 "type": "object",
                 "properties": { "schema": { "type": "string" } }
@@ -5724,8 +5754,8 @@ mod tests {
         let request = claude_http_test_request(endpoint);
         let client = build_ai_http_client(&request.config, 10).unwrap();
         let tools = [crate::agent_events::ToolDefinition {
-            name: "get_tables",
-            description: "List tables",
+            name: "get_tables".into(),
+            description: "List tables".into(),
             parameters: serde_json::json!({ "type": "object", "properties": {} }),
             read_only: true,
             parallel_ok: true,
@@ -7300,8 +7330,8 @@ mod tests {
         assert_eq!(input[3]["call_id"], "call_1");
 
         let tool = crate::agent_events::ToolDefinition {
-            name: "list_tables",
-            description: "List tables",
+            name: "list_tables".into(),
+            description: "List tables".into(),
             parameters: serde_json::json!({"type": "object"}),
             read_only: true,
             parallel_ok: true,

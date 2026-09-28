@@ -82,7 +82,7 @@ import TemporalCellEditor from "@/components/grid/TemporalCellEditor.vue";
 import EnumCellEditor from "@/components/grid/EnumCellEditor.vue";
 import DataGridReadonlyTextSelection from "@/components/grid/DataGridReadonlyTextSelection.vue";
 import GridSnapshotDialog from "@/components/grid/GridSnapshotDialog.vue";
-import type { QueryResult, ColumnInfo, ConstraintInfo, DatabaseType, ForeignKeyInfo, IndexInfo, TriggerInfo, TableInfoTab, QueryResultSourceColumnRef, QueryPageJumpProgress } from "@/types/database";
+import type { ColumnInfo, ConstraintInfo, DatabaseType, ForeignKeyInfo, IndexInfo, PgTablePartitioning, QueryPageJumpProgress, QueryResult, QueryResultSourceColumnRef, TableInfoTab, TriggerInfo } from "@/types/database";
 import { isQueryExecutionErrorResult } from "@/lib/query/queryResultError";
 import { shouldNavigateFromTableInfoColumnClick } from "@/lib/table/tableInfoColumnNavigation";
 import { tableInfoTabForDrawerToggle } from "@/lib/table/tableInfoTabPreference";
@@ -2203,6 +2203,7 @@ function columnWidthDisplayValue(value: CellValue, columnIndex: number): CellVal
 }
 
 const { initColumnWidths, onResizeStart, autoFitColumn, renderedColumnWidths, totalWidth, columnVars, getIsResizing } = useDataGridColumnResize({
+  widthMode: computed(() => settingsStore.editorSettings.dataGridColumnWidthMode),
   columns: visibleColumns,
   sourceRows: computed(() => props.result.rows),
   columnIndexes: visibleColumnIndexes,
@@ -3801,6 +3802,7 @@ const saveToolbarState = computed(() =>
   }),
 );
 const hasSearchBarSlot = computed(() => !!slots["search-bar"]);
+const splitDataGridToolbar = computed(() => settingsStore.editorSettings.dataGridToolbarLayout === "split");
 const hasTopbarLeadingSlot = computed(() => !!slots["topbar-leading"]);
 const hasResultToolbarLeadingSlot = computed(() => !!slots["result-toolbar-leading"]);
 const hasResultToolbarActionsSlot = computed(() => !!slots["result-toolbar-actions"]);
@@ -9940,6 +9942,13 @@ const mongoConnectionConfig = resolvedConnectionConfig;
 const canManageMongoIndexes = computed(() => resolvedDatabaseType.value === "mongodb" && !!props.connectionId && !!props.database && !!props.tableMeta?.tableName && supportsMongoIndexMutations(mongoConnectionConfig.value, props.tableMeta?.tableType));
 const canShowTableIndexes = computed(() => tableMetadataCapabilities.value.indexes && (resolvedDatabaseType.value !== "mongodb" || mongoCollectionSupportsIndexes(props.tableMeta?.tableType)));
 
+// 本 fork 的网格不拉取分区信息（分区查看与编辑在表结构编辑器里），这里按加载器契约保留占位 ref。
+const partitioning = ref<PgTablePartitioning | null>(null);
+const partitioningLoaded = ref(false);
+const partitioningLoading = ref(false);
+const partitioningError = ref("");
+const partitioningRequestGeneration = ref(0);
+
 const metadataLoaders = useDataGridTableMetadataLoaders({
   props,
   state: {
@@ -9962,6 +9971,11 @@ const metadataLoaders = useDataGridTableMetadataLoaders({
     triggersLoaded,
     triggersLoading,
     triggersError,
+    partitioning,
+    partitioningLoaded,
+    partitioningLoading,
+    partitioningError,
+    partitioningRequestGeneration,
     constraints,
     constraintsLoaded,
     constraintsLoading,
@@ -11200,15 +11214,21 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
       <div v-if="hasData || canShowWhereSearch" class="flex-1 flex flex-col overflow-hidden" @contextmenu="onContextMenu">
         <!-- Search bar -->
         <!-- Leave real vertical space around the 28px controls instead of fitting them against the border. -->
-        <div ref="dataGridTopbarRef" v-if="showDataGridTopbar" class="data-grid-topbar-shell flex h-8 min-w-0 shrink-0 items-center border-b bg-muted/20">
-          <div v-if="hasTopbarLeadingSlot" class="flex h-full shrink-0 items-center gap-2 border-r px-2">
+        <div
+          ref="dataGridTopbarRef"
+          v-if="showDataGridTopbar"
+          :data-grid-toolbar-layout="settingsStore.editorSettings.dataGridToolbarLayout"
+          class="data-grid-topbar-shell min-w-0 shrink-0 border-b bg-muted/20"
+          :class="splitDataGridToolbar ? 'grid h-16 grid-cols-[auto_minmax(0,1fr)] grid-rows-2' : 'flex h-8 items-center'"
+        >
+          <div v-if="hasTopbarLeadingSlot" data-grid-topbar-row="leading" class="flex h-full shrink-0 items-center gap-2 border-r px-2" :class="splitDataGridToolbar ? 'col-start-1 row-start-1' : ''">
             <slot name="topbar-leading" :compact="compactDataGridToolbar" />
           </div>
-          <div v-if="hasResultToolbarLeadingSlot" class="flex shrink-0 items-center border-r">
+          <div v-if="hasResultToolbarLeadingSlot" data-grid-topbar-row="actions" class="flex shrink-0 items-center border-r" :class="splitDataGridToolbar ? 'col-start-2 row-start-1' : ''">
             <slot name="result-toolbar-leading" :compact="compactDataGridToolbar" />
           </div>
           <!-- Clip both axes instead of creating a hidden scroll container around the toolbar controls. -->
-          <div class="data-grid-topbar-scroll min-w-0 flex-1 overflow-clip">
+          <div data-grid-topbar-row="filters" class="data-grid-topbar-scroll min-w-0 overflow-clip" :class="splitDataGridToolbar ? 'data-grid-topbar-scroll--row-divider col-span-2 row-start-2' : 'flex-1'">
             <div class="data-grid-topbar flex items-stretch relative" :class="{ 'data-grid-topbar--compact': compactDataGridToolbar }">
               <div v-if="useTransaction && editable && hasDataGridSaveTarget" class="flex shrink-0 items-center border-r px-1.5 py-0.5">
                 <Select :model-value="rowStatusFilter" @update:model-value="(value: any) => setRowStatusFilter(String(value))">
@@ -12781,6 +12801,16 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
               v-if="activeTableInfoTab !== 'ddl'"
               :active-tab="activeTableInfoTab"
               :search-query="searchQuery"
+              :table-name="props.tableMeta?.tableName ?? ''"
+              :table-schema="props.tableMeta?.schema ?? ''"
+              :database="props.database ?? ''"
+              :table-owner="tableOwner"
+              :overview-stats="null"
+              :overview-comment="null"
+              :overview-loading="false"
+              :partitioning="partitioning"
+              :partitions-loading="partitioningLoading"
+              :partitions-error="partitioningError"
               :columns="filteredColumns"
               :columns-loading="tableInfoColumnsLoading"
               :indexes="filteredIndexes"
@@ -12913,6 +12943,9 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
       <DataGridPagination
         v-model:custom-page-size-input="customPageSizeInput"
         :pagination-enabled="paginationEnabled"
+        :load-all-rows-active="false"
+        :load-all-rows-enabled="false"
+        :can-load-all-rows="false"
         :selection-summary="selectionSummary"
         :selection-summary-sum-text="selectionSummarySumText"
         :selection-summary-average-text="selectionSummaryAverageText"

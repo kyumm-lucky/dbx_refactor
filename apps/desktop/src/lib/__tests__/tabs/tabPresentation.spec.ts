@@ -10,18 +10,21 @@ import {
   resultGridCacheKey,
   resultGridColumnWidthCacheKey,
   resultGridInstanceKey,
+  resultRunItems,
   resultSourceRange,
   statementExecutionMarkers,
   tabColorStyle,
   tabDatabaseIconType,
   tabDisplayTitle,
+  tabDisplayTitles,
+  syncTabTitleNumbers,
   tabIconClass,
   tabTooltipLines,
   tabularResultItems,
   dirtyTabTitleStyle,
 } from "@/lib/tabs/tabPresentation";
 import { sqlTextFingerprint } from "@/lib/sql/sqlTextFingerprint";
-import type { ConnectionConfig, QueryResult, QueryTab } from "@/types/database";
+import type { ConnectionConfig, QueryResult, QueryResultRun, QueryTab } from "@/types/database";
 
 const translations: Record<string, string> = {
   "tabs.tooltipConnection": "Connection:",
@@ -174,6 +177,51 @@ describe("query result labels", () => {
     expect(item?.label).toBeUndefined();
     expect(item?.title).toBe("SELECT 1");
   });
+
+  it("shows only the object name when result set names exclude the database", () => {
+    const results = [
+      {
+        columns: ["id"],
+        rows: [[1]],
+        affected_rows: 0,
+        execution_time_ms: 1,
+        sourceLabel: "cosimulation2.0.data_monitor",
+        sourceQualifier: "cosimulation2.0",
+        sourceName: "data_monitor",
+        sourceStatement: "SELECT * FROM data_monitor",
+      },
+    ];
+
+    const [withDatabase] = tabularResultItems(results);
+    const [withoutDatabase] = tabularResultItems(results, { includeSourceDatabase: false });
+
+    expect(withDatabase?.label).toBe("cosimulation2.0.data_monitor");
+    expect(withoutDatabase?.label).toBe("data_monitor");
+    expect(withoutDatabase?.displayLabel).toBe("data_monitor");
+    // 完整名称（含库名）仍保留在悬浮提示中
+    expect(withoutDatabase?.title).toBe("cosimulation2.0.data_monitor");
+  });
+
+  it("keeps a custom result name even when the database is hidden", () => {
+    const [item] = tabularResultItems(
+      [
+        {
+          columns: ["id"],
+          rows: [[1]],
+          affected_rows: 0,
+          execution_time_ms: 1,
+          sourceLabel: "My weekly report",
+          sourceQualifier: "app",
+          sourceName: "users",
+          sourceStatement: "SELECT * FROM users",
+        },
+      ],
+      { includeSourceDatabase: false },
+    );
+
+    expect(item?.label).toBe("My weekly report");
+    expect(item?.title).toBe("My weekly report");
+  });
 });
 
 describe("query result grid identity", () => {
@@ -190,95 +238,135 @@ describe("query result grid identity", () => {
   });
 });
 
-describe("query tab sequence numbering", () => {
-  function namedConnection() {
-    useConnectionStore().connections = [{ id: "ifindcrm-local", name: "ifindcrm-local", db_type: "postgres", driver_profile: "postgres", database: "postcrm" } as ConnectionConfig];
-  }
+describe("result run labels", () => {
+  // 与 store 真实创建批次的方式保持一致：默认标题是 `Run N`，只有重命名/多库执行才标记 customTitle
+  const run = (id: string, sequence: number, result?: QueryResult, overrides: Partial<QueryResultRun> = {}): QueryResultRun => ({ id, title: `Run ${sequence}`, sequence, sql: "SELECT * FROM users", createdAt: sequence, result, ...overrides });
+  const sourceResult = (label: string, qualifier: string, name: string): QueryResult => ({ columns: ["id"], rows: [[1]], affected_rows: 0, execution_time_ms: 1, sourceLabel: label, sourceQualifier: qualifier, sourceName: name }) as QueryResult;
 
-  function sequenceTab(id: string, createdAt: number, overrides: Partial<QueryTab> = {}): QueryTab {
-    return queryTab({ id, createdAt, connectionId: "ifindcrm-local", database: "postcrm", mode: "query", ...overrides });
-  }
+  it("names result runs after their source table instead of the run ordinal", () => {
+    const items = resultRunItems(
+      queryTab({
+        resultRuns: [run("run-1", 1, sourceResult("app.users", "app", "users")), run("run-2", 2, sourceResult("app.orders", "app", "orders"))],
+      }) as QueryTab,
+    );
 
-  it("numbers later SQL query tabs of one connection and leaves the first unnamed", () => {
-    namedConnection();
-    const first = sequenceTab("t1", 100);
-    const second = sequenceTab("t2", 200);
-    const third = sequenceTab("t3", 300);
-    const siblings = [first, second, third];
-
-    const titles = siblings.map((tab) => tabDisplayTitle(tab, translate, siblings));
-
-    expect(titles).toEqual(["ifindcrm-local@postcrm", "ifindcrm-local@postcrm-1", "ifindcrm-local@postcrm-2"]);
+    expect(items.map((item) => item.sourceLabel)).toEqual(["app.users", "app.orders"]);
   });
 
-  it("keeps one series per connection and per database", () => {
-    namedConnection();
-    useConnectionStore().connections = [...useConnectionStore().connections, { id: "shop-demo", name: "shop-demo", db_type: "sqlite", driver_profile: "sqlite", database: "main" } as ConnectionConfig];
-    const first = sequenceTab("t1", 100);
-    const sameDatabase = sequenceTab("t2", 200);
-    const otherConnection = queryTab({ id: "t3", createdAt: 300, connectionId: "shop-demo", database: "main", mode: "query" });
-    const otherDatabase = sequenceTab("t4", 400, { database: "other" });
-    const siblings = [first, sameDatabase, otherConnection, otherDatabase];
+  it("suffixes repeated sources and follows the database-name setting", () => {
+    const tab = queryTab({
+      resultRuns: [run("run-1", 1, sourceResult("cosimulation2.0.users", "cosimulation2.0", "users")), run("run-2", 2, sourceResult("cosimulation2.0.users", "cosimulation2.0", "users")), run("run-3", 3)],
+    }) as QueryTab;
 
-    const titles = siblings.map((tab) => tabDisplayTitle(tab, translate, siblings));
-
-    expect(titles).toEqual(["ifindcrm-local@postcrm", "ifindcrm-local@postcrm-1", "shop-demo@main", "ifindcrm-local@other"]);
+    expect(resultRunItems(tab).map((item) => item.sourceLabel)).toEqual(["cosimulation2.0.users", "cosimulation2.0.users (2)", undefined]);
+    expect(resultRunItems(tab, { includeSourceDatabase: false }).map((item) => item.sourceLabel)).toEqual(["users", "users (2)", undefined]);
   });
 
-  it("numbers by creation order, not by the order tabs sit in the strip", () => {
-    namedConnection();
-    const first = sequenceTab("t1", 100);
-    const second = sequenceTab("t2", 200);
-    // The user dragged the older tab to the end; the number follows the tab.
-    const siblings = [second, first];
+  it("keeps a renamed run title ahead of the source label", () => {
+    const items = resultRunItems(queryTab({ resultRuns: [run("run-1", 1, sourceResult("app.users", "app", "users"), { title: "报表", customTitle: true })] }) as QueryTab);
 
-    expect(tabDisplayTitle(second, translate, siblings)).toBe("ifindcrm-local@postcrm-1");
-    expect(tabDisplayTitle(first, translate, siblings)).toBe("ifindcrm-local@postcrm");
+    expect(items[0]?.title).toBe("报表");
+    expect(items[0]?.sourceLabel).toBe("app.users");
   });
 
-  it("leaves tabs that carry their own name unnumbered", () => {
-    namedConnection();
-    const unnamed = sequenceTab("t1", 100);
-    const saved = sequenceTab("t2", 200, { title: "Revenue checks", customTitle: true });
-    const objectSource = sequenceTab("t3", 300, { title: "fn_total", objectSource: { name: "fn_total", objectType: "FUNCTION" } });
-    const siblings = [unnamed, saved, objectSource];
+  it("replaces the default Run N title with the source label", () => {
+    const items = resultRunItems(queryTab({ resultRuns: [run("run-1", 1, sourceResult("app.users", "app", "users"))] }) as QueryTab);
 
-    expect(tabDisplayTitle(saved, translate, siblings)).toBe("Revenue checks");
-    expect(tabDisplayTitle(objectSource, translate, siblings)).toBe("fn_total");
-    // A named tab does not consume a number, so the next unnamed one is still first.
-    expect(tabDisplayTitle(unnamed, translate, siblings)).toBe("ifindcrm-local@postcrm");
+    expect(items[0]?.title).toBe("");
+    expect(items[0]?.sourceLabel).toBe("app.users");
   });
 
-  it("renumbers the survivors when an earlier tab closes", () => {
-    namedConnection();
-    const first = sequenceTab("t1", 100);
-    const second = sequenceTab("t2", 200);
-    const third = sequenceTab("t3", 300);
+  it("falls back to the run SQL for runs created before source labels were stored", () => {
+    const items = resultRunItems(queryTab({ resultRuns: [run("run-1", 1)] }) as QueryTab, { database: "cosimulation2.0", databaseType: "mysql" });
 
-    expect(tabDisplayTitle(second, translate, [second, third])).toBe("ifindcrm-local@postcrm");
-    expect(tabDisplayTitle(third, translate, [second, third])).toBe("ifindcrm-local@postcrm-1");
-    expect(tabDisplayTitle(first, translate, [first, second, third])).toBe("ifindcrm-local@postcrm");
-  });
-
-  it("does not produce a negative suffix when the tab is missing from the list", () => {
-    namedConnection();
-    const orphan = sequenceTab("t9", 900);
-
-    expect(tabDisplayTitle(orphan, translate, [])).toBe("ifindcrm-local@postcrm");
-  });
-
-  it("orders same-millisecond creations deterministically", () => {
-    namedConnection();
-    const left = sequenceTab("aaa", 100);
-    const right = sequenceTab("bbb", 100);
-    const siblings = [right, left];
-
-    expect(tabDisplayTitle(left, translate, siblings)).toBe("ifindcrm-local@postcrm");
-    expect(tabDisplayTitle(right, translate, siblings)).toBe("ifindcrm-local@postcrm-1");
+    expect(items[0]?.sourceLabel).toBe("cosimulation2.0.users");
   });
 });
 
 describe("tab group presentation", () => {
+  // 编号由 store 在标签列表变化时分配，渲染函数只读结果；这里把两步串起来，
+  // 与真实调用顺序保持一致（#9938）。
+  const titlesWithNumbers = (tabs: QueryTab[]) => {
+    syncTabTitleNumbers(tabs, translate);
+    return tabDisplayTitles(tabs, translate);
+  };
+
+  it("numbers colliding query tab titles so several tabs stay distinguishable", () => {
+    const store = useConnectionStore();
+    store.connections = [{ id: "conn-1", name: "PostgreSQL", db_type: "postgres", driver_profile: "postgres", database: "app" } as ConnectionConfig];
+    const tabs = [queryTab({ id: "tab-1" }), queryTab({ id: "tab-2" }), queryTab({ id: "tab-3" })];
+
+    const titles = titlesWithNumbers(tabs);
+    expect([...titles.values()]).toEqual(["PostgreSQL@db 1", "PostgreSQL@db 2", "PostgreSQL@db 3"]);
+  });
+
+  it("keeps the remaining numbers when a tab in the middle is closed", () => {
+    const store = useConnectionStore();
+    store.connections = [{ id: "conn-1", name: "PostgreSQL", db_type: "postgres", driver_profile: "postgres", database: "app" } as ConnectionConfig];
+    const tabs = [queryTab({ id: "tab-1" }), queryTab({ id: "tab-2" }), queryTab({ id: "tab-3" })];
+    titlesWithNumbers(tabs);
+
+    const titles = titlesWithNumbers(tabs.filter((tab) => tab.id !== "tab-2"));
+    expect(titles.get("tab-1")).toBe("PostgreSQL@db 1");
+    expect(titles.get("tab-3")).toBe("PostgreSQL@db 3");
+  });
+
+  it("keeps the number on the last surviving tab of a closed group", () => {
+    const store = useConnectionStore();
+    store.connections = [{ id: "conn-1", name: "PostgreSQL", db_type: "postgres", driver_profile: "postgres", database: "app" } as ConnectionConfig];
+    const tabs = [queryTab({ id: "tab-1" }), queryTab({ id: "tab-2" })];
+    titlesWithNumbers(tabs);
+
+    expect(titlesWithNumbers([tabs[0]!]).get("tab-1")).toBe("PostgreSQL@db 1");
+  });
+
+  it("continues after the highest number still in use when a new tab opens", () => {
+    const store = useConnectionStore();
+    store.connections = [{ id: "conn-1", name: "PostgreSQL", db_type: "postgres", driver_profile: "postgres", database: "app" } as ConnectionConfig];
+    const tabs = [queryTab({ id: "tab-1" }), queryTab({ id: "tab-2" }), queryTab({ id: "tab-3" })];
+    titlesWithNumbers(tabs);
+
+    const next = [...tabs.filter((tab) => tab.id !== "tab-2"), queryTab({ id: "tab-4" })];
+    const titles = titlesWithNumbers(next);
+    expect(titles.get("tab-1")).toBe("PostgreSQL@db 1");
+    expect(titles.get("tab-3")).toBe("PostgreSQL@db 3");
+    expect(titles.get("tab-4")).toBe("PostgreSQL@db 4");
+  });
+
+  it("drops the number of a tab whose title stops colliding", () => {
+    const store = useConnectionStore();
+    store.connections = [{ id: "conn-1", name: "PostgreSQL", db_type: "postgres", driver_profile: "postgres", database: "app" } as ConnectionConfig];
+    const tabs = [queryTab({ id: "tab-1" }), queryTab({ id: "tab-2" })];
+    titlesWithNumbers(tabs);
+
+    tabs[1]!.database = "other";
+    const titles = titlesWithNumbers(tabs);
+    expect(titles.get("tab-1")).toBe("PostgreSQL@db 1");
+    expect(titles.get("tab-2")).toBe("PostgreSQL@other");
+  });
+
+  it("leaves tab titles untouched while they are unique", () => {
+    const store = useConnectionStore();
+    store.connections = [{ id: "conn-1", name: "PostgreSQL", db_type: "postgres", driver_profile: "postgres", database: "app" } as ConnectionConfig];
+    const tabs = [queryTab({ id: "tab-1" }), queryTab({ id: "tab-2", database: "other" }), queryTab({ id: "tab-3", customTitle: true, title: "orders.sql", savedSqlId: "sql-1" })];
+
+    const titles = titlesWithNumbers(tabs);
+    expect(titles.get("tab-1")).toBe("PostgreSQL@db");
+    expect(titles.get("tab-2")).toBe("PostgreSQL@other");
+    expect(titles.get("tab-3")).toBe("orders.sql");
+  });
+
+  it("numbers duplicate custom titles in strip order and skips preview tabs", () => {
+    const store = useConnectionStore();
+    store.connections = [{ id: "conn-1", name: "PostgreSQL", db_type: "postgres", driver_profile: "postgres", database: "app" } as ConnectionConfig, { id: "conn-preview", name: "[Preview] PostgreSQL", db_type: "postgres", driver_profile: "postgres", database: "app" } as ConnectionConfig];
+    const tabs = [queryTab({ id: "tab-1", customTitle: true, title: "orders.sql", savedSqlId: "sql-1" }), queryTab({ id: "tab-preview", connectionId: "conn-preview" }), queryTab({ id: "tab-2", customTitle: true, title: "orders.sql", savedSqlId: "sql-2" })];
+
+    const titles = titlesWithNumbers(tabs);
+    expect(titles.get("tab-1")).toBe("orders.sql 1");
+    expect(titles.get("tab-2")).toBe("orders.sql 2");
+    expect(titles.get("tab-preview")).toBe("SQL");
+  });
+
   it("does not expose the internal objects mode in object browser tab titles", () => {
     const store = useConnectionStore();
     store.connections = [{ id: "conn-1", name: "PostgreSQL", db_type: "postgres", driver_profile: "postgres", database: "app" } as ConnectionConfig];
@@ -323,6 +411,24 @@ describe("tab group presentation", () => {
       { label: "Group:", value: "Project / Staging" },
       { label: "Database:", value: "app" },
     ]);
+  });
+
+  it("omits the database row from tooltips for connections without a database target", () => {
+    const store = useConnectionStore();
+    store.sidebarLayout = {
+      groups: [],
+      order: [{ type: "connection", id: "conn-1" }],
+    };
+
+    for (const dbType of ["dynamodb", "elasticsearch", "easysearch", "meilisearch", "solr", "qdrant", "weaviate", "chromadb", "etcd", "zookeeper", "nacos", "consul", "mq", "mqtt", "victoriametrics"] as const) {
+      store.connections = [{ id: "conn-1", name: "Local", db_type: dbType, database: "default" } as ConnectionConfig];
+
+      const lines = tabTooltipLines(queryTab({ database: "default" }), translate);
+
+      expect(lines, dbType).toContainEqual({ label: "Connection:", value: "Local" });
+      expect(lines, dbType).toContainEqual({ label: "Group:", value: "Ungrouped" });
+      expect(lines, dbType).not.toContainEqual({ label: "Database:", value: "default" });
+    }
   });
 
   it("labels a top-level connection as ungrouped", () => {
@@ -583,9 +689,43 @@ describe("shared tab presentation helpers", () => {
     // the active tab is a lifted block that appTabBar.css styles.
     expect(tabColorStyle(queryTab({}), true, true)).toBeUndefined();
     // The non-classic layout still rings the active tab inline.
-    expect(tabColorStyle(queryTab({}), true, false)?.borderColor).toBe("var(--ring)");
+    // Node 里既没有 CSS 全局也没有 window.matchMedia，两处能力探测都要钉住现代引擎的答案。
+    vi.stubGlobal("CSS", { supports: () => true });
+    vi.stubGlobal("window", {
+      matchMedia: (query: string) => ({
+        media: query,
+        matches: true,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }),
+    });
+    try {
+      const activeModern = tabColorStyle(queryTab({}), true, false);
+      expect(activeModern?.borderColor).toBe("var(--ring)");
+      expect(activeModern?.["--app-tab-background"]).toBe("color-mix(in srgb, var(--foreground) 18%, var(--background))");
+    } finally {
+      vi.unstubAllGlobals();
+    }
     const inactiveModern = tabColorStyle(queryTab({}), false, false);
     expect(inactiveModern?.borderColor).toBeUndefined();
+  });
+
+  it("swaps inline color-mix tab colors for concrete rgba on legacy WebViews", () => {
+    // WebKit without color-mix() invalidates the inline values at computed-value
+    // time, which left the active tab with no background at all (macOS 12); and
+    // it cannot substitute var() inside inline custom properties, so the legacy
+    // branch resolves the token to concrete rgb. Node has no document: the
+    // helper falls back to the default theme's foreground (10, 10, 10).
+    vi.stubGlobal("CSS", { supports: () => false });
+    try {
+      const pill = tabColorStyle(queryTab({}), true, false);
+      expect(pill?.["--app-tab-background"]).toBe("rgba(10, 10, 10, 0.18)");
+      expect(pill?.borderColor).toBe("var(--ring)");
+      // 经典布局的活动样式在样式表里，组件不再注入内联背景/阴影。
+      expect(tabColorStyle(queryTab({}), true, true)).toBeUndefined();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("resolves MQ driver icons from the connection store", () => {

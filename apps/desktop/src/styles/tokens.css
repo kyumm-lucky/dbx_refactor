@@ -138,6 +138,10 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   --color-foreground: var(--foreground);
+  /* Opaque background for inverted text (`bg-foreground text-background-solid`).
+     useBackgroundImage publishes `--background-solid` while a wallpaper is active,
+     so tooltips/toasts keep readable glyphs when the surfaces turn translucent. */
+  --color-background-solid: var(--background-solid, var(--background));
   --color-background: var(--background);
 }
 
@@ -198,7 +202,9 @@
   --accent-soft: rgb(0 113 227 / 0.12);
 
   --background: rgb(255 255 255);
+  /* 旧 WebView 无法在内联 color-mix 里解析 var()，标签等内联样式改用这些分量。 */
   --foreground: rgb(29 29 31);
+  --dbx-foreground-rgb: 10, 10, 10;
   --card: rgb(255 255 255);
   --card-foreground: rgb(29 29 31);
   --popover: rgb(255 255 255);
@@ -234,6 +240,7 @@
   --success-foreground: rgb(255 255 255);
   --success-bg: color-mix(in srgb, var(--success) 12%, transparent);
   --warning: rgb(224 139 0);
+  --dbx-warning-rgb: 217, 119, 6;
   --warning-foreground: rgb(255 255 255);
   --warning-bg: color-mix(in srgb, var(--warning) 14%, transparent);
   --info: rgb(0 113 227);
@@ -268,6 +275,7 @@
 
   --background: rgb(30 30 32);
   --foreground: rgb(245 245 247);
+  --dbx-foreground-rgb: 215, 215, 219;
   --card: rgb(44 44 47);
   --card-foreground: rgb(245 245 247);
   --popover: rgb(44 44 47);
@@ -303,6 +311,7 @@
   --success-foreground: rgb(255 255 255);
   --success-bg: color-mix(in srgb, var(--success) 16%, transparent);
   --warning: rgb(255 159 10);
+  --dbx-warning-rgb: 251, 191, 36;
   --warning-foreground: rgb(255 255 255);
   --warning-bg: color-mix(in srgb, var(--warning) 16%, transparent);
   --info: rgb(10 132 255);

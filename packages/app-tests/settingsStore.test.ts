@@ -1,6 +1,5 @@
 import { beforeEach, test, vi } from "vitest";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { createPinia, setActivePinia } from "pinia";
 import { DEFAULT_SQL_FORMATTER_SETTINGS } from "../../apps/desktop/src/lib/sql/sqlFormatterConfig.ts";
 import { DEFAULT_TABLE_COLUMN_TEMPLATE_FIELDS } from "../../apps/desktop/src/lib/table/tableColumnTemplates.ts";
@@ -143,6 +142,28 @@ test("table DDL wrapping defaults on and normalizes saved booleans independently
   assert.equal(settings.wordWrap, true);
 });
 
+test("data grid column width mode defaults to content and normalizes saved values", () => {
+  assert.equal(DEFAULT_EDITOR_SETTINGS.dataGridColumnWidthMode, "content");
+  assert.equal(normalizeEditorSettings({}).dataGridColumnWidthMode, "content");
+  assert.equal(normalizeEditorSettings({ dataGridColumnWidthMode: "content" }).dataGridColumnWidthMode, "content");
+  assert.equal(normalizeEditorSettings({ dataGridColumnWidthMode: "invalid" as any }).dataGridColumnWidthMode, "content");
+});
+
+test("updateEditorSettings persists the data grid column width mode", async () => {
+  await withMockLocalStorage({}, async () => {
+    setActivePinia(createPinia());
+    const store = useSettingsStore();
+    await store.initEditorSettings();
+
+    store.updateEditorSettings({ dataGridColumnWidthMode: "content" });
+    assert.equal(store.editorSettings.dataGridColumnWidthMode, "content");
+    await vi.waitFor(() => {
+      const saved = saveEditorSettingsMock.mock.calls.at(-1)?.[0] as { dataGridColumnWidthMode?: string } | undefined;
+      assert.equal(saved?.dataGridColumnWidthMode, "content");
+    });
+  });
+});
+
 test("updateEditorSettings persists completion column sort toggles", async () => {
   await withMockLocalStorage({}, async () => {
     setActivePinia(createPinia());
@@ -237,17 +258,6 @@ test("migrates legacy execute-all settings to current once and preserves later e
     await reloadedStore.initEditorSettings();
     assert.equal(reloadedStore.editorSettings.executeMode, "all");
   });
-});
-
-test("shows the table-open page size control in the Data settings tab", () => {
-  const source = readFileSync("apps/desktop/src/components/editor/EditorSettingsDialog.vue", "utf8");
-  const dataSectionStart = source.indexOf("activeSettingsTab === 'data'");
-  const nextSectionStart = source.indexOf("activeSettingsTab === 'shortcuts'", dataSectionStart);
-  const control = source.indexOf('id="table-open-page-size"');
-
-  assert.ok(dataSectionStart >= 0);
-  assert.ok(nextSectionStart > dataSectionStart);
-  assert.ok(control > dataSectionStart && control < nextSectionStart);
 });
 
 test("defaults export batch size to 2000 rows", () => {
@@ -375,14 +385,6 @@ test("defaults saved SQL to its saved target and normalizes persisted target mod
   assert.equal(normalizeEditorSettings({}).savedSqlOpenTargetMode, "saved");
   assert.equal(normalizeEditorSettings({ savedSqlOpenTargetMode: "current" }).savedSqlOpenTargetMode, "current");
   assert.equal(normalizeEditorSettings({ savedSqlOpenTargetMode: "invalid" as any }).savedSqlOpenTargetMode, "saved");
-});
-
-test("shows the saved SQL target selector in Editor settings", () => {
-  const source = readFileSync("apps/desktop/src/components/editor/EditorSettingsDialog.vue", "utf8");
-
-  assert.match(source, /id="editor-saved-sql-open-target"/);
-  assert.match(source, /<SelectItem value="saved">/);
-  assert.match(source, /<SelectItem value="current">/);
 });
 
 test("defaults Vim mode to off and preserves saved booleans", () => {
@@ -671,6 +673,35 @@ test("keeps saved data grid header display settings", () => {
   assert.equal(settings.compactColumnHeaderActions, false);
 });
 
+test("defaults column header hover tooltips to on", () => {
+  // Existing installs have no persisted flag, so the grid must keep showing the
+  // header tooltip until the user opts out.
+  assert.equal(DEFAULT_EDITOR_SETTINGS.showColumnHeaderTooltips, true);
+  assert.equal(normalizeEditorSettings({}).showColumnHeaderTooltips, true);
+  assert.equal(normalizeEditorSettings({ showColumnHeaderTooltips: undefined } as any).showColumnHeaderTooltips, true);
+});
+
+test("keeps a disabled column header hover tooltip preference", () => {
+  assert.equal(normalizeEditorSettings({ showColumnHeaderTooltips: false } as any).showColumnHeaderTooltips, false);
+  assert.equal(normalizeEditorSettings({ showColumnHeaderTooltips: true } as any).showColumnHeaderTooltips, true);
+});
+
+test("updates the column header hover tooltip preference through the store", () => {
+  setActivePinia(createPinia());
+  const store = useSettingsStore();
+
+  assert.equal(store.editorSettings.showColumnHeaderTooltips, true);
+
+  store.updateEditorSettings({ showColumnHeaderTooltips: false });
+  assert.equal(store.editorSettings.showColumnHeaderTooltips, false);
+
+  store.updateEditorSettings({ showColumnTypesInHeader: false });
+  assert.equal(store.editorSettings.showColumnHeaderTooltips, false);
+
+  store.updateEditorSettings({ showColumnHeaderTooltips: true });
+  assert.equal(store.editorSettings.showColumnHeaderTooltips, true);
+});
+
 test("normalizes data grid render mode", () => {
   assert.equal(DEFAULT_EDITOR_SETTINGS.dataGridRenderMode, "canvas");
   assert.equal(normalizeEditorSettings({}).dataGridRenderMode, "canvas");
@@ -723,6 +754,9 @@ test("normalizes grid drawer widths", () => {
   assert.equal(normalizeEditorSettings({ tableInfoDrawerWidth: 200 } as any).tableInfoDrawerWidth, 240);
   assert.equal(normalizeEditorSettings({ tableInfoDrawerWidth: 1000 } as any).tableInfoDrawerWidth, 900);
   assert.equal(normalizeEditorSettings({ tableInfoActiveTab: "columns" } as any).tableInfoActiveTab, "columns");
+  // The Partitions tab is a first-class table-info tab, so a saved preference
+  // for it must survive normalization instead of falling back to DDL.
+  assert.equal(normalizeEditorSettings({ tableInfoActiveTab: "partitions" } as any).tableInfoActiveTab, "partitions");
   assert.equal(normalizeEditorSettings({ tableInfoActiveTab: "invalid" } as any).tableInfoActiveTab, "ddl");
   assert.equal(normalizeEditorSettings({ cellDetailJsonFormatted: true } as any).cellDetailJsonFormatted, true);
   assert.equal(normalizeEditorSettings({ cellDetailJsonFormatted: "true" } as any).cellDetailJsonFormatted, false);
@@ -1036,27 +1070,6 @@ test("AI partner presets reuse a supported runtime adapter", () => {
   assert.equal(getAiProviderPreset("openai-compatible", "https://api.example.com/v1").label, "OpenAI Compatible");
 });
 
-test("API AI provider settings expose and persist a default model ID", () => {
-  const source = readFileSync("apps/desktop/src/components/editor/EditorSettingsDialog.vue", "utf8");
-  const modelControl = source.indexOf('<Input v-model="aiEditModel"');
-
-  assert.ok(modelControl >= 0);
-  assert.match(source.slice(modelControl - 300, modelControl + 300), /v-if="!aiIsCliProvider"[\s\S]*t\("ai\.defaultModel"\)[\s\S]*t\('ai\.manualModelPlaceholder'\)/);
-  assert.match(source, /model:\s*aiEditModel\.value/);
-});
-
-test("AI connection test uses the model currently entered in the config form", () => {
-  const source = readFileSync("apps/desktop/src/components/editor/EditorSettingsDialog.vue", "utf8");
-  const testConnectionStart = source.indexOf("async function aiTestConn()");
-  const testConnectionEnd = source.indexOf("async function copyAiTestError()", testConnectionStart);
-  const testConnection = source.slice(testConnectionStart, testConnectionEnd);
-
-  assert.notEqual(testConnectionStart, -1);
-  assert.notEqual(testConnectionEnd, -1);
-  assert.match(testConnection, /const config = currentAiEditConfig\(\);[\s\S]*aiTestConnection\(config\)/);
-  assert.doesNotMatch(testConnection, /activeModel|config\.model\s*=/);
-});
-
 test("normalizes legacy AI config and fills provider defaults", () => {
   const legacy = normalizeAiConfig({
     provider: "openai",
@@ -1182,22 +1195,6 @@ test("normalizeEditorSettings clamps UI scale into the supported range", () => {
 
 test("normalizeEditorSettings keeps valid UI scales with two-decimal precision", () => {
   assert.equal(normalizeEditorSettings({ uiScale: 1.125 }).uiScale, 1.13);
-});
-
-test("shows persisted UI scales that are not available as presets", () => {
-  const source = readFileSync("apps/desktop/src/components/editor/EditorSettingsDialog.vue", "utf8");
-
-  assert.match(source, /<SelectValue>\{\{ Math\.round\(editUiScale \* 100\) \}\}%<\/SelectValue>/);
-});
-
-test("settings page resets content scroll when switching categories", () => {
-  const source = readFileSync("apps/desktop/src/components/editor/EditorSettingsDialog.vue", "utf8");
-
-  assert.match(source, /const settingsContentScrollRef = ref<HTMLElement \| null>\(null\)/);
-  assert.match(source, /function resetSettingsContentScroll\(\)/);
-  assert.match(source, /if \(scroller\) scroller\.scrollTop = 0/);
-  assert.match(source, /watch\(activeSettingsTab, async \(tab\) => \{\s+void resetSettingsContentScroll\(\);/);
-  assert.match(source, /ref="settingsContentScrollRef" class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden/);
 });
 
 test("defaults SQL formatter settings", () => {

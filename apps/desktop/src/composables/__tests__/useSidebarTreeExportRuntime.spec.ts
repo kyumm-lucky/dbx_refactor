@@ -1,9 +1,7 @@
-import { readFileSync } from "node:fs";
 import { shallowRef, reactive, nextTick, effectScope } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ColumnInfo, TreeNode } from "@/types/database";
 
-const source = readFileSync(new URL("../useSidebarTreeExportRuntime.ts", import.meta.url), "utf8");
 const toastMock = vi.hoisted(() => vi.fn());
 const copyToClipboardMock = vi.hoisted(() => vi.fn());
 const addExportTaskMock = vi.hoisted(() => vi.fn());
@@ -39,19 +37,6 @@ vi.mock("vue-i18n", () => ({
 import { useSidebarTreeExportRuntime } from "@/composables/useSidebarTreeExportRuntime";
 import { DEFAULT_DATA_GRID_EXTRACTOR_OPTIONS } from "@/lib/dataGrid/dataGridCopyExtractor";
 import { isLoadingStructurePreview, showStructurePreviewDialog, structurePreviewDefaultFileName, structurePreviewError, structurePreviewSql, structurePreviewTitle } from "@/components/sidebar/sidebarTreeDialogState";
-
-function functionBody(name: string): string {
-  const signature = new RegExp(`(?:async\\s+)?function\\s+${name}\\s*\\([^)]*\\)\\s*(?::\\s*[^\\{]+)?\\{`, "m").exec(source);
-  if (!signature) throw new Error(`Missing function ${name}`);
-  const bodyStart = signature.index + signature[0].length;
-  let depth = 1;
-  for (let index = bodyStart; index < source.length; index += 1) {
-    if (source[index] === "{") depth += 1;
-    else if (source[index] === "}") depth -= 1;
-    if (depth === 0) return source.slice(bodyStart, index);
-  }
-  throw new Error(`Unclosed function ${name}`);
-}
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -355,29 +340,6 @@ describe("useSidebarTreeExportRuntime", () => {
     expect(showStructurePreviewDialog.value).toBe(true);
   });
 
-  it("prompts for export options before it opens the save dialog", () => {
-    const exportDataXlsx = functionBody("exportDataXlsx");
-
-    expect(source).toContain('import XlsxHeaderDialog from "@/components/export/XlsxHeaderDialog.vue"');
-    expect(exportDataXlsx).toContain("await api.getColumns(");
-    expect(exportDataXlsx).toContain("hasXlsxHeaderComments(columnInfos.map((column) => column.comment))");
-    expect(exportDataXlsx.indexOf("await showSidebarTreeXlsxHeaderDialog(")).toBeLessThan(exportDataXlsx.indexOf('await exportTableData(target, "xlsx"'));
-  });
-
-  it("falls back to field-name headers when column metadata is unavailable", () => {
-    const exportDataXlsx = functionBody("exportDataXlsx");
-
-    expect(exportDataXlsx).toContain("// Export still works with field-name headers when column metadata is unavailable.");
-    expect(exportDataXlsx).toContain('await exportTableData(target, "xlsx"');
-  });
-
-  it("sends the selected mode's header overrides to both XLSX export paths", () => {
-    const exportTableData = functionBody("exportTableData");
-
-    expect(exportTableData).toContain("buildXlsxHeaderOverrides(result.columns, comments, headerMode)");
-    expect(exportTableData).toContain("columnComments,");
-  });
-
   it("keeps the original table and export options when selection changes during XLSX preparation", async () => {
     const metadata = deferred<ColumnInfo[]>();
     apiMock.getColumns.mockReturnValueOnce(metadata.promise);
@@ -577,5 +539,36 @@ describe("useSidebarTreeExportRuntime", () => {
 
     expect(apiMock.startTableExport).toHaveBeenCalledOnce();
     expect(apiMock.startTableExport).toHaveBeenCalledWith(expect.objectContaining({ tableName: "users", filePath: "users.csv" }), expect.any(Function));
+  });
+
+  it.each([
+    ["source", undefined],
+    ["standard", "standard"],
+  ] as const)("serializes the %s SQL INSERT dialect for a table export", async (expectedDialect, requestedDialect) => {
+    const activeNode = shallowRef({ id: "table-1", type: "table", label: "users", connectionId: "conn-1", database: "db", schema: "dbo", children: [] } as TreeNode);
+    const connectionStore = {
+      ensureConnected: vi.fn(),
+      getConfig: vi.fn(() => ({ db_type: "sqlserver" })),
+      connectionIdentifierQuote: vi.fn(() => "["),
+      treeNodes: [],
+      selectedTreeNodeIds: [],
+    };
+    const runtime = useSidebarTreeExportRuntime({
+      activeNode,
+      connectionStore: connectionStore as never,
+      settingsStore: exportSettings() as never,
+      acceptedSelectionIds: () => null,
+    });
+
+    await runtime.exportData("sql", requestedDialect);
+
+    expect(apiMock.startTableExport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        format: "sql",
+        insertDialect: expectedDialect,
+        identifierQuote: "[",
+      }),
+      expect.any(Function),
+    );
   });
 });

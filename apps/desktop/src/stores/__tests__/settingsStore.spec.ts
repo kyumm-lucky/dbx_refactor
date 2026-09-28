@@ -23,6 +23,32 @@ import { DATA_GRID_EXTRACTOR_OPTIONS_MIGRATION_VERSION } from "@/lib/dataGrid/da
 import { DEFAULT_SQL_FORMATTER_SETTINGS } from "@/lib/sql/sqlFormatterConfig";
 
 describe("normalizeEditorSettings", () => {
+  it("defaults and sanitizes AI conversation typography independently", () => {
+    expect(normalizeEditorSettings({})).toMatchObject({ aiFontFamily: "", aiFontSize: 12 });
+    expect(
+      normalizeEditorSettings({
+        fontFamily: "SQL editor font",
+        uiFontFamily: "Interface font",
+        aiFontFamily: "  'Atkinson Hyperlegible', sans-serif\n",
+        aiFontSize: 17.6,
+      }),
+    ).toMatchObject({
+      fontFamily: "SQL editor font",
+      uiFontFamily: "Interface font",
+      aiFontFamily: "'Atkinson Hyperlegible', sans-serif",
+      aiFontSize: 18,
+    });
+    expect(normalizeEditorSettings({ aiFontFamily: null, aiFontSize: 999 } as any)).toMatchObject({ aiFontFamily: "", aiFontSize: 24 });
+    expect(normalizeEditorSettings({ aiFontSize: "18" } as any).aiFontSize).toBe(12);
+  });
+
+  it("defaults DDL viewing to a dialog and preserves the selected open mode", () => {
+    expect(DEFAULT_EDITOR_SETTINGS.ddlOpenMode).toBe("dialog");
+    expect(normalizeEditorSettings({}).ddlOpenMode).toBe("dialog");
+    expect(normalizeEditorSettings({ ddlOpenMode: "tab" }).ddlOpenMode).toBe("tab");
+    expect(normalizeEditorSettings({ ddlOpenMode: "invalid" } as any).ddlOpenMode).toBe("dialog");
+  });
+
   it("keeps automatic DDL refresh disabled unless explicitly enabled", () => {
     expect(normalizeEditorSettings({}).refreshDdlOnOpen).toBe(false);
     expect(normalizeEditorSettings({ refreshDdlOnOpen: true }).refreshDdlOnOpen).toBe(true);
@@ -58,9 +84,12 @@ describe("normalizeEditorSettings", () => {
     expect(normalizeEditorSettings({ dataGridFilterEditorView: "conditions" }).dataGridFilterEditorView).toBe("conditions");
     expect(normalizeEditorSettings({ dataGridFilterEditorView: "text" }).dataGridFilterEditorView).toBe("text");
     expect(normalizeEditorSettings({ dataGridFilterEditorView: "invalid" } as any).dataGridFilterEditorView).toBe("quick");
+    expect(normalizeEditorSettings({}).dataGridToolbarLayout).toBe("single");
+    expect(normalizeEditorSettings({ dataGridToolbarLayout: "split" }).dataGridToolbarLayout).toBe("split");
+    expect(normalizeEditorSettings({ dataGridToolbarLayout: "invalid" } as any).dataGridToolbarLayout).toBe("single");
   });
 
-  it("keeps filter editor expansion disabled unless explicitly enabled", () => {
+  it("keeps initial filter editor expansion disabled unless explicitly enabled", () => {
     expect(normalizeEditorSettings({}).dataGridKeepFilterEditorExpanded).toBe(false);
     expect(normalizeEditorSettings({ dataGridKeepFilterEditorExpanded: true }).dataGridKeepFilterEditorExpanded).toBe(true);
     expect(normalizeEditorSettings({ dataGridKeepFilterEditorExpanded: false }).dataGridKeepFilterEditorExpanded).toBe(false);
@@ -69,10 +98,17 @@ describe("normalizeEditorSettings", () => {
     expect(normalizeEditorSettings({ dataGridKeepFilterEditorExpanded: "true", dataGridAutoHideFilterBuilder: false } as any).dataGridKeepFilterEditorExpanded).toBe(false);
   });
 
-  it("migrates the legacy auto-hide preference when the current preference is absent", () => {
+  it("normalizes the legacy auto-hide preference into the initial expansion preference", () => {
     expect(normalizeEditorSettings({ dataGridAutoHideFilterBuilder: false } as any).dataGridKeepFilterEditorExpanded).toBe(true);
     expect(normalizeEditorSettings({ dataGridAutoHideFilterBuilder: true } as any).dataGridKeepFilterEditorExpanded).toBe(false);
     expect(normalizeEditorSettings({ dataGridKeepFilterEditorExpanded: false, dataGridAutoHideFilterBuilder: false } as any).dataGridKeepFilterEditorExpanded).toBe(false);
+    expect(normalizeEditorSettings({ dataGridKeepFilterEditorExpanded: true, dataGridAutoHideFilterBuilder: true } as any).dataGridKeepFilterEditorExpanded).toBe(true);
+  });
+
+  it("ignores malformed legacy auto-hide values during expansion normalization", () => {
+    expect(normalizeEditorSettings({ dataGridAutoHideFilterBuilder: "false" } as any).dataGridKeepFilterEditorExpanded).toBe(false);
+    expect(normalizeEditorSettings({ dataGridAutoHideFilterBuilder: 0 } as any).dataGridKeepFilterEditorExpanded).toBe(false);
+    expect(normalizeEditorSettings({ dataGridAutoHideFilterBuilder: null } as any).dataGridKeepFilterEditorExpanded).toBe(false);
   });
 
   it("normalizes persisted tab group names and colors", () => {
@@ -216,6 +252,13 @@ describe("normalizeEditorSettings", () => {
 
   it("preserves disabled automatic table aliases", () => {
     expect(normalizeEditorSettings({ autoAliasTables: false }).autoAliasTables).toBe(false);
+  });
+
+  it("defaults table completion schema qualification to collision and preserves valid modes", () => {
+    expect(normalizeEditorSettings({}).tableCompletionSchemaQualification).toBe("collision");
+    expect(normalizeEditorSettings({ tableCompletionSchemaQualification: "never" }).tableCompletionSchemaQualification).toBe("never");
+    expect(normalizeEditorSettings({ tableCompletionSchemaQualification: "always" }).tableCompletionSchemaQualification).toBe("always");
+    expect(normalizeEditorSettings({ tableCompletionSchemaQualification: "invalid" } as any).tableCompletionSchemaQualification).toBe("collision");
   });
 
   it("enables a trailing space after completion by default and preserves the opt-out", () => {
@@ -387,6 +430,12 @@ describe("normalizeEditorSettings", () => {
     expect(normalizeEditorSettings({ dataGridSearchMode: "invalid" as any }).dataGridSearchMode).toBe("filter");
   });
 
+  it("defaults the data grid row number column to the view position and preserves original row numbers", () => {
+    expect(normalizeEditorSettings({}).dataGridRowNumberMode).toBe("view");
+    expect(normalizeEditorSettings({ dataGridRowNumberMode: "source" }).dataGridRowNumberMode).toBe("source");
+    expect(normalizeEditorSettings({ dataGridRowNumberMode: "invalid" as any }).dataGridRowNumberMode).toBe("view");
+  });
+
   it("defaults the global data grid copy preference and preserves valid choices", () => {
     expect(normalizeEditorSettings({}).dataGridCopyExtractor).toBe("smart");
     expect(normalizeEditorSettings({ dataGridCopyExtractor: "smart" }).dataGridCopyExtractor).toBe("smart");
@@ -478,6 +527,16 @@ describe("normalizeEditorSettings", () => {
     expect(invalid.dataGridBooleanDisplayMode).toBe("dropdown");
   });
 
+  it("normalizes the persistent data grid column width mode", () => {
+    expect(DEFAULT_EDITOR_SETTINGS.dataGridColumnWidthMode).toBe("content");
+    expect(normalizeEditorSettings({}).dataGridColumnWidthMode).toBe("content");
+    expect(normalizeEditorSettings({ dataGridColumnWidthMode: "fill" }).dataGridColumnWidthMode).toBe("fill");
+    expect(normalizeEditorSettings({ dataGridColumnWidthMode: "content" }).dataGridColumnWidthMode).toBe("content");
+    expect(normalizeEditorSettings({ dataGridColumnWidthMode: "invalid" as any }).dataGridColumnWidthMode).toBe("content");
+  });
+
+  // 上游的 dataGridCellDetailButtonVisible 设置随本 fork 的单元格详情精简一并移除（悬停按钮已不在网格里），
+  // 因此这里不再保留它的归一化用例。
   it("defaults the crosshair highlight off and preserves only boolean values", () => {
     expect(normalizeEditorSettings({}).dataGridCrosshairHighlight).toBe(false);
     expect(normalizeEditorSettings({ dataGridCrosshairHighlight: true }).dataGridCrosshairHighlight).toBe(true);
@@ -539,7 +598,17 @@ describe("normalizeEditorSettings", () => {
     expect(settings.toolbarItems.sqlFileTree).toBe(false);
     expect(settings.toolbarItems.history).toBe(false);
     expect(settings.toolbarItems.sqlLibrary).toBe(true);
+    expect(settings.toolbarItems.alwaysOnTop).toBe(false);
     expect(settings.toolbarItems.exclusiveRightSidebarPanels).toBe(true);
+  });
+
+  it("keeps the always-on-top toolbar button hidden unless it is opted into", () => {
+    expect(DEFAULT_EDITOR_SETTINGS.toolbarItems.alwaysOnTop).toBe(false);
+    expect(normalizeEditorSettings({}).toolbarItems.alwaysOnTop).toBe(false);
+    expect(normalizeEditorSettings({ toolbarItems: { alwaysOnTop: true } }).toolbarItems.alwaysOnTop).toBe(true);
+    // Anything that is not a boolean opt-in must fall back to hidden, so restored
+    // drafts from before the setting existed cannot turn the button on.
+    expect(normalizeEditorSettings({ toolbarItems: { alwaysOnTop: "yes" } } as any).toolbarItems.alwaysOnTop).toBe(false);
   });
 
   it("preserves disabled right sidebar panel exclusivity", () => {
@@ -682,6 +751,17 @@ describe("normalizeMcpGlobalPolicy", () => {
     });
 
     expect(policy.connectionPolicies[0].executionModePolicyVersion).toBeNull();
+  });
+
+  it("defaults the Salesforce DML opt-in to off and revokes it under read-only", () => {
+    // Policies saved before the switch existed carry no field at all.
+    expect(normalizeMcpGlobalPolicy({ connectionPolicies: [{ connectionId: "sfdc", databaseScope: "all" } as any] }).connectionPolicies[0].allowSalesforceDml).toBe(false);
+
+    expect(normalizeMcpGlobalPolicy({ connectionPolicies: [{ connectionId: "sfdc", allowSalesforceDml: true } as any] }).connectionPolicies[0].allowSalesforceDml).toBe(true);
+
+    expect(normalizeMcpGlobalPolicy({ connectionPolicies: [{ connectionId: "sfdc", readOnly: true, allowSalesforceDml: true } as any] }).connectionPolicies[0].allowSalesforceDml).toBe(false);
+
+    expect(normalizeMcpGlobalPolicy({ connectionPolicies: [{ connectionId: "sfdc", allowSalesforceDml: "yes" } as any] }).connectionPolicies[0].allowSalesforceDml).toBe(false);
   });
 
   it("round-trips queryTimeoutSecs null, undefined and positive numbers", () => {
@@ -879,6 +959,14 @@ describe("settingsStore AI API key normalization", () => {
     expect(AI_PROVIDER_PARTNER_PRESETS.find((preset) => preset.id === "hualong-ai")).toMatchObject({
       model: "deepseek-v4.1-flash",
       models: [{ name: "deepseek-v4.1-flash" }],
+    });
+    expect(AI_PROVIDER_PARTNER_PRESETS.find((preset) => preset.id === "aicodemirror")).toMatchObject({
+      endpoint: "https://api.aicodemirror.ai/v1",
+      provider: "openai-compatible",
+      authMethod: "bearer",
+      requiresApiKey: true,
+      websiteUrl: "https://www.aicodemirror.ai/register?invitecode=DK44NH",
+      badgeKey: "ai.aicodemirrorSponsored",
     });
   });
 
@@ -1085,6 +1173,65 @@ describe("settingsStore persisted settings initialization", () => {
     await store.updateEditorSettingsAndPersist({ dataGridAutoHideFilterBuilder: true } as any);
     expect(store.editorSettings.dataGridKeepFilterEditorExpanded).toBe(false);
     expect(saveEditorSettings).toHaveBeenLastCalledWith(expect.objectContaining({ dataGridKeepFilterEditorExpanded: false }));
+  });
+
+  it("persists table completion schema qualification updates", async () => {
+    const loadEditorSettings = vi.fn().mockResolvedValue({});
+    const saveEditorSettings = vi.fn().mockResolvedValue(undefined);
+    vi.doMock("@/lib/backend/api", () => ({ loadEditorSettings, saveEditorSettings }));
+
+    const { useSettingsStore } = await import("@/stores/settingsStore");
+    const store = useSettingsStore();
+    await store.initEditorSettings();
+    saveEditorSettings.mockClear();
+
+    await store.updateEditorSettingsAndPersist({ tableCompletionSchemaQualification: "always" });
+
+    expect(store.editorSettings.tableCompletionSchemaQualification).toBe("always");
+    expect(saveEditorSettings).toHaveBeenLastCalledWith(expect.objectContaining({ tableCompletionSchemaQualification: "always" }));
+  });
+
+  it("persists and resets AI typography without changing editor or interface fonts", async () => {
+    const loadEditorSettings = vi.fn().mockResolvedValue({
+      fontFamily: "SQL editor font",
+      uiFontFamily: "Interface font",
+    });
+    const saveEditorSettings = vi.fn().mockResolvedValue(undefined);
+    vi.doMock("@/lib/backend/api", () => ({ loadEditorSettings, saveEditorSettings }));
+
+    const { useSettingsStore } = await import("@/stores/settingsStore");
+    const store = useSettingsStore();
+    await store.initEditorSettings();
+    saveEditorSettings.mockClear();
+
+    await store.updateEditorSettingsAndPersist({ aiFontFamily: "  Georgia, serif  ", aiFontSize: 18 });
+
+    expect(store.editorSettings).toMatchObject({
+      fontFamily: "SQL editor font",
+      uiFontFamily: "Interface font",
+      aiFontFamily: "Georgia, serif",
+      aiFontSize: 18,
+    });
+    expect(saveEditorSettings).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        fontFamily: "SQL editor font",
+        uiFontFamily: "Interface font",
+        aiFontFamily: "Georgia, serif",
+        aiFontSize: 18,
+      }),
+    );
+
+    await store.updateEditorSettingsAndPersist({
+      aiFontFamily: DEFAULT_EDITOR_SETTINGS.aiFontFamily,
+      aiFontSize: DEFAULT_EDITOR_SETTINGS.aiFontSize,
+    });
+
+    expect(store.editorSettings).toMatchObject({
+      fontFamily: "SQL editor font",
+      uiFontFamily: "Interface font",
+      aiFontFamily: "",
+      aiFontSize: 12,
+    });
   });
 
   it("loads and persists the substitution switch without discarding syntax overrides", async () => {

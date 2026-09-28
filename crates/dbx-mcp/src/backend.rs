@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use dbx_core::{
     agent_events::{ToolCall, ToolResult},
     agent_tools::{self, format_query_result_as_text, AgentSqlPermissions, QueryCellWindow},
-    connection::{connection_configs_pool_equivalent, AppState, ConnectionLifecycleSnapshot},
+    connection::{connection_configs_pool_equivalent, AppState, ConnectionLifecycleSnapshot, SalesforceCurrentUser},
     db::{mongo_driver::MongoIndexSpec, redis_driver::RedisCommandResult, ColumnInfo, TableInfo},
     history::HistoryEntry,
     mcp_policy::{connection_group_paths, McpConnectionGroupPath},
@@ -87,6 +87,9 @@ fn effective_mcp_policy_with_legacy_allow_writes(
         for rule in &mut policy.connection_policies {
             rule.read_only = true;
             rule.allow_dangerous_sql = false;
+            // An unconfirmed CLI run must not reach Salesforce DML either: the
+            // connection opt-in is a write permission like any other here.
+            rule.allow_salesforce_dml = false;
             rule.execution_mode_configured = true;
             rule.execution_mode_policy_version = Some(dbx_core::mcp_policy::MCP_EXECUTION_POLICY_VERSION);
             for database_policy in &mut rule.database_policies {
@@ -390,6 +393,14 @@ pub trait DbxBackend: Send + Sync {
         let _ = (connection, database, command);
         Err("MongoDB shell commands are not supported by this backend.".to_string())
     }
+    /// Connected-user identity for a Salesforce connection: who a write would be
+    /// attributed to, plus the profile's "Modify All Data" flag. Salesforce has
+    /// no session-scoped identity, so this reads the pool's cached user info and
+    /// creates the pool when the MCP process is still cold.
+    async fn salesforce_current_user(&self, connection: &ConnectionConfig) -> Result<SalesforceCurrentUser, String> {
+        let _ = connection;
+        Err("Salesforce identity is not supported by this backend.".to_string())
+    }
     /// Release the connection pool pinned by an MCP session (`client_session_id`).
     async fn close_client_session(
         &self,
@@ -631,6 +642,17 @@ impl WebBackend {
     }
 }
 
+/// Whether a sidecar error means "this plugin simply does not expose an MCP surface".
+///
+/// `mcp/tools` is an optional host↔plugin bridge method introduced after many plugins were
+/// published. A plugin that predates it answers with JSON-RPC `-32601` ("unknown method" /
+/// "method not found"), which is the correct response, not a failure. MCP tool discovery must
+/// skip such plugins instead of aborting the whole pass.
+fn plugin_lacks_mcp_surface(err: &str) -> bool {
+    let lower = err.to_ascii_lowercase();
+    lower.contains("unknown method") || lower.contains("method not found") || lower.contains("-32601")
+}
+
 impl LocalBackend {
     fn spawn_connection_lifecycle_watcher(
         &self,
@@ -675,7 +697,7 @@ impl LocalBackend {
             state,
             data_dir,
             transaction_owners: Arc::new(TransactionOwnerRegistry::default()),
-            transaction_owner_config: TransactionOwnerConfig::default(),
+            transaction_owner_config: TransactionOwnerConfig::from_env(),
         }
     }
 
@@ -691,7 +713,31 @@ impl LocalBackend {
     /// Same as [`open`], but lets tests and embedded callers pin the app version
     /// used for plugin compatibility checks instead of the compile-time version.
     pub async fn open_with_app_version(path: &Path, app_version: &str) -> Result<Self, String> {
-        let storage = Storage::open(path).await?;
+        // A local CLI/MCP process may share an already provisioned desktop
+        // Keychain/credential-store key. Preflight only reads that provider;
+        // it never provisions a key or migrates legacy credentials.
+        let storage = Storage::open_unmigrated(path).await?.with_secret_key_creation(false);
+        let migration = storage.inspect_data_migration().await?;
+        if !migration.is_ready() {
+            // The migration wizard may have already completed on Desktop with
+            // the key provisioned in the OS keychain, which a keyring-less
+            // CLI/MCP build cannot read. Pointing those users back at the
+            // wizard loops forever, so separate the two failure shapes.
+            let migration_data_remaining = migration.database_plaintext_count > 0
+                || migration.sync_credential_count > 0
+                || migration.legacy_json_files.iter().any(|file| file.exists);
+            if !migration_data_remaining && !migration.key_provider_available {
+                return Err(format!(
+                    "SECRET_KEY_UNAVAILABLE: this process cannot read the DBX data encryption key ({}). \
+                     If the data security upgrade was completed in DBX Desktop, its key may live in the OS \
+                     keychain: use an MCP/CLI build with OS keychain support, or expose the key to headless \
+                     tools via the DBX_SECRET_KEY_FILE / DBX_SECRET_KEY environment variables. Otherwise open \
+                     DBX Desktop or Web to complete the data security upgrade first.",
+                    migration.error_code.as_deref().unwrap_or("KEY_PROVIDER_UNAVAILABLE")
+                ));
+            }
+            return Err("DATA_MIGRATION_REQUIRED: open DBX Desktop or Web to complete the data security upgrade".into());
+        }
         let configs = storage.load_connections().await?;
         let desktop_settings = storage.load_desktop_settings().await.unwrap_or_default();
         let data_dir = path.parent().unwrap_or_else(|| Path::new(".")).to_path_buf();
@@ -710,7 +756,7 @@ impl LocalBackend {
             state,
             data_dir,
             transaction_owners: Arc::new(TransactionOwnerRegistry::default()),
-            transaction_owner_config: TransactionOwnerConfig::default(),
+            transaction_owner_config: TransactionOwnerConfig::from_env(),
         })
     }
 
@@ -736,11 +782,21 @@ impl LocalBackend {
             if !plugin.compatibility.compatible || plugin.manifest.backend_entrypoint().is_none() {
                 continue;
             }
-            let tools: Value = self
+            let tools: Value = match self
                 .state
                 .plugin_host
                 .invoke(&plugin.manifest.id, "mcp/tools", json!({}), None, Some(std::time::Duration::from_secs(30)))
-                .await?;
+                .await
+            {
+                Ok(tools) => tools,
+                // A plugin that predates the optional `mcp/tools` bridge answers -32601; skip it
+                // instead of failing discovery for every other installed plugin.
+                Err(err) if plugin_lacks_mcp_surface(&err) => {
+                    log::debug!("[mcp] plugin {} exposes no MCP tool surface: {}", plugin.manifest.id, err);
+                    continue;
+                }
+                Err(err) => return Err(err),
+            };
             let tool_list = tools
                 .get("tools")
                 .cloned()
@@ -1227,6 +1283,19 @@ impl DbxBackend for LocalBackend {
         command: &MongoCommand,
     ) -> Result<dbx_core::db::QueryResult, String> {
         dbx_core::mongo_ops::execute_mongo_command_core(&self.state, &connection.id, database, command, 100).await
+    }
+
+    async fn salesforce_current_user(&self, connection: &ConnectionConfig) -> Result<SalesforceCurrentUser, String> {
+        if connection.db_type != DatabaseType::Salesforce {
+            return Err("Not a Salesforce connection".to_string());
+        }
+        // The identity is the pool's cached connected-user record, so a cold MCP
+        // process has to establish the connection first — the same thing the
+        // metadata paths above do before reading pool state.
+        if self.state.pool_handle(&connection.id).await.is_none() {
+            self.state.get_or_create_pool(&connection.id, None).await?;
+        }
+        self.state.salesforce_current_user(&connection.id).await
     }
 
     async fn close_client_session(
@@ -1812,6 +1881,19 @@ impl DbxBackend for WebBackend {
         .json()
         .await
         .map_err(|error| format!("Invalid Redis command response: {error}"))
+    }
+
+    async fn salesforce_current_user(&self, connection: &ConnectionConfig) -> Result<SalesforceCurrentUser, String> {
+        self.ensure_connected(connection).await?;
+        self.request(
+            reqwest::Method::GET,
+            &format!("/api/salesforce/current-user?connection_id={}", url_encode(&connection.id)),
+            None,
+        )
+        .await?
+        .json()
+        .await
+        .map_err(|error| format!("Invalid Salesforce identity response: {error}"))
     }
 
     async fn execute_mongo_command(
@@ -2435,6 +2517,7 @@ fn query_result(columns: Vec<String>, rows: Vec<Vec<Value>>, affected_rows: u64)
         affected_rows,
         execution_time_ms: 0,
         server_execute_time_us: None,
+        query_timings_ms: None,
         truncated: false,
         session_id: None,
         has_more: false,
@@ -2563,6 +2646,7 @@ fn infer_document_columns(documents: &[Value]) -> Vec<ColumnInfo> {
             enum_values: None,
             character_set: None,
             collation: None,
+            metadata_capabilities: None,
         })
         .collect()
 }
@@ -2644,6 +2728,19 @@ mod tests {
     }
 
     #[test]
+    fn plugin_lacks_mcp_surface_skips_unknown_method_but_keeps_real_errors() {
+        // The exact error a plugin that never implemented the optional mcp/tools bridge returns
+        // (e.g. com.yiqiui.leetcode-cn's JSON-RPC -32601 fallback). Discovery must skip these.
+        assert!(plugin_lacks_mcp_surface("unknown method: mcp/tools"));
+        assert!(plugin_lacks_mcp_surface("JSON-RPC error -32601: Method not found"));
+        assert!(plugin_lacks_mcp_surface("rpc error: code=-32601"));
+        // Genuine failures must still abort discovery, not be silently skipped.
+        assert!(!plugin_lacks_mcp_surface("connection refused"));
+        assert!(!plugin_lacks_mcp_surface("sidecar panicked"));
+        assert!(!plugin_lacks_mcp_surface(""));
+    }
+
+    #[test]
     fn legacy_read_only_overrides_configured_and_unconfigured_policies() {
         // DBX_MCP_ALLOW_WRITES=0 always forces read_only, even when the
         // persistent MCP policy is configured as writable.
@@ -2660,10 +2757,62 @@ mod tests {
     }
 
     #[test]
+    fn legacy_read_only_also_revokes_the_salesforce_dml_opt_in() {
+        // DBX_MCP_ALLOW_WRITES=0 marks an unconfirmed CLI run. The Salesforce DML
+        // opt-in is a write permission like any other, so it must be withdrawn
+        // with the rest — an opted-in connection must not become writable just
+        // because the org speaks REST instead of SQL.
+        let mut state = policy_state(true, false);
+        state.connection_policies = vec![dbx_core::storage::McpConnectionPolicy {
+            connection_id: "sfdc".to_string(),
+            read_only: false,
+            allow_dangerous_sql: true,
+            execution_mode_configured: false,
+            execution_mode_policy_version: None,
+            database_scope: dbx_core::storage::McpDatabaseScope::All,
+            allowed_databases: Vec::new(),
+            database_policies: Vec::new(),
+            allow_salesforce_dml: true,
+        }];
+
+        let forced = effective_mcp_policy_with_legacy_allow_writes(state.clone(), Some(false));
+        assert!(forced.read_only);
+        assert!(!forced.connection_policies[0].allow_salesforce_dml);
+        assert!(!forced.connection_policies[0].allow_dangerous_sql);
+
+        // Without the env override the stored opt-in survives untouched.
+        let untouched = effective_mcp_policy_with_legacy_allow_writes(state, None);
+        assert!(untouched.connection_policies[0].allow_salesforce_dml);
+    }
+
+    #[test]
     fn parses_database_type_using_dbx_protocol_names() {
         assert_eq!(parse_database_type("Postgres").unwrap(), DatabaseType::Postgres);
         assert_eq!(parse_database_type("mongodb").unwrap(), DatabaseType::MongoDb);
+        assert_eq!(parse_database_type("Solr").unwrap(), DatabaseType::Solr);
+        assert_eq!(parse_database_type("solr").unwrap(), DatabaseType::Solr);
         assert!(parse_database_type("unknown").is_err());
+    }
+
+    #[test]
+    fn new_connection_config_accepts_solr() {
+        // Solr connections are created through the generic descriptor path; the
+        // REST core lives in the query text, not a database field.
+        let connection = new_connection_config(
+            "solr".to_string(),
+            "solr".to_string(),
+            DatabaseType::Solr,
+            "localhost".to_string(),
+            8983,
+            String::new(),
+            String::new(),
+            None,
+            false,
+            None,
+        )
+        .unwrap();
+        assert_eq!(connection.db_type, DatabaseType::Solr);
+        assert_eq!(connection.port, 8983);
     }
 
     #[test]
@@ -3987,6 +4136,29 @@ mod tests {
 
         let connections = backend.load_connections().await.unwrap();
         assert!(connections.is_empty());
+    }
+
+    #[tokio::test]
+    async fn local_backend_rejects_legacy_data_without_migrating_it() {
+        let data_dir = tempfile::tempdir().unwrap();
+        let database_path = data_dir.path().join("dbx.db");
+        let legacy_path = data_dir.path().join("secrets.json");
+        let legacy_contents = br#"{"legacy-connection":{"password":"legacy-test-password"}}"#;
+        std::fs::write(&legacy_path, legacy_contents).unwrap();
+
+        let error = match LocalBackend::open(&database_path).await {
+            Ok(_) => panic!("legacy data must not be opened by CLI/MCP"),
+            Err(error) => error,
+        };
+        assert!(error.starts_with("DATA_MIGRATION_REQUIRED"));
+        assert_eq!(std::fs::read(&legacy_path).unwrap(), legacy_contents);
+        assert!(!data_dir.path().join("secrets.json.bak").exists());
+        assert!(std::fs::read_dir(data_dir.path())
+            .unwrap()
+            .all(|entry| { !entry.unwrap().file_name().to_string_lossy().starts_with("dbx-secret-migration-") }));
+        let storage = Storage::open_unmigrated(&database_path).await.unwrap();
+        assert!(storage.inspect_data_migration().await.unwrap().needs_migration);
+        assert!(storage.load_connections().await.unwrap().is_empty());
     }
 
     #[tokio::test]

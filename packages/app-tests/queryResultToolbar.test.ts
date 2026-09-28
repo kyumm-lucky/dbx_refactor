@@ -51,7 +51,7 @@ test("query result toolbar reuses the production icon contract", () => {
   assert.match(contentArea, /<Pin class="h-3\.5 w-3\.5"/);
   assert.match(contentArea, /<Wrench class="h-4 w-4"/);
   assert.match(contentArea, /<ChevronDown class="h-3\.5 w-3\.5"/);
-  assert.match(viewSwitcher, /import \{ BarChart3, ListChecks, MessageSquareText \} from "@lucide\/vue"/);
+  assert.match(viewSwitcher, /import \{ BarChart3, ListChecks, MessageSquareText, SquareTerminal \} from "@lucide\/vue"/);
   assert.match(toolbarActions, /import \{ GitBranch, Gauge, Loader2, PlugZap, Upload \} from "@lucide\/vue"/);
   // 导入结果归档已从编辑器工具栏移入“更多操作”菜单，图标契约不变。
   assert.match(editorToolbar, /@select="emit\('importResultArchive'\)"[\s\S]{0,120}<Download/);
@@ -232,11 +232,13 @@ test("embedded and standalone result toolbars share the same fixed height", () =
   const dataGrid = source(dataGridPath);
   const standaloneClasses = contentArea.match(/ref="standaloneResultToolbarRef" class="([^"]+)"/)?.[1].split(/\s+/) ?? [];
   const embeddedClasses = dataGrid.match(/ref="dataGridTopbarRef"[^>]+class="([^"]+)"/)?.[1].split(/\s+/) ?? [];
+  // 网格顶栏的高度由「工具条布局」设置决定：单行态 h-8 与独立工具条一致，双行态 h-16。
+  const embeddedLayoutClasses = dataGrid.match(/:class="splitDataGridToolbar \? '([^']+)' : '([^']+)'"/)?.slice(1).join(" ") ?? "";
 
   assert.ok(standaloneClasses.includes("h-8"));
-  assert.ok(embeddedClasses.includes("h-8"));
+  assert.ok(embeddedLayoutClasses.includes("flex h-8 items-center") || embeddedLayoutClasses.includes("h-8"));
   assert.ok(standaloneClasses.includes("items-center"));
-  assert.ok(embeddedClasses.includes("items-center"));
+  assert.ok(embeddedLayoutClasses.includes("items-center"));
   assert.ok(!standaloneClasses.includes("h-7"));
   assert.ok(!embeddedClasses.includes("h-7"));
   assert.ok(!standaloneClasses.includes("min-h-7"));

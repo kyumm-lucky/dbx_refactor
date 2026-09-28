@@ -140,7 +140,10 @@ public final class JdbcExecutor {
             String trimmedSql = trimSql(sql);
             long start = System.currentTimeMillis();
 
+            long phaseStarted = System.nanoTime();
             applySchema(conn, schema, setSchemaSql, resetSchemaSql);
+            QueryTiming.record("schema", phaseStarted);
+            phaseStarted = System.nanoTime();
 
             try (Statement stmt = conn.createStatement()) {
                 activeStatements.add(stmt);
@@ -153,7 +156,10 @@ public final class JdbcExecutor {
                 }
                 // SQL dumps often contain BEGIN/COMMIT/ROLLBACK as executable statements.
                 // Do not translate them to Connection.commit(), which requires autoCommit=false.
+                QueryTiming.record("statement_prepare", phaseStarted);
+                phaseStarted = System.nanoTime();
                 boolean hasResultSet = stmt.execute(trimmedSql);
+                QueryTiming.record("jdbc_execute", phaseStarted);
                 long elapsed = System.currentTimeMillis() - start;
                 long affectedRows;
                 if (advancePastUpdateCounts) {
@@ -175,6 +181,13 @@ public final class JdbcExecutor {
                     try (ResultSet rs = stmt.getResultSet()) {
                         result = readResultSet(rs, elapsed, effectiveMaxRows, valueReader);
                     }
+                    // `elapsed` stops at `stmt.execute()`. Retrieving and
+                    // converting the rows above is frequently the dominant
+                    // cost of a statement, so report the whole duration the
+                    // same way the native drivers do. Without this a
+                    // fetch-heavy result shows up in the UI as a few
+                    // milliseconds while the caller waited for seconds.
+                    result.setExecution_time_ms(System.currentTimeMillis() - start);
                 } else {
                     result = new QueryResult(
                         Collections.emptyList(),
@@ -203,6 +216,7 @@ public final class JdbcExecutor {
         ResultValueReader valueReader
     ) {
         return unchecked(() -> {
+            long phaseStarted = System.nanoTime();
             ResultSetMetaData meta = rs.getMetaData();
             int colCount = meta.getColumnCount();
             List<String> columns = new ArrayList<>(colCount);
@@ -219,6 +233,8 @@ public final class JdbcExecutor {
                 typeNameByIndex[i - 1] = typeName;
             }
 
+            QueryTiming.record("metadata", phaseStarted);
+            phaseStarted = System.nanoTime();
             List<List<Object>> rows = new ArrayList<>(initialRowCapacity(maxRows));
             boolean truncated = false;
             while (rs.next()) {
@@ -229,6 +245,7 @@ public final class JdbcExecutor {
                 rows.add(rowValues(rs, valueReader, sqlTypeByIndex, typeNameByIndex));
             }
 
+            QueryTiming.record("fetch", phaseStarted);
             return new QueryResult(columns, columnTypes, rows, 0L, executionTimeMs, truncated);
         });
     }
@@ -376,7 +393,10 @@ public final class JdbcExecutor {
             String trimmedSql = trimSql(sql);
             long start = System.currentTimeMillis();
 
+            long phaseStarted = System.nanoTime();
             applySchema(conn, schema, setSchemaSql, resetSchemaSql);
+            QueryTiming.record("schema", phaseStarted);
+            phaseStarted = System.nanoTime();
 
             Statement stmt = conn.createStatement();
             QuerySession createdSession = null;
@@ -388,7 +408,10 @@ public final class JdbcExecutor {
                 }
                 // Keep script transaction-control statements in the SQL stream.
                 // JDBC transaction APIs are reserved for executeTransaction.
+                QueryTiming.record("statement_prepare", phaseStarted);
+                phaseStarted = System.nanoTime();
                 boolean hasResultSet = stmt.execute(trimmedSql);
+                QueryTiming.record("jdbc_execute", phaseStarted);
                 long elapsed = System.currentTimeMillis() - start;
                 long affectedRows;
                 if (advancePastUpdateCounts) {
@@ -435,6 +458,7 @@ public final class JdbcExecutor {
                     );
                 }
 
+                phaseStarted = System.nanoTime();
                 ResultSet rs = stmt.getResultSet();
                 ResultSetMetaData meta = rs.getMetaData();
                 String sessionId = UUID.randomUUID().toString();
@@ -464,7 +488,14 @@ public final class JdbcExecutor {
                 );
                 createdSession = session;
                 targetSessions.put(sessionId, session);
-                return readSessionPage(targetSessions, session, options.getPageSize(), elapsed);
+                QueryTiming.record("metadata", phaseStarted);
+                phaseStarted = System.nanoTime();
+                QueryPageResult page = readSessionPage(targetSessions, session, options.getPageSize(), elapsed);
+                QueryTiming.record("fetch", phaseStarted);
+                // Same reason as `execute`: pulling the first page's rows is
+                // part of the duration the caller waited for.
+                page.setExecution_time_ms(System.currentTimeMillis() - start);
+                return page;
             } catch (Exception e) {
                 if (createdSession != null) {
                     closeSession(targetSessions, createdSession.id);
@@ -711,8 +742,16 @@ public final class JdbcExecutor {
             throw new IllegalArgumentException(missingMessage);
         }
         synchronized (session) {
+            long fetchStart = System.currentTimeMillis();
             try {
-                return readSessionPage(targetSessions, session, pageSize, 0L);
+                long phaseStarted = System.nanoTime();
+                QueryPageResult page = readSessionPage(targetSessions, session, pageSize, 0L);
+                QueryTiming.record("fetch", phaseStarted);
+                // A later page reads its rows after `stmt.execute()` has long
+                // returned, so it has to measure the fetch itself instead of
+                // reporting 0ms while the caller waits.
+                page.setExecution_time_ms(System.currentTimeMillis() - fetchStart);
+                return page;
             } catch (RuntimeException | Error error) {
                 closeSession(targetSessions, sessionId);
                 throw error;

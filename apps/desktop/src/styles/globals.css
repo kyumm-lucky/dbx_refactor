@@ -962,6 +962,151 @@ html.dbx-legacy-webview .hover\:bg-primary\/90:hover {
   background-color: rgba(var(--dbx-primary-rgb), 0.9) !important;
 }
 
+/*
+ * Foreground alpha tints: Tailwind v4 emits `bg-foreground/10` as a full-color
+ * declaration with the real tint inside `@supports (color: color-mix(...))`,
+ * and WebKit without color-mix() (macOS 12 Safari < 16.2) keeps the full-color
+ * one. The update dialog tab badge then renders as a solid near-black pill
+ * instead of a 10% tint. Mirror the bg-primary fallbacks above with the
+ * --dbx-foreground-rgb token defined beside every --foreground theme color.
+ * Dark rules must stay after the hover rules: at equal specificity the later
+ * dark-mode tint has to win, matching Tailwind's own variant order.
+ */
+html.dbx-legacy-webview .bg-foreground\/6 {
+  background-color: rgba(var(--dbx-foreground-rgb), 0.06) !important;
+}
+
+html.dbx-legacy-webview .bg-foreground\/10 {
+  background-color: rgba(var(--dbx-foreground-rgb), 0.1) !important;
+}
+
+html.dbx-legacy-webview .hover\:bg-foreground\/10:hover {
+  background-color: rgba(var(--dbx-foreground-rgb), 0.1) !important;
+}
+
+html.dbx-legacy-webview .hover\:bg-foreground\/15:hover {
+  background-color: rgba(var(--dbx-foreground-rgb), 0.15) !important;
+}
+
+html.dbx-legacy-webview.dark .dark\:bg-foreground\/20 {
+  background-color: rgba(var(--dbx-foreground-rgb), 0.2) !important;
+}
+
+html.dbx-legacy-webview.dark .dark\:hover\:bg-foreground\/25:hover {
+  background-color: rgba(var(--dbx-foreground-rgb), 0.25) !important;
+}
+
+html.dbx-legacy-webview .border-foreground\/20 {
+  border-color: rgba(var(--dbx-foreground-rgb), 0.2) !important;
+}
+
+html.dbx-legacy-webview .border-foreground\/80 {
+  border-color: rgba(var(--dbx-foreground-rgb), 0.8) !important;
+}
+
+/*
+ * Status alpha tints (warning/destructive): same full-color fallback problem
+ * as the foreground utilities above — the base declaration is a theme var, so
+ * WebKit without color-mix() (macOS 12 Safari < 16.2) paints it at full
+ * opacity and alert surfaces turn into solid blocks with same-color unreadable
+ * text. Palette shades need no entry here: the bundler precomputes their known
+ * oklch mixes into hex-alpha literals that old WebKit parses fine. Solid
+ * text and ring alpha variants stay out: solid text on the restored tint is
+ * readable, and rings never worked on these WebKits anyway.
+ */
+
+html.dbx-legacy-webview .active\:bg-destructive\/30:active {
+  background-color: rgba(var(--destructive-rgb), 0.3) !important;
+}
+
+html.dbx-legacy-webview .bg-destructive\/10 {
+  background-color: rgba(var(--destructive-rgb), 0.1) !important;
+}
+
+html.dbx-legacy-webview .bg-destructive\/15 {
+  background-color: rgba(var(--destructive-rgb), 0.15) !important;
+}
+
+html.dbx-legacy-webview .bg-destructive\/5 {
+  background-color: rgba(var(--destructive-rgb), 0.05) !important;
+}
+
+html.dbx-legacy-webview .bg-error\/10 {
+  background-color: rgba(var(--destructive-rgb), 0.1) !important;
+}
+
+html.dbx-legacy-webview .bg-warning\/10 {
+  background-color: rgba(var(--dbx-warning-rgb), 0.1) !important;
+}
+
+html.dbx-legacy-webview .bg-warning\/5 {
+  background-color: rgba(var(--dbx-warning-rgb), 0.05) !important;
+}
+
+html.dbx-legacy-webview .data-\[variant\=destructive\]\:focus\:bg-destructive\/10[data-variant="destructive"]:focus {
+  background-color: rgba(var(--destructive-rgb), 0.1) !important;
+}
+
+html.dbx-legacy-webview .focus-visible\:bg-destructive\/10:focus-visible {
+  background-color: rgba(var(--destructive-rgb), 0.1) !important;
+}
+
+html.dbx-legacy-webview .focus\:bg-destructive\/10:focus {
+  background-color: rgba(var(--destructive-rgb), 0.1) !important;
+}
+
+html.dbx-legacy-webview .aria-invalid\:border-destructive\/55[aria-invalid="true"] {
+  border-color: rgba(var(--destructive-rgb), 0.55) !important;
+}
+
+html.dbx-legacy-webview .aria-invalid\:border-destructive\/70[aria-invalid="true"] {
+  border-color: rgba(var(--destructive-rgb), 0.7) !important;
+}
+
+html.dbx-legacy-webview .border-destructive\/15 {
+  border-color: rgba(var(--destructive-rgb), 0.15) !important;
+}
+
+html.dbx-legacy-webview .border-destructive\/20 {
+  border-color: rgba(var(--destructive-rgb), 0.2) !important;
+}
+
+html.dbx-legacy-webview .border-destructive\/25 {
+  border-color: rgba(var(--destructive-rgb), 0.25) !important;
+}
+
+html.dbx-legacy-webview .border-destructive\/30 {
+  border-color: rgba(var(--destructive-rgb), 0.3) !important;
+}
+
+html.dbx-legacy-webview .border-destructive\/40 {
+  border-color: rgba(var(--destructive-rgb), 0.4) !important;
+}
+
+html.dbx-legacy-webview .border-destructive\/50 {
+  border-color: rgba(var(--destructive-rgb), 0.5) !important;
+}
+
+html.dbx-legacy-webview .border-destructive\/70 {
+  border-color: rgba(var(--destructive-rgb), 0.7) !important;
+}
+
+html.dbx-legacy-webview .border-error\/30 {
+  border-color: rgba(var(--destructive-rgb), 0.3) !important;
+}
+
+html.dbx-legacy-webview .border-warning\/15 {
+  border-color: rgba(var(--dbx-warning-rgb), 0.15) !important;
+}
+
+html.dbx-legacy-webview .border-warning\/30 {
+  border-color: rgba(var(--dbx-warning-rgb), 0.3) !important;
+}
+
+html.dbx-legacy-webview .focus-visible\:border-destructive\/40:focus-visible {
+  border-color: rgba(var(--destructive-rgb), 0.4) !important;
+}
+
 html.dbx-legacy-webview [data-slot="tabs"][data-orientation="horizontal"] {
   flex-direction: column !important;
 }
@@ -1175,6 +1320,10 @@ html.dbx-legacy-webview [data-slot="dialog-content"][class~="sm:max-w-5xl"] {
 
 html.dbx-legacy-webview [data-slot="dialog-content"][class~="sm:max-w-190"] {
   max-width: 47.5rem !important;
+}
+
+html.dbx-legacy-webview [data-slot="dialog-content"].dbx-ddl-view-dialog {
+  max-width: calc(100vw - 32px) !important;
 }
 
 html.dbx-legacy-webview [data-slot="dialog-content"][class*="sm:max-w-[360px]"] {
@@ -1596,6 +1745,7 @@ body.dbx-is-resizing .cm-scroller,
 html.theme-graphite {
   --background: rgb(247 247 248);
   --foreground: rgb(29 29 31);
+  --dbx-foreground-rgb: 42, 45, 51;
   --card: rgb(255 255 255);
   --card-foreground: rgb(29 29 31);
   --popover: rgb(255 255 255);
@@ -1625,6 +1775,7 @@ html.theme-graphite {
 html.theme-graphite.dark {
   --background: rgb(26 26 28);
   --foreground: rgb(242 242 244);
+  --dbx-foreground-rgb: 198, 201, 207;
   --card: rgb(38 38 41);
   --card-foreground: rgb(242 242 244);
   --popover: rgb(38 38 41);
@@ -1655,6 +1806,7 @@ html.theme-graphite.dark {
 html.theme-cobalt {
   --background: rgb(247 250 254);
   --foreground: rgb(26 32 44);
+  --dbx-foreground-rgb: 32, 43, 58;
   --card: rgb(255 255 255);
   --card-foreground: rgb(26 32 44);
   --popover: rgb(255 255 255);
@@ -1684,6 +1836,7 @@ html.theme-cobalt {
 html.theme-cobalt.dark {
   --background: rgb(24 28 36);
   --foreground: rgb(238 242 248);
+  --dbx-foreground-rgb: 198, 207, 219;
   --card: rgb(36 41 52);
   --card-foreground: rgb(238 242 248);
   --popover: rgb(36 41 52);
@@ -1714,6 +1867,7 @@ html.theme-cobalt.dark {
 html.theme-amber {
   --background: rgb(253 251 246);
   --foreground: rgb(40 34 24);
+  --dbx-foreground-rgb: 56, 48, 32;
   --card: rgb(255 255 255);
   --card-foreground: rgb(40 34 24);
   --popover: rgb(255 255 255);
@@ -1743,6 +1897,7 @@ html.theme-amber {
 html.theme-amber.dark {
   --background: rgb(30 28 24);
   --foreground: rgb(245 240 232);
+  --dbx-foreground-rgb: 217, 208, 188;
   --card: rgb(44 41 35);
   --card-foreground: rgb(245 240 232);
   --popover: rgb(44 41 35);
@@ -1801,8 +1956,51 @@ html.theme-amber.dark {
 .panel-resize-handle--left {
   left: -4px;
 }
+.app-panel-gutter .panel-resize-handle--right::before {
+  transform: translate(calc(-50% + 2.5px), -50%);
+}
+.app-panel-gutter .panel-resize-handle--left::before {
+  transform: translate(calc(-50% - 2.5px), -50%);
+}
+/* The vertical editor tab bar is its own overflow-hidden clipping context, so
+   its handles keep the grip dots just inside the bar edge instead of the
+   gutter center, where they would be clipped away entirely. */
+.app-panel-gutter .app-tab-bar > .panel-resize-handle--right::before {
+  transform: translate(calc(-50% - 2.5px), -50%);
+}
+.app-panel-gutter .app-tab-bar > .panel-resize-handle--left::before {
+  transform: translate(calc(-50% + 2.5px), -50%);
+}
 .panel-resize-handle::before {
-  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 5px 0 currentColor, 0 10px 0 currentColor;
+  color: color-mix(in srgb, var(--muted-foreground) 45%, transparent);
+  content: "";
+  opacity: 0.75;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: color 140ms ease, opacity 140ms ease;
+}
+.panel-resize-handle:hover::before,
+.panel-resize-handle:focus-visible::before,
+.panel-resize-handle:active::before {
+  color: var(--ring);
+  opacity: 1;
+}
+body.dbx-is-resizing .panel-resize-handle::before {
+  color: var(--primary);
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel-resize-handle::before {
+    transition: none;
+  }
 }
 
 /* Shared menu surfaces.

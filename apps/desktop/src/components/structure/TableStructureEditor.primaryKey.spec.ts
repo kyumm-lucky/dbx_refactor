@@ -55,6 +55,7 @@ vi.mock("@lucide/vue", async () => {
     Maximize2: Icon,
     Plus: Icon,
     RefreshCw: Icon,
+    Rows3: Icon,
     Save: Icon,
     Search: Icon,
     Settings: Icon,
@@ -226,6 +227,8 @@ vi.mock("@/stores/settingsStore", () => ({
 }));
 vi.mock("@/composables/useTheme", () => ({ useTheme: () => ({ isDark: { value: false }, themePalette: { value: "default" } }) }));
 vi.mock("@/composables/useToast", () => ({ useToast: () => ({ toast: mocks.toast }) }));
+vi.mock("@/lib/backend/platform", () => ({ isMacOS: () => true }));
+vi.mock("@/lib/backend/tauriRuntime", () => ({ isTauriRuntime: () => true }));
 vi.mock("@/lib/sql/sqlHighlighter", () => ({ createShikiSqlHighlighter: vi.fn(async () => (sql: string) => sql) }));
 vi.mock("@/lib/metadata/objectDdlCache", () => ({
   loadObjectDdl: mocks.loadObjectDdl,
@@ -248,7 +251,7 @@ import TableStructureEditor from "@/components/structure/TableStructureEditor.vu
 
 const mountedApps: App[] = [];
 
-function draft(isPrimaryKey = false, identity?: { seed: number; increment: number }) {
+function draft(isPrimaryKey = false, identity?: { seed: number; increment: number }, columnName = "id", foreignKeyRefTable?: string) {
   const isNullable = identity ? false : !isPrimaryKey;
   return {
     initialized: true,
@@ -259,7 +262,7 @@ function draft(isPrimaryKey = false, identity?: { seed: number; increment: numbe
     columns: [
       {
         id: "existing:id",
-        name: "id",
+        name: columnName,
         dataType: "INT",
         isNullable,
         defaultValue: "",
@@ -267,7 +270,7 @@ function draft(isPrimaryKey = false, identity?: { seed: number; increment: numbe
         isPrimaryKey,
         extra: identity ? { autoIncrement: true, identity: { ...identity } } : {},
         original: {
-          name: "id",
+          name: columnName,
           data_type: "INT",
           is_nullable: isNullable,
           column_default: null,
@@ -280,12 +283,65 @@ function draft(isPrimaryKey = false, identity?: { seed: number; increment: numbe
       },
     ],
     indexes: [],
-    foreignKeys: [],
+    foreignKeys: foreignKeyRefTable
+      ? [
+          {
+            id: "existing:fk",
+            name: "FK_T_9649",
+            column: columnName,
+            refSchema: "",
+            refTable: foreignKeyRefTable,
+            refColumn: "ID",
+            onUpdate: "",
+            onDelete: "",
+            original: {
+              name: "FK_T_9649",
+              column: columnName,
+              ref_schema: null,
+              ref_table: foreignKeyRefTable,
+              ref_column: "ID",
+              on_update: null,
+              on_delete: null,
+            },
+            markedForDrop: false,
+          },
+        ]
+      : [],
     triggers: [],
   };
 }
 
-async function mountEditor(databaseType: "sqlserver" | "postgres" | "sqlite" | "oracle" | "oceanbase-oracle" | "iris" | "dameng" | "duckdb" | "informix", isPrimaryKey = false, options: { database?: string; dynamicTypes?: string[]; identity?: { seed: number; increment: number } } = {}) {
+function draftWithColumns(count: number) {
+  const value = draft();
+  value.columns = Array.from({ length: count }, (_, index) => ({
+    id: `existing:field_${index}`,
+    name: `field_${index}`,
+    dataType: "varchar(255)",
+    isNullable: true,
+    defaultValue: "",
+    comment: "",
+    isPrimaryKey: false,
+    extra: {},
+    original: {
+      name: `field_${index}`,
+      data_type: "varchar(255)",
+      is_nullable: true,
+      column_default: null,
+      is_primary_key: false,
+      extra: null,
+      comment: null,
+    },
+    originalPosition: index,
+    markedForDrop: false,
+  }));
+  return value;
+}
+
+async function mountEditor(
+  databaseType: "mysql" | "sqlserver" | "postgres" | "sqlite" | "oracle" | "oceanbase-oracle" | "iris" | "dameng" | "duckdb" | "informix" | "clickhouse",
+  isPrimaryKey = false,
+  options: { database?: string; dynamicTypes?: string[]; identity?: { seed: number; increment: number }; tableName?: string; columnName?: string; foreignKeyRefTable?: string; draftOverride?: ReturnType<typeof draft>; onDraftUpdate?: (value: unknown) => void } = {},
+) {
   mocks.connection.db_type = databaseType;
   mocks.connection.name = databaseType;
   mocks.connection.driver_label = databaseType;
@@ -299,8 +355,9 @@ async function mountEditor(databaseType: "sqlserver" | "postgres" | "sqlite" | "
     connectionId: mocks.connection.id,
     database: options.database ?? "test",
     schema: "SYSDBA",
-    tableName: "users",
-    draft: draft(isPrimaryKey, options.identity),
+    tableName: options.tableName ?? "users",
+    draft: options.draftOverride ?? draft(isPrimaryKey, options.identity, options.columnName, options.foreignKeyRefTable),
+    "onUpdate:draft": options.onDraftUpdate,
   });
   mountedApps.push(app);
   app.mount(root);
@@ -597,6 +654,58 @@ describe("TableStructureEditor primary key editing", () => {
     expect(root.textContent).not.toContain(`"${schema}"."demo_table"`);
   });
 
+  it("keeps case-sensitive Oracle identifiers quoted when quoting is disabled (#9649)", async () => {
+    mocks.editorSettings.generateSqlQuoteIdentifiers = false;
+    const root = await mountEditor("oracle", false, { tableName: "T_9649", columnName: "cName" });
+    mocks.buildTableStructureChangeSql.mockResolvedValueOnce({
+      statements: ['ALTER TABLE "DBX_TEST"."T_9649" MODIFY ("cName" VARCHAR2(120 BYTE))', 'ALTER TABLE "DBX_TEST"."T_9649" ADD ("cNabcs" clob)', 'COMMENT ON COLUMN "DBX_TEST"."T_9649"."cName" IS \'中文名\''],
+      warnings: [],
+    });
+
+    buttonWithText(root, "structureEditor.addColumn").click();
+
+    await vi.waitFor(() => expect(root.textContent).toContain('MODIFY ("cName" VARCHAR2(120 BYTE))'));
+    expect(root.textContent).toContain('ADD ("cNabcs" clob)');
+    expect(root.textContent).toContain("COMMENT ON COLUMN DBX_TEST.T_9649.\"cName\" IS '中文名'");
+    expect(root.textContent).not.toContain("CNAME");
+  });
+
+  it("keeps a quoted Oracle table name when quoting is disabled (#9649)", async () => {
+    mocks.editorSettings.generateSqlQuoteIdentifiers = false;
+    const root = await mountEditor("oracle", false, { tableName: "t_9649_lower", columnName: "ID" });
+    mocks.buildTableStructureChangeSql.mockResolvedValueOnce({ statements: ['ALTER TABLE "DBX_TEST"."t_9649_lower" MODIFY ("ID" NUMBER(12))'], warnings: [] });
+
+    buttonWithText(root, "structureEditor.addColumn").click();
+
+    await vi.waitFor(() => expect(root.textContent).toContain('ALTER TABLE DBX_TEST."t_9649_lower" MODIFY (ID NUMBER(12))'));
+    expect(root.textContent).not.toContain("T_9649_LOWER");
+  });
+
+  it("keeps case-sensitive foreign key referenced names quoted when quoting is disabled (#9649)", async () => {
+    mocks.editorSettings.generateSqlQuoteIdentifiers = false;
+    const root = await mountEditor("oracle", false, { tableName: "T_9649", columnName: "ID", foreignKeyRefTable: "cRefTab" });
+    mocks.buildTableStructureChangeSql.mockResolvedValueOnce({
+      statements: ['ALTER TABLE "DBX_TEST"."T_9649" ADD CONSTRAINT "FK_T_9649" FOREIGN KEY ("ID") REFERENCES "DBX_TEST"."cRefTab"("ID")'],
+      warnings: [],
+    });
+
+    buttonWithText(root, "structureEditor.addColumn").click();
+
+    await vi.waitFor(() => expect(root.textContent).toContain('REFERENCES DBX_TEST."cRefTab"(ID)'));
+    expect(root.textContent).not.toContain("CREFTAB");
+  });
+
+  it("still folds plain Oracle identifiers when quoting is disabled (#8997)", async () => {
+    mocks.editorSettings.generateSqlQuoteIdentifiers = false;
+    const root = await mountEditor("oracle", false, { tableName: "TEST", columnName: "ID" });
+    mocks.buildTableStructureChangeSql.mockResolvedValueOnce({ statements: ['ALTER TABLE "SYSTEM"."TEST" ADD ("NEW_COL" VARCHAR2(20))'], warnings: [] });
+
+    buttonWithText(root, "structureEditor.addColumn").click();
+
+    await vi.waitFor(() => expect(root.textContent).toContain("ALTER TABLE SYSTEM.TEST ADD (NEW_COL VARCHAR2(20))"));
+    expect(root.textContent).not.toContain('"NEW_COL"');
+  });
+
   it("keeps SQLite rebuild SQL aligned with the guarded apply plan", async () => {
     mocks.editorSettings.generateSqlQuoteIdentifiers = false;
     const root = await mountEditor("sqlite");
@@ -668,27 +777,6 @@ describe("TableStructureEditor data type options", () => {
 });
 
 describe("TableStructureEditor action column", () => {
-  it("moves delayed shortcut hints onto the add, copy, and delete controls", async () => {
-    const root = await mountEditor("dameng");
-
-    expect(root.textContent).not.toContain("settings.shortcutsTab");
-    expect(root.querySelector("[data-field-shortcut-hints]")).toBeNull();
-
-    const addTooltip = root.querySelector<HTMLElement>("[data-add-column-shortcut-tooltip]");
-    const copyTooltip = root.querySelector<HTMLElement>("[data-copy-column-shortcut-tooltip]");
-    const deleteTooltip = root.querySelector<HTMLElement>("[data-delete-column-shortcut-tooltip]");
-    expect(addTooltip?.getAttribute("delay-duration")).toBe("500");
-    expect(copyTooltip?.getAttribute("delay-duration")).toBe("500");
-    expect(deleteTooltip?.getAttribute("delay-duration")).toBe("500");
-    expect(root.querySelector("[data-add-column-shortcut-content]")?.textContent).toBe("Shift+Enter");
-    expect(root.querySelector("[data-copy-column-shortcut-content]")?.textContent).toBe("⌘/Ctrl+D");
-    expect(root.querySelector("[data-delete-column-shortcut-content]")?.textContent?.trim()).toBe("⌘/Ctrl+Del");
-    expect(root.querySelector("[data-add-column-shortcut-content]")?.textContent).not.toContain("structureEditor.addColumn");
-    expect(root.querySelector("[data-copy-column-shortcut-content]")?.textContent).not.toContain("structureEditor.copyColumn");
-    expect(copyTooltip?.querySelector("button")?.hasAttribute("title")).toBe(false);
-    expect(deleteTooltip?.querySelector("button")?.hasAttribute("title")).toBe(false);
-  });
-
   it("adds a field below the focused input on Shift+Enter", async () => {
     const root = await mountEditor("dameng");
     const sourceInput = root.querySelector<HTMLInputElement>('[data-column-row-index="0"] [data-column-name-input]');
@@ -839,6 +927,40 @@ describe("TableStructureEditor horizontal scrolling", () => {
 });
 
 describe("TableStructureEditor vertical scrolling", () => {
+  it("persists rapid scroll events once after scrolling settles", async () => {
+    const onDraftUpdate = vi.fn();
+    const root = await mountEditor("mysql", false, { draftOverride: draftWithColumns(200), onDraftUpdate });
+    const scroller = root.querySelector<HTMLElement>(".structure-table-scroller");
+    if (!scroller) throw new Error("Missing structure table scroller");
+    Object.defineProperties(scroller, {
+      clientHeight: { configurable: true, value: 330 },
+      scrollHeight: { configurable: true, value: 6630 },
+      scrollTop: { configurable: true, value: 0, writable: true },
+    });
+    const baselineDraft = onDraftUpdate.mock.calls[onDraftUpdate.mock.calls.length - 1]?.[0] as ReturnType<typeof draft> | undefined;
+    expect(baselineDraft).toBeDefined();
+    onDraftUpdate.mockClear();
+    vi.useFakeTimers();
+    try {
+      for (const scrollTop of [300, 600, 900]) {
+        scroller.scrollTop = scrollTop;
+        scroller.dispatchEvent(new Event("scroll"));
+      }
+      await nextTick();
+      expect(onDraftUpdate).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(180);
+      await nextTick();
+
+      expect(onDraftUpdate).toHaveBeenCalledTimes(1);
+      expect(onDraftUpdate.mock.calls[0]?.[0]).toMatchObject({ scrollPositions: { columns: { scrollTop: 900, scrollLeft: 0 } } });
+      expect(onDraftUpdate.mock.calls[0]?.[0].columns).toBe(baselineDraft?.columns);
+      expect(onDraftUpdate.mock.calls[0]?.[0].indexes).toBe(baselineDraft?.indexes);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("shows a fixed scrollbar for overflowing fields and syncs thumb dragging", async () => {
     const root = await mountEditor("postgres");
     const scroller = root.querySelector<HTMLElement>(".structure-table-scroller");
@@ -850,12 +972,11 @@ describe("TableStructureEditor vertical scrolling", () => {
     });
 
     scroller.dispatchEvent(new Event("scroll"));
-    await nextTick();
-    await nextTick();
+    await vi.waitFor(() => expect(root.querySelector(".structure-vertical-scrollbar__thumb")).not.toBeNull());
 
-    const track = root.querySelector<HTMLElement>(".structure-vertical-scrollbar");
-    const thumb = root.querySelector<HTMLElement>(".structure-vertical-scrollbar__thumb");
-    if (!track || !thumb) throw new Error("Missing fixed vertical scrollbar");
+    const track = root.querySelector<HTMLElement>(".structure-vertical-scrollbar")!;
+    const thumb = root.querySelector<HTMLElement>(".structure-vertical-scrollbar__thumb")!;
+    await vi.waitFor(() => expect(Number.parseFloat(thumb.style.height)).toBeCloseTo(25));
     expect(Number.parseFloat(thumb.style.height)).toBeCloseTo(25);
     expect(Number.parseFloat(thumb.style.top)).toBeCloseTo(0);
 

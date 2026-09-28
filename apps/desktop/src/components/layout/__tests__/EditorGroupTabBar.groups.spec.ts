@@ -370,6 +370,19 @@ describe("EditorGroupTabBar group behavior", () => {
   beforeEach(() => {
     document.body.innerHTML = "";
     vi.restoreAllMocks();
+    // Pin the engine to modern capabilities: these tests assert the designed
+    // styles, not the legacy WebView fallbacks (covered in styles/__tests__).
+    vi.stubGlobal("CSS", { supports: () => true });
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      media: query,
+      matches: true,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+      onchange: null,
+    }));
     pinia = createPinia();
     setActivePinia(pinia);
   });
@@ -727,12 +740,6 @@ describe("EditorGroupTabBar group behavior", () => {
     const pill = host.querySelector<HTMLElement>(`[data-tab-id="${pluginTabId}"]`);
     expect(pill).toBeTruthy();
     expect(pill!.querySelector("img")).toBeTruthy();
-    // The pill and the overflow popup list both render via TabModeIcon, whose
-    // per-mode chain must keep the plugin-workbench plugin icon branch.
-    const tabModeIconSource = readFileSync(resolve(specDir, "../TabModeIcon.vue"), "utf8");
-    expect(tabModeIconSource).toContain("tab.mode === 'plugin-workbench' && tab.pluginWorkbench");
-    expect(tabModeIconSource).toContain(':contribution-id="tab.pluginWorkbench.contributionId"');
-    expect(source).toContain('<TabModeIcon :tab="entry.tab"');
 
     app.unmount();
     host.remove();

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { cleanupMcpHistoryRetention, loadMcpHistoryRetentionLimit, saveMcpHistoryRetentionLimit } from "@/lib/backend/api";
+import { HISTORY_RETENTION_LIMITS, useHistoryRetentionSetting } from "@/composables/useHistoryRetentionSetting";
 import { ref, watch, shallowRef, computed, onMounted, onUnmounted, nextTick } from "vue";
 import type { Ref } from "vue";
 import type { EditorView as EditorViewType } from "@codemirror/view";
@@ -17,6 +19,7 @@ import {
   Copy,
   Download,
   ExternalLink,
+  FolderOpen,
   Eye,
   Filter,
   Globe,
@@ -86,6 +89,7 @@ import {
   type DeleteConnectionTabHandlingMode,
   type DataTabReuseMode,
   type DataGridFilterEditorView,
+  type DataGridToolbarLayout,
   type MultiStatementDefaultView,
   type OpenTabsRestoreMode,
   type AppCloseUnsavedTabsMode,
@@ -104,6 +108,7 @@ import {
   type ClickTableNavigationTarget,
   type EditorSettings,
   type SqlCompletionTriggerMode,
+  type SqlTableCompletionSchemaQualification,
   type TableHoverLookupMode,
   SIDEBAR_INDENT_MIN,
   SIDEBAR_INDENT_MAX,
@@ -129,12 +134,16 @@ import {
   aiTestConnection,
   checkMcpServerStatus,
   installMcpServer,
+  installNativeMcpServer,
   uninstallMcpServer,
+  uninstallNpmMcpServer,
   loadMcpHttpServerSettings,
   saveMcpHttpServerSettings,
   mcpHttpServerStatus,
   rotateMcpHttpServerToken,
   loadWebMcpHttpStatus,
+  saveWebMcpHttpSettings,
+  rotateWebMcpToken,
   forgetSnippetSavedToken,
   forgetWebdavSyncSecretsPassphrase,
   forgetWebdavSavedPassword,
@@ -168,13 +177,14 @@ import {
   type McpHttpServerSettings,
   type McpHttpServerStatus,
   type WebMcpHttpStatus,
+  type WebMcpHttpSettings,
   type McpServerStatus,
   type SnippetProvider,
   type SnippetSyncConfig,
   type WebDavConfig,
 } from "@/lib/backend/api";
 import { eventToModifierOnlyShortcut, eventToShortcut } from "@/lib/editor/keyboardShortcuts";
-import { SHORTCUT_DEFINITIONS, countShortcutConflictPairs, findCrossScopeShortcutConflicts, findShortcutConflict, isReservedShortcut, normalizeShortcutSettings, type ShortcutActionId, type ShortcutDefinition, type ShortcutScope } from "@/lib/editor/shortcutRegistry";
+import { SHORTCUT_DEFINITIONS, countShortcutConflictPairs, findCrossScopeShortcutConflicts, findShortcutConflict, isReservedShortcut, normalizeShortcutSettings, resolveCapturedShortcutEdit, type ShortcutActionId, type ShortcutDefinition, type ShortcutScope } from "@/lib/editor/shortcutRegistry";
 import LightTooltip from "@/components/ui/LightTooltip.vue";
 import { formatShortcutDisplay } from "@/lib/editor/shortcutDisplay";
 import { COLUMN_NAME_COPY_SEPARATOR_LABELS, COLUMN_NAME_COPY_SEPARATOR_OPTIONS, isColumnNameCopySeparator, type ColumnNameCopySeparator } from "@/lib/dataGrid/dataGridColumnNameCopy";
@@ -203,6 +213,7 @@ import {
   buildMcpWorkBuddyConfig,
   mcpWebBackendUrl,
   type McpLaunchConfig,
+  preferMcpNativeLaunch,
 } from "@/lib/mcp/mcpConfigTemplates";
 import { beginMcpStatusRequest, mcpUpdateAvailability } from "@/lib/mcp/mcpUpdateStatus";
 import { notifyComponentUpdatesChanged } from "@/lib/updates/componentUpdateEvents";
@@ -261,6 +272,16 @@ import { usePromptTemplateStore } from "@/stores/promptTemplateStore";
 import { useTunnelProfileStore } from "@/stores/tunnelProfileStore";
 import { currentLocale, previewLocale, restoreLocalePreview, setLocale, type Locale } from "@/i18n";
 import {
+  AI_CONVERSATION_FONT_FAMILY_DEFAULT,
+  AI_CONVERSATION_FONT_SIZE_DEFAULT,
+  AI_CONVERSATION_FONT_SIZE_MAX,
+  AI_CONVERSATION_FONT_SIZE_MIN,
+  aiConversationFontFamilyForName,
+  normalizeAiConversationFontFamily,
+  normalizeAiConversationFontFamilyInput,
+  normalizeAiConversationFontSize,
+} from "@/lib/ai/aiTypography";
+import {
   SETTINGS_SEARCH_DEFINITIONS,
   TOOLBAR_VISIBILITY_ITEMS,
   createShortcutSettingsSearchDefinitions,
@@ -268,6 +289,7 @@ import {
   resolveSettingsSearchEntries,
   searchSettings,
   toolbarVisibilityItemLabel,
+  visibleToolbarVisibilityItems,
   type SettingsCategory,
   type SettingsSearchEntry,
   type ToolbarVisibilityItem,
@@ -280,6 +302,7 @@ import { buildFontFamilyOptions, displayFontFamily, isPresetFontFamily, loadSyst
 import { buildAppSupportInfoRows, formatAppSupportInfoForClipboard, type AppSupportInfoLabels } from "@/lib/app/supportInfo";
 import { useUiFontFamilyPreview } from "@/composables/useUiFontFamilyPreview";
 import { useMeasuredWidth } from "@/composables/useMeasuredWidth";
+import { createDelayedPreview } from "@/lib/common/delayedPreview";
 import { DateTimePatterns, normalizeSupportedDateTimePattern } from "@/lib/dataGrid/columnFormatter";
 import { MAX_RESULT_PAGE_SIZE, MIN_RESULT_PAGE_SIZE } from "@/lib/dataGrid/paginationPageSize";
 import { MAX_QUERY_RESULT_MAX_ROWS } from "@/lib/dataGrid/queryResultRowLimit";
@@ -293,6 +316,11 @@ import { buildConnectionGroupIdPathMap, connectionGroupDestinationRows, connecti
 const { t, locale } = useI18n();
 const { toast } = useToast();
 const settingsStore = useSettingsStore();
+const historyRetention = useHistoryRetentionSetting();
+const mcpHistoryRetention = useHistoryRetentionSetting(loadMcpHistoryRetentionLimit, saveMcpHistoryRetentionLimit);
+const { draft: editHistoryRetentionLimit, loaded: historyRetentionLoaded, loading: historyRetentionLoading, saving: historyRetentionSaving, loadError: historyRetentionLoadError } = historyRetention;
+const { draft: editMcpHistoryRetentionLimit, loaded: mcpHistoryRetentionLoaded, loading: mcpHistoryRetentionLoading, saving: mcpHistoryRetentionSaving, loadError: mcpHistoryRetentionLoadError } = mcpHistoryRetention;
+const mcpHistoryCleanupLoading = ref(false);
 const connectionStore = useConnectionStore();
 const hasSqlServerConnection = computed(() => connectionStore.connections.some((connection) => effectiveDatabaseTypeForConnection(connection) === "sqlserver"));
 const savedSqlStore = useSavedSqlStore();
@@ -300,25 +328,54 @@ const promptTemplateStore = usePromptTemplateStore();
 const tunnelProfileStore = useTunnelProfileStore();
 const { isDark, themeMode, themePalette, accentColor, activeCustomUiColors, cornerStyle, setThemeMode, setThemePalette, previewThemePalette, clearThemePalettePreview, setAccentColor, setCustomUiColors, resetCustomUiColors, setCornerStyle } = useTheme();
 const { previewUiFontFamily, clearUiFontFamilyPreview } = useUiFontFamilyPreview();
+const APPEARANCE_POINTER_PREVIEW_DELAY_MS = 80;
+const themePaletteOptionPreview = createDelayedPreview<AppThemePalette>(previewThemePalette, APPEARANCE_POINTER_PREVIEW_DELAY_MS);
+const uiFontOptionPreview = createDelayedPreview<string>(previewUiFontFamily, APPEARANCE_POINTER_PREVIEW_DELAY_MS);
+const localeOptionPreview = createDelayedPreview<Locale>((value) => void previewLocale(value), APPEARANCE_POINTER_PREVIEW_DELAY_MS);
 
 function updateCustomUiColor(key: keyof AppCustomUiColors, value: string) {
   setCustomUiColors({ ...activeCustomUiColors.value, [key]: value });
 }
 
 function onThemePaletteSelect(value: unknown) {
-  if (typeof value === "string") setThemePalette(value as AppThemePalette);
+  if (typeof value !== "string") return;
+  themePaletteOptionPreview.cancel();
+  setThemePalette(value as AppThemePalette);
 }
 
 function onThemePaletteOpenChange(open: boolean) {
-  if (!open) clearThemePalettePreview();
+  if (!open) clearThemePaletteOptionPreview();
+}
+
+function scheduleThemePalettePreview(value: AppThemePalette) {
+  themePaletteOptionPreview.schedule(value);
+}
+
+function previewThemePaletteOption(value: AppThemePalette) {
+  themePaletteOptionPreview.runNow(value);
+}
+
+function clearThemePaletteOptionPreview() {
+  themePaletteOptionPreview.cancel();
+  clearThemePalettePreview();
+}
+
+function scheduleUiFontOptionPreview(value: string) {
+  uiFontOptionPreview.schedule(value);
 }
 
 function previewUiFontOption(value: string | undefined) {
-  if (value) previewUiFontFamily(value);
+  if (value) uiFontOptionPreview.runNow(value);
 }
 
 function restoreUiFontFamilyPreview() {
+  uiFontOptionPreview.cancel();
   previewUiFontFamily(editUiFontFamily.value);
+}
+
+function clearUiFontOptionPreview() {
+  uiFontOptionPreview.cancel();
+  clearUiFontFamilyPreview();
 }
 
 function onUiFontFamilyOpenChange(open: boolean) {
@@ -330,10 +387,15 @@ function onUiFontFamilyOpenChange(open: boolean) {
 }
 
 function previewLocaleOption(locale: Locale) {
-  void previewLocale(locale);
+  localeOptionPreview.runNow(locale);
+}
+
+function scheduleLocaleOptionPreview(locale: Locale) {
+  localeOptionPreview.schedule(locale);
 }
 
 function restoreLocaleOptionPreview() {
+  localeOptionPreview.cancel();
   void restoreLocalePreview();
 }
 
@@ -543,6 +605,9 @@ function createEmptyTableColumnTemplateRow(): TableColumnTemplateGridRow {
 // Local edit state
 const editFontFamily = ref(settingsStore.editorSettings.fontFamily);
 const editFontSize = ref(settingsStore.editorSettings.fontSize);
+const editAiFontFamily = ref(settingsStore.editorSettings.aiFontFamily);
+const editAiFontSize = ref<number | string>(settingsStore.editorSettings.aiFontSize);
+const aiTypographySaving = ref(false);
 const editTableFontFamily = ref(settingsStore.editorSettings.tableFontFamily);
 const editUiFontFamily = ref(settingsStore.editorSettings.uiFontFamily);
 const editUiScale = ref(settingsStore.editorSettings.uiScale);
@@ -561,6 +626,7 @@ const showThemeCustomizer = ref(false);
 const showDataGridTypeColorScheme = ref(false);
 const editExecuteMode = ref(settingsStore.editorSettings.executeMode);
 const editDefaultTransactionMode = ref(settingsStore.editorSettings.defaultTransactionMode);
+const editKeepExplicitTransactionInAutoCommit = ref(settingsStore.editorSettings.keepExplicitTransactionInAutoCommit);
 const editShortcuts = ref(normalizeShortcutSettings(settingsStore.editorSettings.shortcuts));
 function translateWithExecuteShortcut(key: string): string {
   return t(key, { shortcut: formatShortcutDisplay(editShortcuts.value.executeSql) });
@@ -574,6 +640,15 @@ const editShowLineNumbers = ref(settingsStore.editorSettings.showLineNumbers);
 const editShowCurrentStatementFrame = ref(settingsStore.editorSettings.showCurrentStatementFrame);
 const editShowInsertValueHints = ref(settingsStore.editorSettings.showInsertValueHints);
 const editAutoAliasTables = ref(settingsStore.editorSettings.autoAliasTables);
+const editTableCompletionSchemaQualification = ref<SqlTableCompletionSchemaQualification>(settingsStore.editorSettings.tableCompletionSchemaQualification);
+const tableCompletionSchemaQualificationDescription = computed(() => {
+  const key = {
+    never: "settings.tableCompletionSchemaQualificationNeverDescription",
+    collision: "settings.tableCompletionSchemaQualificationCollisionDescription",
+    always: "settings.tableCompletionSchemaQualificationAlwaysDescription",
+  }[editTableCompletionSchemaQualification.value];
+  return t(key);
+});
 const editInsertSpaceAfterCompletion = ref(settingsStore.editorSettings.insertSpaceAfterCompletion);
 const editSqlServerSpaceConfirmsCompletion = ref(settingsStore.editorSettings.sqlServerSpaceConfirmsCompletion);
 const showSqlServerSpaceConfirmsCompletion = computed(() => hasSqlServerConnection.value || settingsStore.editorSettings.sqlServerSpaceConfirmsCompletion || editSqlServerSpaceConfirmsCompletion.value);
@@ -590,6 +665,7 @@ const completionTriggerModeDescription = computed(() => {
 });
 const editWordWrap = ref(settingsStore.editorSettings.wordWrap);
 const editShowWhitespace = ref(settingsStore.editorSettings.showWhitespace);
+const editDdlOpenMode = ref<EditorSettings["ddlOpenMode"]>(settingsStore.editorSettings.ddlOpenMode);
 const editVimModeEnabled = ref(settingsStore.editorSettings.vimModeEnabled);
 const editAutoCloseBrackets = ref(settingsStore.editorSettings.autoCloseBrackets);
 const editSqlSemanticDiagnosticsMode = ref<SqlSemanticDiagnosticsMode>(settingsStore.editorSettings.sqlSemanticDiagnosticsMode);
@@ -621,12 +697,15 @@ const debugLogCopied = ref(false);
 const debugLogDownloaded = ref(false);
 const editShowColumnCommentsInHeader = ref(settingsStore.editorSettings.showColumnCommentsInHeader);
 const editShowColumnTypesInHeader = ref(settingsStore.editorSettings.showColumnTypesInHeader);
+const editShowColumnHeaderTooltips = ref(settingsStore.editorSettings.showColumnHeaderTooltips);
+const editShowResultSourceDatabase = ref(settingsStore.editorSettings.showResultSourceDatabase);
 const editDataGridShowTransposeFieldMetadata = ref(settingsStore.editorSettings.dataGridShowTransposeFieldMetadata);
 const editColorizeDataGridCellTypes = ref(settingsStore.editorSettings.colorizeDataGridCellTypes);
 const editShowIndexIndicatorsInHeader = ref(settingsStore.editorSettings.showIndexIndicatorsInHeader);
 const editCompactColumnHeaderActions = ref(settingsStore.editorSettings.compactColumnHeaderActions);
 const editDataGridQuickEntry = ref(settingsStore.editorSettings.dataGridQuickEntry);
 const editDataGridFilterEditorView = ref<DataGridFilterEditorView>(settingsStore.editorSettings.dataGridFilterEditorView);
+const editDataGridToolbarLayout = ref<DataGridToolbarLayout>(settingsStore.editorSettings.dataGridToolbarLayout);
 const editDataGridKeepFilterEditorExpanded = ref(settingsStore.editorSettings.dataGridKeepFilterEditorExpanded);
 const dataGridFilterViewPreviewExpanded = ref(true);
 const editDataGridTextFilterPanelHeight = ref(settingsStore.editorSettings.dataGridTextFilterPanelHeight);
@@ -786,7 +865,8 @@ const editExportRowLimit = ref(settingsStore.editorSettings.exportRowLimit);
 const editQueryExportKeysetOptimizationEnabled = ref(settingsStore.editorSettings.queryExportKeysetOptimizationEnabled);
 const editUpdateDownloadSource = ref<UpdateDownloadSource>(settingsStore.editorSettings.updateDownloadSource);
 const editToolbarItems = ref({ ...settingsStore.editorSettings.toolbarItems });
-const toolbarVisibilityItems = TOOLBAR_VISIBILITY_ITEMS;
+// Desktop-only toolbar buttons (always-on-top) can never render in the Web build, so their switches stay out of the Web settings dialog.
+const toolbarVisibilityItems = computed(() => visibleToolbarVisibilityItems(TOOLBAR_VISIBILITY_ITEMS, isWeb));
 function getToolbarVisibilityItemLabel(item: ToolbarVisibilityItem): string {
   return toolbarVisibilityItemLabel(item, t);
 }
@@ -928,6 +1008,7 @@ function currentEditorSettingsDraft(): EditorSettingsDraft {
     activeCustomThemeId: editActiveCustomThemeId.value,
     executeMode: editExecuteMode.value,
     defaultTransactionMode: editDefaultTransactionMode.value,
+    keepExplicitTransactionInAutoCommit: editKeepExplicitTransactionInAutoCommit.value,
     executeAllOnBlankLine: editExecuteAllOnBlankLine.value,
     showExecutionTargetPicker: editShowExecutionTargetPicker.value,
     showStatementRunButtons: editShowStatementRunButtons.value,
@@ -935,6 +1016,7 @@ function currentEditorSettingsDraft(): EditorSettingsDraft {
     showCurrentStatementFrame: editShowCurrentStatementFrame.value,
     showInsertValueHints: editShowInsertValueHints.value,
     autoAliasTables: editAutoAliasTables.value,
+    tableCompletionSchemaQualification: editTableCompletionSchemaQualification.value,
     insertSpaceAfterCompletion: editInsertSpaceAfterCompletion.value,
     sqlServerSpaceConfirmsCompletion: editSqlServerSpaceConfirmsCompletion.value,
     sortCompletionColumnsAlphabetically: editSortCompletionColumnsAlphabetically.value,
@@ -942,6 +1024,7 @@ function currentEditorSettingsDraft(): EditorSettingsDraft {
     completionTriggerMode: editCompletionTriggerMode.value,
     wordWrap: editWordWrap.value,
     showWhitespace: editShowWhitespace.value,
+    ddlOpenMode: editDdlOpenMode.value,
     vimModeEnabled: editVimModeEnabled.value,
     autoCloseBrackets: editAutoCloseBrackets.value,
     sqlSemanticDiagnosticsMode: editSqlSemanticDiagnosticsMode.value,
@@ -957,6 +1040,8 @@ function currentEditorSettingsDraft(): EditorSettingsDraft {
     tabSortMode: editTabSortMode.value,
     showColumnCommentsInHeader: editShowColumnCommentsInHeader.value,
     showColumnTypesInHeader: editShowColumnTypesInHeader.value,
+    showColumnHeaderTooltips: editShowColumnHeaderTooltips.value,
+    showResultSourceDatabase: editShowResultSourceDatabase.value,
     dataGridShowTransposeFieldMetadata: editDataGridShowTransposeFieldMetadata.value,
     colorizeDataGridCellTypes: editColorizeDataGridCellTypes.value,
     dataGridTypeColorSchemes: editDataGridTypeColorSchemes.value,
@@ -965,6 +1050,7 @@ function currentEditorSettingsDraft(): EditorSettingsDraft {
     compactColumnHeaderActions: editCompactColumnHeaderActions.value,
     dataGridQuickEntry: editDataGridQuickEntry.value,
     dataGridFilterEditorView: editDataGridFilterEditorView.value,
+    dataGridToolbarLayout: editDataGridToolbarLayout.value,
     dataGridKeepFilterEditorExpanded: editDataGridKeepFilterEditorExpanded.value,
     dataGridTextFilterPanelHeight: editDataGridTextFilterPanelHeight.value,
     defaultAutoKeepResults: editDefaultAutoKeepResults.value,
@@ -1517,6 +1603,12 @@ const systemFontOptions = computed(() => {
 
 const tableFontOptions = computed(() => buildFontFamilyOptions(systemFonts.value, [editTableFontFamily.value], [DEFAULT_DATA_GRID_FONT_FAMILY]));
 
+const aiFontOptions = computed(() => {
+  const options = new Set([DEFAULT_UI_FONT_FAMILY, SYSTEM_UI_FONT_FAMILY, ...systemFonts.value.map(aiConversationFontFamilyForName)]);
+  if (editAiFontFamily.value) options.add(editAiFontFamily.value);
+  return [...options];
+});
+
 const uiFontOptions = computed(() => {
   const options = new Set([SYSTEM_UI_FONT_FAMILY, DEFAULT_UI_FONT_FAMILY, ...systemFontOptions.value]);
   if (editUiFontFamily.value) options.add(editUiFontFamily.value);
@@ -1527,6 +1619,11 @@ function displayUiFontFamily(value: string): string {
   if (value === SYSTEM_UI_FONT_FAMILY) return t("settings.uiFontSystemDefault");
   if (value === DEFAULT_UI_FONT_FAMILY) return t("settings.uiFontAppDefault");
   return displayFontFamily(value);
+}
+
+function displayAiFontFamily(value: string): string {
+  if (!value) return t("ai.conversationFontFollowInterface");
+  return displayUiFontFamily(value);
 }
 
 function fontOptionStyle(value: string, selectedValue = editFontFamily.value) {
@@ -1558,6 +1655,8 @@ const hasImportedSettingsPendingApply = ref(false);
 function syncEditorSettingsDraftFromStore() {
   editFontFamily.value = settingsStore.editorSettings.fontFamily;
   editFontSize.value = settingsStore.editorSettings.fontSize;
+  editAiFontFamily.value = settingsStore.editorSettings.aiFontFamily;
+  editAiFontSize.value = settingsStore.editorSettings.aiFontSize;
   editTableFontFamily.value = settingsStore.editorSettings.tableFontFamily;
   editUiFontFamily.value = settingsStore.editorSettings.uiFontFamily;
   editUiScale.value = settingsStore.editorSettings.uiScale;
@@ -1568,6 +1667,7 @@ function syncEditorSettingsDraftFromStore() {
   editActiveCustomThemeId.value = settingsStore.editorSettings.activeCustomThemeId;
   editExecuteMode.value = settingsStore.editorSettings.executeMode;
   editDefaultTransactionMode.value = settingsStore.editorSettings.defaultTransactionMode;
+  editKeepExplicitTransactionInAutoCommit.value = settingsStore.editorSettings.keepExplicitTransactionInAutoCommit;
   editExecuteAllOnBlankLine.value = settingsStore.editorSettings.executeAllOnBlankLine;
   editShowExecutionTargetPicker.value = settingsStore.editorSettings.showExecutionTargetPicker;
   editShowStatementRunButtons.value = settingsStore.editorSettings.showStatementRunButtons;
@@ -1575,6 +1675,7 @@ function syncEditorSettingsDraftFromStore() {
   editShowCurrentStatementFrame.value = settingsStore.editorSettings.showCurrentStatementFrame;
   editShowInsertValueHints.value = settingsStore.editorSettings.showInsertValueHints;
   editAutoAliasTables.value = settingsStore.editorSettings.autoAliasTables;
+  editTableCompletionSchemaQualification.value = settingsStore.editorSettings.tableCompletionSchemaQualification;
   editInsertSpaceAfterCompletion.value = settingsStore.editorSettings.insertSpaceAfterCompletion;
   editSqlServerSpaceConfirmsCompletion.value = settingsStore.editorSettings.sqlServerSpaceConfirmsCompletion;
   editSortCompletionColumnsAlphabetically.value = settingsStore.editorSettings.sortCompletionColumnsAlphabetically;
@@ -1582,6 +1683,7 @@ function syncEditorSettingsDraftFromStore() {
   editCompletionTriggerMode.value = settingsStore.editorSettings.completionTriggerMode;
   editWordWrap.value = settingsStore.editorSettings.wordWrap;
   editShowWhitespace.value = settingsStore.editorSettings.showWhitespace;
+  editDdlOpenMode.value = settingsStore.editorSettings.ddlOpenMode;
   editVimModeEnabled.value = settingsStore.editorSettings.vimModeEnabled;
   editAutoCloseBrackets.value = settingsStore.editorSettings.autoCloseBrackets;
   editSqlSemanticDiagnosticsMode.value = settingsStore.editorSettings.sqlSemanticDiagnosticsMode;
@@ -1598,6 +1700,8 @@ function syncEditorSettingsDraftFromStore() {
   editTabSortMode.value = settingsStore.editorSettings.tabSortMode;
   editShowColumnCommentsInHeader.value = settingsStore.editorSettings.showColumnCommentsInHeader;
   editShowColumnTypesInHeader.value = settingsStore.editorSettings.showColumnTypesInHeader;
+  editShowColumnHeaderTooltips.value = settingsStore.editorSettings.showColumnHeaderTooltips;
+  editShowResultSourceDatabase.value = settingsStore.editorSettings.showResultSourceDatabase;
   editDataGridShowTransposeFieldMetadata.value = settingsStore.editorSettings.dataGridShowTransposeFieldMetadata;
   editColorizeDataGridCellTypes.value = settingsStore.editorSettings.colorizeDataGridCellTypes;
   editDataGridTypeColorSchemes.value = cloneDataGridTypeColorSchemes(settingsStore.editorSettings.dataGridTypeColorSchemes);
@@ -1606,6 +1710,7 @@ function syncEditorSettingsDraftFromStore() {
   editCompactColumnHeaderActions.value = settingsStore.editorSettings.compactColumnHeaderActions;
   editDataGridQuickEntry.value = settingsStore.editorSettings.dataGridQuickEntry;
   editDataGridFilterEditorView.value = settingsStore.editorSettings.dataGridFilterEditorView;
+  editDataGridToolbarLayout.value = settingsStore.editorSettings.dataGridToolbarLayout;
   editDataGridKeepFilterEditorExpanded.value = settingsStore.editorSettings.dataGridKeepFilterEditorExpanded;
   editDataGridTextFilterPanelHeight.value = settingsStore.editorSettings.dataGridTextFilterPanelHeight;
   editDefaultAutoKeepResults.value = settingsStore.editorSettings.defaultAutoKeepResults;
@@ -1708,12 +1813,14 @@ const editorSettingsDraftRefs: EditorSettingsDraftRefMap = {
   showCurrentStatementFrame: editShowCurrentStatementFrame,
   showInsertValueHints: editShowInsertValueHints,
   autoAliasTables: editAutoAliasTables,
+  tableCompletionSchemaQualification: editTableCompletionSchemaQualification,
   insertSpaceAfterCompletion: editInsertSpaceAfterCompletion,
   sqlServerSpaceConfirmsCompletion: editSqlServerSpaceConfirmsCompletion,
   sortCompletionColumnsAlphabetically: editSortCompletionColumnsAlphabetically,
   selectFirstCompletionOnOpen: editSelectFirstCompletionOnOpen,
   wordWrap: editWordWrap,
   showWhitespace: editShowWhitespace,
+  ddlOpenMode: editDdlOpenMode,
   vimModeEnabled: editVimModeEnabled,
   autoCloseBrackets: editAutoCloseBrackets,
   sqlSemanticDiagnosticsMode: editSqlSemanticDiagnosticsMode,
@@ -1728,6 +1835,8 @@ const editorSettingsDraftRefs: EditorSettingsDraftRefMap = {
   tabSortMode: editTabSortMode,
   showColumnCommentsInHeader: editShowColumnCommentsInHeader,
   showColumnTypesInHeader: editShowColumnTypesInHeader,
+  showColumnHeaderTooltips: editShowColumnHeaderTooltips,
+  showResultSourceDatabase: editShowResultSourceDatabase,
   dataGridShowTransposeFieldMetadata: editDataGridShowTransposeFieldMetadata,
   colorizeDataGridCellTypes: editColorizeDataGridCellTypes,
   dataGridTypeColorSchemes: editDataGridTypeColorSchemes,
@@ -1736,6 +1845,7 @@ const editorSettingsDraftRefs: EditorSettingsDraftRefMap = {
   compactColumnHeaderActions: editCompactColumnHeaderActions,
   dataGridQuickEntry: editDataGridQuickEntry,
   dataGridFilterEditorView: editDataGridFilterEditorView,
+  dataGridToolbarLayout: editDataGridToolbarLayout,
   dataGridKeepFilterEditorExpanded: editDataGridKeepFilterEditorExpanded,
   dataGridTextFilterPanelHeight: editDataGridTextFilterPanelHeight,
   defaultAutoKeepResults: editDefaultAutoKeepResults,
@@ -1810,6 +1920,7 @@ const editorSettingsDraftRefs: EditorSettingsDraftRefMap = {
   clickTableNavigationTarget: editClickTableNavigationTarget,
   completionTriggerMode: editCompletionTriggerMode,
   defaultTransactionMode: editDefaultTransactionMode,
+  keepExplicitTransactionInAutoCommit: editKeepExplicitTransactionInAutoCommit,
   tableColumnTemplateFields: editTableColumnTemplateRows,
 };
 
@@ -1838,6 +1949,8 @@ watch(
   (open) => {
     if (open) {
       syncEditorSettingsDraftFromStore();
+      void historyRetention.load();
+      void mcpHistoryRetention.load();
       editShowTrayIcon.value = settingsStore.desktopSettings.show_tray_icon;
       editQuitOnClose.value = settingsStore.desktopSettings.quit_on_close;
       editIconTheme.value = settingsStore.desktopSettings.icon_theme;
@@ -1846,8 +1959,10 @@ watch(
       editDuckDbWorkerProcessIsolation.value = settingsStore.desktopSettings.duckdb_worker_process_isolation;
       editSidebarTablePageSize.value = settingsStore.desktopSettings.sidebar_table_page_size ?? DEFAULT_SIDEBAR_TABLE_PAGE_SIZE;
     } else {
-      clearThemePalettePreview();
-      clearUiFontFamilyPreview();
+      historyRetention.discard();
+      mcpHistoryRetention.discard();
+      clearThemePaletteOptionPreview();
+      clearUiFontOptionPreview();
       restoreLocaleOptionPreview();
     }
   },
@@ -1858,8 +1973,8 @@ watch(
   () => settingsStore.settingsPageActive,
   (active) => {
     if (isSettingsPage.value && !active) {
-      clearThemePalettePreview();
-      clearUiFontFamilyPreview();
+      clearThemePaletteOptionPreview();
+      clearUiFontOptionPreview();
       restoreLocaleOptionPreview();
     }
   },
@@ -2033,11 +2148,37 @@ const hasBlockingShortcutConflicts = computed(() => {
   return hasShortcutConflicts.value || hasSqlShortcutConflicts.value;
 });
 const hasBlockingFormatterConfig = computed(() => activeSettingsTab.value === "formatter" && !sqlFormatterConfigValid.value);
-const hasBlockingQueryResultRowLimit = computed(() => editQueryResultMaxRowsEnabled.value && editQueryResultMaxRows.value < editPageSize.value);
-const hasApplyBlocker = computed(() => hasBlockingShortcutConflicts.value || hasBlockingFormatterConfig.value || hasBlockingQueryResultRowLimit.value);
+// 上限小于每页行数时该组合一定不会生效，提示与 aria-invalid 始终跟随这一事实。
+const queryResultRowLimitViolated = computed(() => editQueryResultMaxRowsEnabled.value && editQueryResultMaxRows.value < editPageSize.value);
+// 但只有用户在本对话框里动过相关草稿时才拦截「应用」：结果网格右下角的「设为默认」
+// 可以在不改动本对话框的情况下先落盘 pageSize，若仍然拦截，用户只想换字体/主题也会
+// 被永久禁用的「应用」按钮挡住（issue #9994）。与上方快捷键冲突的判定口径保持一致。
+const queryResultRowLimitDraftTouched = computed(
+  () =>
+    editQueryResultMaxRowsEnabled.value !== editEditorSettingsBase.value.queryResultMaxRowsEnabled ||
+    normalizeQueryResultMaxRowsDraft(editQueryResultMaxRows.value) !== normalizeQueryResultMaxRowsDraft(editEditorSettingsBase.value.queryResultMaxRows) ||
+    normalizeTableOpenPageSizeDraft(editPageSize.value) !== normalizeTableOpenPageSizeDraft(editEditorSettingsBase.value.pageSize),
+);
+const hasBlockingQueryResultRowLimit = computed(() => queryResultRowLimitViolated.value && queryResultRowLimitDraftTouched.value);
+const hasApplyBlocker = computed(() => historyRetention.invalid.value || mcpHistoryRetention.invalid.value || historyRetentionSaving.value || mcpHistoryRetentionSaving.value || hasBlockingShortcutConflicts.value || hasBlockingFormatterConfig.value || hasBlockingQueryResultRowLimit.value);
+
+async function cleanupMcpHistory() {
+  if (mcpHistoryCleanupLoading.value) return;
+  mcpHistoryCleanupLoading.value = true;
+  try {
+    const deleted = await cleanupMcpHistoryRetention();
+    toast(t("settings.mcpHistoryCleanupCompleted", { count: deleted }));
+  } catch (error) {
+    toast(t("settings.mcpHistoryCleanupFailed", { error: error instanceof Error ? error.message : String(error) }), 5000);
+  } finally {
+    mcpHistoryCleanupLoading.value = false;
+  }
+}
 
 function hasChanges(): boolean {
   return (
+    historyRetention.changed.value ||
+    mcpHistoryRetention.changed.value ||
     hasImportedSettingsPendingApply.value ||
     hasEditorDraftChanges.value ||
     editShowTrayIcon.value !== settingsStore.desktopSettings.show_tray_icon ||
@@ -2053,6 +2194,8 @@ function hasChanges(): boolean {
 
 async function persistSettings() {
   if (hasApplyBlocker.value) return;
+  await historyRetention.save();
+  await mcpHistoryRetention.save();
   const editorSettingsPatch = editorSettingsPatchFromDraft(currentEditorSettingsDraft(), editEditorSettingsBase.value);
   const sidebarObjectDisplayChanged = editorSettingsPatch.sidebarObjectDisplay !== undefined && editorSettingsPatch.sidebarObjectDisplay !== settingsStore.editorSettings.sidebarObjectDisplay;
   const sidebarTablePageSizeChanged = editSidebarTablePageSize.value !== (settingsStore.desktopSettings.sidebar_table_page_size ?? DEFAULT_SIDEBAR_TABLE_PAGE_SIZE);
@@ -2064,6 +2207,9 @@ async function persistSettings() {
     // result back into the input so an out-of-range draft doesn't keep
     // reporting unsaved changes after a successful apply.
     editRedisDatabaseDisplayLimit.value = settingsStore.editorSettings.redisDatabaseDisplayLimit;
+    // 同理：落盘口径可能改写键位（跨平台默认键、保留键回退），草稿要跟着回到
+    // 落盘值，避免面板卡在“未保存”无法应用（#9881）。
+    editShortcuts.value = normalizeShortcutSettings(settingsStore.editorSettings.shortcuts);
   }
   if (pendingBackgroundImageCleanup) {
     const cleanupPath = pendingBackgroundImageCleanup;
@@ -2147,6 +2293,7 @@ function resetDefaultsForTab(tab: SettingsCategory) {
     editFontSize.value = DEFAULT_EDITOR_SETTINGS.fontSize;
     editExecuteMode.value = DEFAULT_EDITOR_SETTINGS.executeMode;
     editDefaultTransactionMode.value = DEFAULT_EDITOR_SETTINGS.defaultTransactionMode;
+    editKeepExplicitTransactionInAutoCommit.value = DEFAULT_EDITOR_SETTINGS.keepExplicitTransactionInAutoCommit;
     editExecuteAllOnBlankLine.value = DEFAULT_EDITOR_SETTINGS.executeAllOnBlankLine;
     editShowExecutionTargetPicker.value = DEFAULT_EDITOR_SETTINGS.showExecutionTargetPicker;
     editShowStatementRunButtons.value = DEFAULT_EDITOR_SETTINGS.showStatementRunButtons;
@@ -2154,6 +2301,7 @@ function resetDefaultsForTab(tab: SettingsCategory) {
     editShowCurrentStatementFrame.value = DEFAULT_EDITOR_SETTINGS.showCurrentStatementFrame;
     editShowInsertValueHints.value = DEFAULT_EDITOR_SETTINGS.showInsertValueHints;
     editAutoAliasTables.value = DEFAULT_EDITOR_SETTINGS.autoAliasTables;
+    editTableCompletionSchemaQualification.value = DEFAULT_EDITOR_SETTINGS.tableCompletionSchemaQualification;
     editInsertSpaceAfterCompletion.value = DEFAULT_EDITOR_SETTINGS.insertSpaceAfterCompletion;
     editSqlServerSpaceConfirmsCompletion.value = DEFAULT_EDITOR_SETTINGS.sqlServerSpaceConfirmsCompletion;
     editSortCompletionColumnsAlphabetically.value = DEFAULT_EDITOR_SETTINGS.sortCompletionColumnsAlphabetically;
@@ -2161,6 +2309,7 @@ function resetDefaultsForTab(tab: SettingsCategory) {
     editCompletionTriggerMode.value = DEFAULT_EDITOR_SETTINGS.completionTriggerMode;
     editWordWrap.value = DEFAULT_EDITOR_SETTINGS.wordWrap;
     editShowWhitespace.value = DEFAULT_EDITOR_SETTINGS.showWhitespace;
+    editDdlOpenMode.value = DEFAULT_EDITOR_SETTINGS.ddlOpenMode;
     editVimModeEnabled.value = DEFAULT_EDITOR_SETTINGS.vimModeEnabled;
     editAutoCloseBrackets.value = DEFAULT_EDITOR_SETTINGS.autoCloseBrackets;
     editSqlSemanticDiagnosticsMode.value = DEFAULT_EDITOR_SETTINGS.sqlSemanticDiagnosticsMode;
@@ -2226,8 +2375,12 @@ function resetDefaultsForTab(tab: SettingsCategory) {
     editSidebarCopyTableNameIncludeSchema.value = DEFAULT_EDITOR_SETTINGS.sidebarCopyTableNameIncludeSchema;
     editToolbarItems.value = { ...DEFAULT_EDITOR_SETTINGS.toolbarItems };
   } else if (tab === "data") {
+    historyRetention.reset();
+    mcpHistoryRetention.reset();
     editShowColumnCommentsInHeader.value = DEFAULT_EDITOR_SETTINGS.showColumnCommentsInHeader;
     editShowColumnTypesInHeader.value = DEFAULT_EDITOR_SETTINGS.showColumnTypesInHeader;
+    editShowColumnHeaderTooltips.value = DEFAULT_EDITOR_SETTINGS.showColumnHeaderTooltips;
+    editShowResultSourceDatabase.value = DEFAULT_EDITOR_SETTINGS.showResultSourceDatabase;
     editDataGridShowTransposeFieldMetadata.value = DEFAULT_EDITOR_SETTINGS.dataGridShowTransposeFieldMetadata;
     editColorizeDataGridCellTypes.value = DEFAULT_EDITOR_SETTINGS.colorizeDataGridCellTypes;
     // Back to the built-in palette, but keep the user's saved schemes available.
@@ -2236,6 +2389,7 @@ function resetDefaultsForTab(tab: SettingsCategory) {
     editCompactColumnHeaderActions.value = DEFAULT_EDITOR_SETTINGS.compactColumnHeaderActions;
     editDataGridQuickEntry.value = DEFAULT_EDITOR_SETTINGS.dataGridQuickEntry;
     editDataGridFilterEditorView.value = DEFAULT_EDITOR_SETTINGS.dataGridFilterEditorView;
+    editDataGridToolbarLayout.value = DEFAULT_EDITOR_SETTINGS.dataGridToolbarLayout;
     editDataGridKeepFilterEditorExpanded.value = DEFAULT_EDITOR_SETTINGS.dataGridKeepFilterEditorExpanded;
     editDataGridTextFilterPanelHeight.value = DEFAULT_EDITOR_SETTINGS.dataGridTextFilterPanelHeight;
     editDefaultAutoKeepResults.value = DEFAULT_EDITOR_SETTINGS.defaultAutoKeepResults;
@@ -2282,6 +2436,8 @@ function resetDefaultsForTab(tab: SettingsCategory) {
 }
 
 function resetAllDefaults() {
+  historyRetention.reset();
+  mcpHistoryRetention.reset();
   // Same contract as resetDefaultsForTab: a full reset also exits any
   // in-progress shortcut capture (#9066).
   editingShortcutId.value = null;
@@ -2295,6 +2451,7 @@ function resetAllDefaults() {
   editActiveCustomThemeId.value = DEFAULT_EDITOR_SETTINGS.activeCustomThemeId;
   editExecuteMode.value = DEFAULT_EDITOR_SETTINGS.executeMode;
   editDefaultTransactionMode.value = DEFAULT_EDITOR_SETTINGS.defaultTransactionMode;
+  editKeepExplicitTransactionInAutoCommit.value = DEFAULT_EDITOR_SETTINGS.keepExplicitTransactionInAutoCommit;
   editExecuteAllOnBlankLine.value = DEFAULT_EDITOR_SETTINGS.executeAllOnBlankLine;
   editShowExecutionTargetPicker.value = DEFAULT_EDITOR_SETTINGS.showExecutionTargetPicker;
   editShowStatementRunButtons.value = DEFAULT_EDITOR_SETTINGS.showStatementRunButtons;
@@ -2302,12 +2459,14 @@ function resetAllDefaults() {
   editShowCurrentStatementFrame.value = DEFAULT_EDITOR_SETTINGS.showCurrentStatementFrame;
   editShowInsertValueHints.value = DEFAULT_EDITOR_SETTINGS.showInsertValueHints;
   editAutoAliasTables.value = DEFAULT_EDITOR_SETTINGS.autoAliasTables;
+  editTableCompletionSchemaQualification.value = DEFAULT_EDITOR_SETTINGS.tableCompletionSchemaQualification;
   editInsertSpaceAfterCompletion.value = DEFAULT_EDITOR_SETTINGS.insertSpaceAfterCompletion;
   editSqlServerSpaceConfirmsCompletion.value = DEFAULT_EDITOR_SETTINGS.sqlServerSpaceConfirmsCompletion;
   editSortCompletionColumnsAlphabetically.value = DEFAULT_EDITOR_SETTINGS.sortCompletionColumnsAlphabetically;
   editSelectFirstCompletionOnOpen.value = DEFAULT_EDITOR_SETTINGS.selectFirstCompletionOnOpen;
   editWordWrap.value = DEFAULT_EDITOR_SETTINGS.wordWrap;
   editShowWhitespace.value = DEFAULT_EDITOR_SETTINGS.showWhitespace;
+  editDdlOpenMode.value = DEFAULT_EDITOR_SETTINGS.ddlOpenMode;
   editVimModeEnabled.value = DEFAULT_EDITOR_SETTINGS.vimModeEnabled;
   editAutoCloseBrackets.value = DEFAULT_EDITOR_SETTINGS.autoCloseBrackets;
   editSqlSemanticDiagnosticsMode.value = DEFAULT_EDITOR_SETTINGS.sqlSemanticDiagnosticsMode;
@@ -2330,6 +2489,7 @@ function resetAllDefaults() {
   editSidebarTablePageSize.value = DEFAULT_SIDEBAR_TABLE_PAGE_SIZE;
   editShowColumnCommentsInHeader.value = DEFAULT_EDITOR_SETTINGS.showColumnCommentsInHeader;
   editShowColumnTypesInHeader.value = DEFAULT_EDITOR_SETTINGS.showColumnTypesInHeader;
+  editShowColumnHeaderTooltips.value = DEFAULT_EDITOR_SETTINGS.showColumnHeaderTooltips;
   editDataGridShowTransposeFieldMetadata.value = DEFAULT_EDITOR_SETTINGS.dataGridShowTransposeFieldMetadata;
   editColorizeDataGridCellTypes.value = DEFAULT_EDITOR_SETTINGS.colorizeDataGridCellTypes;
   // Reset the selection only; saved schemes survive a full settings reset.
@@ -2338,6 +2498,7 @@ function resetAllDefaults() {
   editCompactColumnHeaderActions.value = DEFAULT_EDITOR_SETTINGS.compactColumnHeaderActions;
   editDataGridQuickEntry.value = DEFAULT_EDITOR_SETTINGS.dataGridQuickEntry;
   editDataGridFilterEditorView.value = DEFAULT_EDITOR_SETTINGS.dataGridFilterEditorView;
+  editDataGridToolbarLayout.value = DEFAULT_EDITOR_SETTINGS.dataGridToolbarLayout;
   editDataGridKeepFilterEditorExpanded.value = DEFAULT_EDITOR_SETTINGS.dataGridKeepFilterEditorExpanded;
   editDataGridTextFilterPanelHeight.value = DEFAULT_EDITOR_SETTINGS.dataGridTextFilterPanelHeight;
   editDefaultAutoKeepResults.value = DEFAULT_EDITOR_SETTINGS.defaultAutoKeepResults;
@@ -2546,6 +2707,12 @@ function onCompletionTriggerModeChange(v: any) {
   }
 }
 
+function onTableCompletionSchemaQualificationChange(v: any) {
+  if (v === "never" || v === "collision" || v === "always") {
+    editTableCompletionSchemaQualification.value = v;
+  }
+}
+
 function onTableHoverLookupModeChange(v: any) {
   if (v === "current" || v === "fallback" || v === "always") {
     editTableHoverLookupMode.value = v;
@@ -2568,8 +2735,46 @@ function onTableFontFamilyChange(v: any) {
 function onUiFontFamilyChange(v: any) {
   if (typeof v === "string") {
     editUiFontFamily.value = v;
-    previewUiFontFamily(v);
+    uiFontOptionPreview.runNow(v);
   }
+}
+
+async function persistAiTypography(partial: Partial<Pick<EditorSettings, "aiFontFamily" | "aiFontSize">>) {
+  aiTypographySaving.value = true;
+  try {
+    await settingsStore.updateEditorSettingsAndPersist(partial);
+  } catch (error) {
+    applySettingsErrorToast(error);
+  } finally {
+    editAiFontFamily.value = settingsStore.editorSettings.aiFontFamily;
+    editAiFontSize.value = settingsStore.editorSettings.aiFontSize;
+    aiTypographySaving.value = false;
+  }
+}
+
+function onAiFontFamilyChange(value: unknown) {
+  const fontFamily = normalizeAiConversationFontFamily(value);
+  editAiFontFamily.value = fontFamily;
+  if (fontFamily !== settingsStore.editorSettings.aiFontFamily) void persistAiTypography({ aiFontFamily: fontFamily });
+}
+
+function commitAiFontSize() {
+  const fontSize = normalizeAiConversationFontSize(editAiFontSize.value);
+  editAiFontSize.value = fontSize;
+  if (fontSize !== settingsStore.editorSettings.aiFontSize) void persistAiTypography({ aiFontSize: fontSize });
+}
+
+function blurAiFontSizeInput(event: KeyboardEvent) {
+  (event.target as HTMLInputElement | null)?.blur();
+}
+
+function resetAiTypography() {
+  editAiFontFamily.value = AI_CONVERSATION_FONT_FAMILY_DEFAULT;
+  editAiFontSize.value = AI_CONVERSATION_FONT_SIZE_DEFAULT;
+  void persistAiTypography({
+    aiFontFamily: AI_CONVERSATION_FONT_FAMILY_DEFAULT,
+    aiFontSize: AI_CONVERSATION_FONT_SIZE_DEFAULT,
+  });
 }
 
 const themeSelectValue = computed(() => {
@@ -2634,7 +2839,9 @@ function onDeleteConnectionTabHandlingModeChange(v: any) {
 }
 
 function onLocaleChange(v: any) {
-  if (typeof v === "string") void setLocale(v as Locale);
+  if (typeof v !== "string") return;
+  localeOptionPreview.cancel();
+  void setLocale(v as Locale);
 }
 
 function onUiScaleChange(value: unknown) {
@@ -2653,6 +2860,10 @@ function setSidebarObjectDisplay(value: "grouped" | "simple") {
 
 function setRoutineSourceOpenMode(value: "query-tab" | "dialog") {
   editRoutineSourceOpenMode.value = value;
+}
+
+function setDdlOpenMode(value: unknown) {
+  if (value === "dialog" || value === "tab") editDdlOpenMode.value = value;
 }
 
 function setIconTheme(value: DesktopIconTheme) {
@@ -2685,7 +2896,19 @@ function onShortcutKeydown(actionId: ShortcutActionId, event: KeyboardEvent) {
     editingShortcutId.value = null;
     return;
   }
-  onShortcutChange(actionId, shortcut);
+  // 草稿必须正好等于落盘值：否则“未保存”状态永远消不掉，#9881 里
+  // 「应用」点了没反应、「应用并关闭」每次都弹未保存确认。
+  const captured = resolveCapturedShortcutEdit(actionId, shortcut, editShortcuts.value);
+  if (captured.rejectedByPlatformDefault) {
+    toast(t("settings.shortcutPlatformDefault"), 3000);
+    editingShortcutId.value = null;
+    return;
+  }
+  if (captured.changed) {
+    editShortcuts.value = captured.shortcuts;
+  } else {
+    onShortcutChange(actionId, shortcut);
+  }
   editingShortcutId.value = null;
 }
 
@@ -2726,10 +2949,14 @@ function cancelShortcutEdit() {
 function resetShortcut(actionId: ShortcutActionId) {
   const definition = SHORTCUT_DEFINITIONS.find((item) => item.id === actionId);
   if (!definition) return;
-  editShortcuts.value = {
+  // The static definition default is the macOS literal for a few actions
+  // (selection-occurrence), so the reset must go through the same persisted
+  // normalization as capture — otherwise Windows drafts a key that can never
+  // save and silently flips to the platform default on apply.
+  editShortcuts.value = normalizeShortcutSettings({
     ...editShortcuts.value,
     [actionId]: definition.defaultShortcut,
-  };
+  });
 }
 
 function clearShortcut(actionId: ShortcutActionId) {
@@ -2758,6 +2985,28 @@ function setTabSortMode(value: TabSortMode) {
 
 function setSidebarActivation(value: "single" | "double") {
   editSidebarActivation.value = value;
+}
+
+// Custom AI skill root (read-only SKILL.md discovery; desktop-only, prd 09-21-public-skill-loader).
+const customSkillRootDraft = ref("");
+watch(
+  () => settingsStore.desktopSettings.custom_ai_skill_root,
+  (value) => {
+    customSkillRootDraft.value = value ?? "";
+  },
+  { immediate: true },
+);
+async function commitCustomSkillRoot() {
+  const trimmed = customSkillRootDraft.value.trim();
+  if ((settingsStore.desktopSettings.custom_ai_skill_root ?? "") === trimmed) return;
+  await settingsStore.updateDesktopSettings({ custom_ai_skill_root: trimmed || null });
+}
+async function pickCustomSkillRoot() {
+  const { open } = await import("@tauri-apps/plugin-dialog");
+  const selected = await open({ directory: true, multiple: false, title: t("settings.aiSkillRoot") });
+  if (typeof selected !== "string" || !selected) return;
+  customSkillRootDraft.value = selected;
+  await settingsStore.updateDesktopSettings({ custom_ai_skill_root: selected });
 }
 
 const activeSettingsTab = ref("appearance");
@@ -2804,7 +3053,7 @@ const settingsCategoryNav = computed<{ value: SettingsCategory; label: string }[
   { value: "formatter", label: t("settings.sqlFormatterTab") },
   { value: "navigation", label: t("settings.navigationTab") },
   { value: "data", label: t("settings.dataTab") },
-  ...(isWeb ? [] : [{ value: "backups" as const, label: t("databaseBackup.title") }]),
+  { value: "backups" as const, label: t("databaseBackup.title") },
   { value: "tunnels", label: t("settings.tunnelsTab") },
   { value: "shortcuts", label: t("settings.shortcutsTab") },
   { value: "snippets", label: t("settings.snippetsTab") },
@@ -2956,6 +3205,7 @@ async function revealSettingsSearchTarget(result: SettingsSearchEntry) {
 async function selectSettingsSearchResult(result: SettingsSearchEntry) {
   pendingSettingsSearchResult = result;
   if (result.shortcutId) shortcutSearchQuery.value = result.title;
+  if (result.category === "ai") aiConfigListMode.value = "list";
   applySettingsSearchRoute(result);
   settingsSearchQuery.value = "";
   settingsSearchOpen.value = false;
@@ -3162,6 +3412,11 @@ const mcpHttpSettings = ref<McpHttpServerSettings>({
 });
 const mcpHttpStatus = ref<McpHttpServerStatus | null>(null);
 const webMcpHttpStatus = ref<WebMcpHttpStatus | null>(null);
+const webMcpEnabledDraft = ref(false);
+const webMcpAllowedHostsText = ref("");
+const webMcpAllowedOriginsText = ref("");
+const webMcpSaving = ref(false);
+const webMcpError = ref("");
 const mcpHttpLoading = ref(false);
 const mcpHttpSaving = ref(false);
 const mcpHttpError = ref("");
@@ -3339,6 +3594,7 @@ async function saveMcpPolicy(
       databaseScope: "all" | "selected" | "none";
       allowedDatabases: string[];
       databasePolicies: { databaseName: string; readOnly: boolean; allowDangerousSql: boolean }[];
+      allowSalesforceDml: boolean;
     }[];
     groupPolicies?: McpGroupPolicy[];
     queryTimeoutSecs?: number | null;
@@ -3527,6 +3783,14 @@ function onMcpGroupExecutionModeChange(groupId: string, mode: McpConnectionExecu
   void saveMcpPolicy({ groupPolicies });
 }
 
+// A connection rule is only worth persisting when it actually changes something: an
+// explicit execution mode, a narrowed database scope, a per-database override, or the
+// Salesforce DML opt-in. Rules that merely restate the inherited defaults are dropped so
+// the stored policy stays readable and keeps following later global changes.
+function mcpConnectionPolicyIsMeaningful(rule: McpConnectionPolicy): boolean {
+  return rule.executionModeConfigured || rule.databaseScope !== "all" || rule.databasePolicies.length > 0 || rule.allowSalesforceDml;
+}
+
 function onMcpConnectionExecutionModeChange(connectionId: string, mode: McpConnectionExecutionMode | "inherit") {
   if (mode === "high_risk_write" && !window.confirm(t("settings.mcpExecutionModeHighRiskConfirm"))) return;
   const existing = settingsStore.mcpGlobalPolicy.connectionPolicies.find((item) => item.connectionId === connectionId);
@@ -3550,8 +3814,38 @@ function onMcpConnectionExecutionModeChange(connectionId: string, mode: McpConne
     databaseScope: existing?.databaseScope ?? ("all" as const),
     allowedDatabases: existing?.allowedDatabases ?? [],
     databasePolicies: selectedMode.databasePolicies,
+    // Switching a connection to read-only silently revokes the DML opt-in, matching
+    // the backend's ceiling: an agent must never keep a write path it lost.
+    allowSalesforceDml: (existing?.allowSalesforceDml ?? false) && !selectedMode.readOnly,
   };
-  if (next.executionModeConfigured || next.databaseScope !== "all" || next.databasePolicies.length > 0) rules.push(next);
+  if (mcpConnectionPolicyIsMeaningful(next)) rules.push(next);
+  void saveMcpPolicy({ connectionPolicies: rules });
+}
+
+function onMcpConnectionSalesforceDmlChange(connectionId: string, allowed: boolean) {
+  const existing = settingsStore.mcpGlobalPolicy.connectionPolicies.find((item) => item.connectionId === connectionId);
+  if (allowed) {
+    // Read-only is a hard ceiling on the server too, so letting the box stay checked
+    // here would only advertise a write path that every prepare call then refuses.
+    const effectiveMode = mcpEffectiveExecutionMode(mcpInheritedGroupExecutionMode(connectionId), mcpConnectionExecutionMode(connectionId), "inherit");
+    if (effectiveMode === "read_only") {
+      toast(t("settings.mcpConnectionPolicyAllowSalesforceDmlReadOnlyBlocked"), 5000);
+      return;
+    }
+  }
+  const rules = settingsStore.mcpGlobalPolicy.connectionPolicies.filter((item) => item.connectionId !== connectionId);
+  const next: McpConnectionPolicy = {
+    connectionId,
+    readOnly: existing?.readOnly ?? false,
+    allowDangerousSql: existing?.allowDangerousSql ?? false,
+    executionModeConfigured: existing?.executionModeConfigured ?? false,
+    executionModePolicyVersion: existing?.executionModePolicyVersion ?? null,
+    databaseScope: existing?.databaseScope ?? "all",
+    allowedDatabases: existing?.allowedDatabases ?? [],
+    databasePolicies: existing?.databasePolicies ?? [],
+    allowSalesforceDml: allowed,
+  };
+  if (mcpConnectionPolicyIsMeaningful(next)) rules.push(next);
   void saveMcpPolicy({ connectionPolicies: rules });
 }
 
@@ -3571,7 +3865,7 @@ function onMcpDatabaseExecutionModeChange(connectionId: string, databaseName: st
     databasePolicies,
   };
   const rules = settingsStore.mcpGlobalPolicy.connectionPolicies.filter((item) => item.connectionId !== connectionId);
-  if (next.executionModeConfigured || next.databaseScope !== "all" || next.databasePolicies.length > 0) rules.push(next);
+  if (mcpConnectionPolicyIsMeaningful(next)) rules.push(next);
   void saveMcpPolicy({ connectionPolicies: rules });
 }
 
@@ -3628,7 +3922,12 @@ async function loadMcpHttpSettings() {
   mcpHttpError.value = "";
   try {
     if (isWeb) {
-      webMcpHttpStatus.value = await loadWebMcpHttpStatus();
+      const status = await loadWebMcpHttpStatus();
+      webMcpHttpStatus.value = status;
+      webMcpEnabledDraft.value = status.enabled;
+      webMcpAllowedHostsText.value = status.allowedHosts.join("\n");
+      webMcpAllowedOriginsText.value = status.allowedOrigins.join("\n");
+      webMcpError.value = "";
       return;
     }
     const [settings, status] = await Promise.all([loadMcpHttpServerSettings(), mcpHttpServerStatus()]);
@@ -3641,6 +3940,41 @@ async function loadMcpHttpSettings() {
     mcpHttpError.value = formatMcpHttpError(error);
   } finally {
     mcpHttpLoading.value = false;
+  }
+}
+
+async function saveWebMcpSettings() {
+  if (webMcpSaving.value || webMcpHttpStatus.value?.deploymentManaged) return;
+  webMcpSaving.value = true;
+  webMcpError.value = "";
+  const settings: WebMcpHttpSettings = {
+    enabled: webMcpEnabledDraft.value,
+    allowedHosts: mcpHttpList(webMcpAllowedHostsText.value),
+    allowedOrigins: mcpHttpList(webMcpAllowedOriginsText.value),
+  };
+  try {
+    const status = await saveWebMcpHttpSettings(settings);
+    webMcpHttpStatus.value = status;
+    webMcpEnabledDraft.value = status.enabled;
+    webMcpAllowedHostsText.value = status.allowedHosts.join("\n");
+    webMcpAllowedOriginsText.value = status.allowedOrigins.join("\n");
+  } catch (error: unknown) {
+    webMcpError.value = formatMcpHttpError(error);
+  } finally {
+    webMcpSaving.value = false;
+  }
+}
+
+async function rotateWebMcpAccessToken() {
+  if (webMcpSaving.value || webMcpHttpStatus.value?.deploymentManaged) return;
+  webMcpSaving.value = true;
+  webMcpError.value = "";
+  try {
+    webMcpHttpStatus.value = await rotateWebMcpToken();
+  } catch (error: unknown) {
+    webMcpError.value = formatMcpHttpError(error);
+  } finally {
+    webMcpSaving.value = false;
   }
 }
 
@@ -3687,6 +4021,9 @@ const mcpLaunchConfig = computed<McpLaunchConfig | undefined>(() => {
     };
   }
   const env = mcpStatus.value?.data_dir ? { DBX_DATA_DIR: mcpStatus.value.data_dir } : undefined;
+  if (mcpStatus.value?.native_bin_path) {
+    return preferMcpNativeLaunch({ command: "dbx-mcp-server", env }, mcpStatus.value.native_bin_path);
+  }
   if (mcpStatus.value?.node_path && mcpStatus.value.script_path) {
     return {
       command: mcpStatus.value.node_path,
@@ -3702,17 +4039,9 @@ const mcpLaunchConfig = computed<McpLaunchConfig | undefined>(() => {
 
 const mcpJsonRecommendedConfig = computed(() => buildMcpJsonConfig(mcpLaunchConfig.value));
 
-const mcpTraeRecommendedConfig = computed(() => {
-  // TRAE currently splits Windows executable paths containing spaces, so bypass Node and launch the native MCP binary directly.
-  const nativeBinPath = !isWeb && isWindows() ? mcpStatus.value?.native_bin_path : undefined;
-  return buildMcpTraeConfig(mcpLaunchConfig.value, nativeBinPath ?? undefined);
-});
+const mcpTraeRecommendedConfig = computed(() => buildMcpTraeConfig(mcpLaunchConfig.value));
 
-const mcpQoderRecommendedConfig = computed(() => {
-  // Qoder follows TRAE's mcpServers JSON format and has the same Windows path parsing limitation.
-  const nativeBinPath = !isWeb && isWindows() ? mcpStatus.value?.native_bin_path : undefined;
-  return buildMcpQoderConfig(mcpLaunchConfig.value, nativeBinPath ?? undefined);
-});
+const mcpQoderRecommendedConfig = computed(() => buildMcpQoderConfig(mcpLaunchConfig.value));
 
 const mcpVsCodeRecommendedConfig = computed(() => buildMcpVsCodeConfig(mcpLaunchConfig.value));
 
@@ -3741,11 +4070,19 @@ const mcpStatusLabel = computed(() => {
 });
 
 const mcpCommand = computed(() => {
-  if (!mcpStatus.value) return "npm install -g @dbx-app/mcp-server@latest";
+  if (!mcpStatus.value) return isWindows() ? 'powershell -NoProfile -Command "irm https://dbxio.com/install-mcp.ps1 | iex"' : "curl -fsSL https://dbxio.com/install-mcp | sh";
   return mcpStatus.value.installed ? mcpStatus.value.update_command : mcpStatus.value.install_command;
 });
 
 const mcpUninstallCommand = computed(() => mcpStatus.value?.uninstall_command || "npm uninstall -g @dbx-app/mcp-server");
+const mcpNativeMigrationAvailable = computed(() => mcpStatus.value?.installation_source === "npm");
+const mcpInstallDisabled = computed(() => mcpInstalling.value || mcpUninstalling.value || Boolean(mcpStatus.value?.installed && !mcpStatus.value.update_available && !mcpNativeMigrationAvailable.value));
+const mcpInstallButtonLabel = computed(() => {
+  if (mcpInstalling.value) return t("settings.mcpInstalling");
+  if (mcpNativeMigrationAvailable.value) return t("settings.mcpSwitchToNativeButton");
+  if (!mcpStatus.value?.installed) return t("settings.mcpInstallButton");
+  return mcpStatus.value.update_available ? t("settings.mcpUpdateButton") : t("settings.mcpUpToDate");
+});
 
 async function refreshMcpStatus() {
   if (mcpStatusLoading.value) return;
@@ -3786,7 +4123,7 @@ async function installMcp() {
   mcpInstallMessage.value = "";
   mcpInstallError.value = false;
   try {
-    const result = await installMcpServer();
+    const result = mcpNativeMigrationAvailable.value || !mcpStatus.value?.installed ? await installNativeMcpServer() : await installMcpServer();
     mcpInstallMessage.value = result;
     mcpInstallError.value = false;
     // 安装成功后刷新状态
@@ -3817,6 +4154,28 @@ async function uninstallMcp() {
     notifyComponentUpdatesChanged();
   } catch (e: any) {
     mcpInstallMessage.value = t("settings.mcpUninstallFailed", { error: e?.message || String(e) });
+    mcpInstallError.value = true;
+  } finally {
+    mcpUninstalling.value = false;
+    window.setTimeout(() => {
+      mcpInstallMessage.value = "";
+      mcpInstallError.value = false;
+    }, 3000);
+  }
+}
+
+async function uninstallNpmMcpFallback() {
+  if (mcpInstalling.value || mcpUninstalling.value || !mcpStatus.value?.npm_installed) return;
+  if (!window.confirm(t("settings.mcpRemoveNpmFallbackConfirm"))) return;
+  mcpUninstalling.value = true;
+  mcpInstallMessage.value = "";
+  mcpInstallError.value = false;
+  try {
+    mcpInstallMessage.value = await uninstallNpmMcpServer();
+    await refreshMcpStatus();
+    notifyComponentUpdatesChanged();
+  } catch (e: any) {
+    mcpInstallMessage.value = t("settings.mcpRemoveNpmFallbackFailed", { error: e?.message || String(e) });
     mcpInstallError.value = true;
   } finally {
     mcpUninstalling.value = false;
@@ -4183,7 +4542,7 @@ async function testWebDav() {
 
 async function uploadWebDavSnapshot() {
   await runWebDavAction("upload", async () => {
-    const summary = await webdavSyncUpload(currentWebDavConfig(), settingsStore.editorSettings, webdavSyncSecrets.value ? webdavSecretsPassphrase.value : undefined);
+    const summary = await webdavSyncUpload(currentWebDavConfig(), settingsStore.editorSettings, webdavSyncSecrets.value ? webdavSecretsPassphrase.value : undefined, webdavSyncSecrets.value);
     return t("settings.syncUploadSuccess", {
       bytes: summary.bytes,
       path: summary.remotePath,
@@ -4194,7 +4553,7 @@ async function uploadWebDavSnapshot() {
 async function downloadWebDavSnapshot() {
   if (!window.confirm(t("settings.syncDownloadConfirm"))) return;
   await runWebDavAction("download", async () => {
-    const result = await webdavSyncDownload(currentWebDavConfig(), webdavSyncSecrets.value ? webdavSecretsPassphrase.value : undefined);
+    const result = await webdavSyncDownload(currentWebDavConfig(), webdavSyncSecrets.value ? webdavSecretsPassphrase.value : undefined, webdavSyncSecrets.value);
     if (result.editorSettings && typeof result.editorSettings === "object") {
       settingsStore.updateEditorSettings(result.editorSettings as any);
     }
@@ -4416,8 +4775,8 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  clearThemePalettePreview();
-  clearUiFontFamilyPreview();
+  clearThemePaletteOptionPreview();
+  clearUiFontOptionPreview();
   restoreLocaleOptionPreview();
   cleanupTableColumnTemplatePointerDrag();
   cleanupTruncationObservers();
@@ -6041,6 +6400,16 @@ onUnmounted(() => {
                   </Select>
                 </div>
 
+                <div class="settings-item flex items-center justify-between gap-4 rounded-md border bg-muted/20 px-3 py-2 md:col-span-2" data-editor-keep-explicit-transaction>
+                  <div class="min-w-0 space-y-1">
+                    <Label for="editor-keep-explicit-transaction">{{ t("settings.keepExplicitTransactionInAutoCommit") }}</Label>
+                    <p class="text-xs text-muted-foreground">
+                      {{ t("settings.keepExplicitTransactionInAutoCommitDescription") }}
+                    </p>
+                  </div>
+                  <Switch id="editor-keep-explicit-transaction" v-model="editKeepExplicitTransactionInAutoCommit" class="mt-0.5 shrink-0" />
+                </div>
+
                 <div class="settings-item flex items-center justify-between gap-4 rounded-md border bg-muted/20 px-3 py-2" :class="{ 'opacity-50': editExecuteMode !== 'current' }">
                   <div class="space-y-1">
                     <Label for="editor-execute-all-on-blank-line">{{ t("settings.executeAllOnBlankLine") }}</Label>
@@ -6163,6 +6532,25 @@ onUnmounted(() => {
                   </div>
                   <Switch id="editor-auto-alias-tables" v-model="editAutoAliasTables" class="mt-0.5" />
                 </div>
+
+                <div class="settings-item flex items-start justify-between gap-4 rounded-md border bg-muted/20 px-3 py-2" data-editor-table-completion-schema-qualification>
+                  <div class="min-w-0 space-y-1">
+                    <Label>{{ t("settings.tableCompletionSchemaQualification") }}</Label>
+                    <p class="text-xs leading-tight text-muted-foreground">
+                      {{ tableCompletionSchemaQualificationDescription }}
+                    </p>
+                  </div>
+                  <Select :model-value="editTableCompletionSchemaQualification" @update:model-value="onTableCompletionSchemaQualificationChange">
+                    <SelectTrigger class="h-8 w-44 shrink-0">
+                      <SelectValue :placeholder="t('settings.tableCompletionSchemaQualification')" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="never">{{ t("settings.tableCompletionSchemaQualificationNever") }}</SelectItem>
+                      <SelectItem value="collision">{{ t("settings.tableCompletionSchemaQualificationCollision") }}</SelectItem>
+                      <SelectItem value="always">{{ t("settings.tableCompletionSchemaQualificationAlways") }}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <Separator />
@@ -6196,6 +6584,22 @@ onUnmounted(() => {
                     </p>
                   </div>
                   <Switch id="editor-word-wrap" v-model="editWordWrap" class="mt-0.5" />
+                </div>
+
+                <div class="settings-item flex items-center justify-between gap-4 rounded-md border bg-muted/20 px-3 py-2">
+                  <div class="space-y-1">
+                    <Label for="editor-ddl-open-mode">{{ t("settings.ddlOpenMode") }}</Label>
+                    <p class="text-xs text-muted-foreground">{{ t("settings.ddlOpenModeDescription") }}</p>
+                  </div>
+                  <Select :model-value="editDdlOpenMode" @update:model-value="setDdlOpenMode">
+                    <SelectTrigger id="editor-ddl-open-mode" class="h-8 w-36 shrink-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="dialog">{{ t("settings.ddlOpenModeDialog") }}</SelectItem>
+                      <SelectItem value="tab">{{ t("settings.ddlOpenModeTab") }}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div class="settings-item flex items-center justify-between gap-4 rounded-md border bg-muted/20 px-3 py-2">
@@ -6485,7 +6889,7 @@ onUnmounted(() => {
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent class="w-[150px]" @pointerleave="restoreLocaleOptionPreview">
-                      <SelectItem v-for="locale in LOCALE_OPTIONS" :key="locale.value" :value="locale.value" @pointerenter="previewLocaleOption(locale.value)" @focus="previewLocaleOption(locale.value)">
+                      <SelectItem v-for="locale in LOCALE_OPTIONS" :key="locale.value" :value="locale.value" @pointerenter="scheduleLocaleOptionPreview(locale.value)" @focus="previewLocaleOption(locale.value)">
                         <div class="flex items-center gap-1">
                           <span class="inline-flex h-5 w-6 shrink-0 items-center justify-center text-sm font-medium leading-none">
                             {{ locale.flag }}
@@ -6517,8 +6921,8 @@ onUnmounted(() => {
                             </span>
                           </SelectValue>
                         </SelectTrigger>
-                        <SelectContent @pointerleave="clearThemePalettePreview">
-                          <SelectItem v-for="option in appThemePaletteOptions" :key="option.value" :value="option.value" @pointerenter="previewThemePalette(option.value)" @focus="previewThemePalette(option.value)">
+                        <SelectContent @pointerleave="clearThemePaletteOptionPreview">
+                          <SelectItem v-for="option in appThemePaletteOptions" :key="option.value" :value="option.value" @pointerenter="scheduleThemePalettePreview(option.value)" @focus="previewThemePaletteOption(option.value)">
                             <div class="flex items-center gap-2">
                               <span class="h-3 w-3 rounded-full border border-border shadow-xs" :style="{ background: option.previewColor }" />
                               {{ option.label }}
@@ -6611,7 +7015,7 @@ onUnmounted(() => {
                     :content-style="{ fontFamily: editUiFontFamily || DEFAULT_UI_FONT_FAMILY }"
                     @update:model-value="onUiFontFamilyChange"
                     @update:open="onUiFontFamilyOpenChange"
-                    @option-hover="previewUiFontOption"
+                    @option-hover="scheduleUiFontOptionPreview"
                     @option-highlight="previewUiFontOption"
                     @option-leave="restoreUiFontFamilyPreview"
                   >
@@ -7422,6 +7826,60 @@ onUnmounted(() => {
 
             <!-- Data Tab -->
             <section v-else-if="activeSettingsTab === 'data'" data-settings-search-id="data" :class="['flex flex-col gap-5 py-2', settingsSearchTargetClass('data')]">
+              <div data-settings-search-id="history-retention" :class="['flex items-center justify-between gap-4 rounded-md border bg-muted/20 px-3 py-2', settingsSearchTargetClass('history-retention')]">
+                <div class="min-w-0 space-y-1">
+                  <Label for="history-retention-limit">{{ t("settings.historyRetentionLimit") }}</Label>
+                  <p class="text-xs text-muted-foreground">{{ t("settings.historyRetentionDescription") }}</p>
+                </div>
+                <Select :model-value="String(editHistoryRetentionLimit)" :disabled="!historyRetentionLoaded || historyRetentionSaving" @update:model-value="(value) => (editHistoryRetentionLimit = Number(value))">
+                  <SelectTrigger id="history-retention-limit" class="w-40 shrink-0"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="limit in HISTORY_RETENTION_LIMITS" :key="limit" :value="String(limit)">{{ limit === 0 ? t("settings.historyRetentionUnlimited") : String(limit) }}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p v-if="historyRetentionLoading" class="text-xs text-muted-foreground">{{ t("common.loading") }}</p>
+                <div v-if="historyRetentionLoadError" class="flex items-center gap-2 text-xs text-destructive" role="alert">
+                  <span>{{ t("settings.historyRetentionLoadFailed", { error: historyRetentionLoadError }) }}</span>
+                  <Button type="button" variant="outline" size="sm" @click="historyRetention.load">{{ t("common.retry") }}</Button>
+                </div>
+              </div>
+              <div data-settings-search-id="mcp-history-retention" :class="['flex items-center justify-between gap-4 rounded-md border bg-muted/20 px-3 py-2', settingsSearchTargetClass('mcp-history-retention')]">
+                <div class="min-w-0 space-y-1">
+                  <Label for="mcp-history-retention-limit">{{ t("settings.mcpHistoryRetentionLimit") }}</Label>
+                  <p class="text-xs text-muted-foreground">{{ t("settings.mcpHistoryRetentionDescription") }}</p>
+                </div>
+                <div class="flex shrink-0 items-center gap-2">
+                  <Select :model-value="String(editMcpHistoryRetentionLimit)" :disabled="!mcpHistoryRetentionLoaded || mcpHistoryRetentionSaving" @update:model-value="(value) => (editMcpHistoryRetentionLimit = Number(value))">
+                    <SelectTrigger id="mcp-history-retention-limit" class="w-40"><SelectValue /></SelectTrigger>
+                    <SelectContent
+                      ><SelectItem v-for="limit in HISTORY_RETENTION_LIMITS" :key="limit" :value="String(limit)">{{ limit === 0 ? t("settings.historyRetentionUnlimited") : String(limit) }}</SelectItem></SelectContent
+                    >
+                  </Select>
+                  <p v-if="mcpHistoryRetentionLoading" class="text-xs text-muted-foreground">{{ t("common.loading") }}</p>
+                  <div v-if="mcpHistoryRetentionLoadError" class="flex items-center gap-2 text-xs text-destructive" role="alert">
+                    <span>{{ t("settings.historyRetentionLoadFailed", { error: mcpHistoryRetentionLoadError }) }}</span>
+                    <Button type="button" variant="outline" size="sm" @click="mcpHistoryRetention.load">{{ t("common.retry") }}</Button>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" :disabled="mcpHistoryCleanupLoading || !mcpHistoryRetentionLoaded" @click="cleanupMcpHistory">
+                    {{ mcpHistoryCleanupLoading ? t("common.loading") : t("settings.mcpHistoryCleanup") }}
+                  </Button>
+                </div>
+              </div>
+              <div id="data-grid-toolbar-layout" data-settings-search-id="data-grid-toolbar-layout" :class="['settings-item flex items-center justify-between gap-4 rounded-md border bg-muted/20 px-3 py-2', settingsSearchTargetClass('data-grid-toolbar-layout')]">
+                <div class="min-w-0 space-y-1">
+                  <Label for="data-grid-toolbar-layout-select">{{ t("settings.dataGridToolbarLayout") }}</Label>
+                  <p class="text-xs text-muted-foreground">{{ t("settings.dataGridToolbarLayoutDescription") }}</p>
+                </div>
+                <Select v-model="editDataGridToolbarLayout">
+                  <SelectTrigger id="data-grid-toolbar-layout-select" class="w-48 shrink-0">
+                    <SelectValue :placeholder="t('settings.dataGridToolbarLayout')" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="split">{{ t("settings.dataGridToolbarLayoutSplit") }}</SelectItem>
+                    <SelectItem value="single">{{ t("settings.dataGridToolbarLayoutSingle") }}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div data-settings-search-id="data-grid-filter-view" :class="['overflow-hidden rounded-md border bg-muted/20', settingsSearchTargetClass('data-grid-filter-view')]">
                 <div class="space-y-3 p-3">
                   <div class="flex items-start justify-between gap-4">
@@ -7606,7 +8064,7 @@ onUnmounted(() => {
                     :min="MIN_RESULT_PAGE_SIZE"
                     :max="MAX_RESULT_PAGE_SIZE"
                     :model-value="editPageSize"
-                    :aria-invalid="hasBlockingQueryResultRowLimit"
+                    :aria-invalid="queryResultRowLimitViolated"
                     @update:model-value="updatePageSizeDraft"
                   />
                 </div>
@@ -7615,29 +8073,44 @@ onUnmounted(() => {
                     <Label for="tableOpenSortMode">{{ t("settings.tableOpenSortMode") }}</Label>
                     <p class="text-xs text-muted-foreground">{{ t("settings.tableOpenSortDescription") }}</p>
                   </div>
-                  <select id="tableOpenSortMode" v-model="editTableOpenSortMode" class="h-8 rounded-md border bg-background px-2 text-xs">
-                    <option value="none">{{ t("settings.tableSortUnchanged") }}</option>
-                    <option value="database">{{ t("settings.tableSortDatabase") }}</option>
-                    <option value="local">{{ t("settings.tableSortLocal") }}</option>
-                  </select>
+                  <Select v-model="editTableOpenSortMode">
+                    <SelectTrigger id="tableOpenSortMode" class="h-8 w-44 shrink-0 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{{ t("settings.tableSortUnchanged") }}</SelectItem>
+                      <SelectItem value="database">{{ t("settings.tableSortDatabase") }}</SelectItem>
+                      <SelectItem value="local">{{ t("settings.tableSortLocal") }}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div class="settings-item flex items-center justify-between gap-4 rounded-md border bg-muted/20 px-3 py-2">
                   <div class="space-y-1">
                     <Label for="tableDatabaseSortDirection">{{ t("settings.tableDatabaseSortDirection") }}</Label>
                   </div>
-                  <select id="tableDatabaseSortDirection" v-model="editTableDatabaseSortDirection" class="h-8 rounded-md border bg-background px-2 text-xs">
-                    <option value="asc">{{ t("settings.tableSortAscending") }}</option>
-                    <option value="desc">{{ t("settings.tableSortDescending") }}</option>
-                  </select>
+                  <Select v-model="editTableDatabaseSortDirection">
+                    <SelectTrigger id="tableDatabaseSortDirection" class="h-8 w-36 shrink-0 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asc">{{ t("settings.tableSortAscending") }}</SelectItem>
+                      <SelectItem value="desc">{{ t("settings.tableSortDescending") }}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div class="settings-item flex items-center justify-between gap-4 rounded-md border bg-muted/20 px-3 py-2">
                   <div class="space-y-1">
                     <Label for="tableLocalSortDirection">{{ t("settings.tableLocalSortDirection") }}</Label>
                   </div>
-                  <select id="tableLocalSortDirection" v-model="editTableLocalSortDirection" class="h-8 rounded-md border bg-background px-2 text-xs">
-                    <option value="asc">{{ t("settings.tableSortAscending") }}</option>
-                    <option value="desc">{{ t("settings.tableSortDescending") }}</option>
-                  </select>
+                  <Select v-model="editTableLocalSortDirection">
+                    <SelectTrigger id="tableLocalSortDirection" class="h-8 w-36 shrink-0 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asc">{{ t("settings.tableSortAscending") }}</SelectItem>
+                      <SelectItem value="desc">{{ t("settings.tableSortDescending") }}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div data-settings-search-id="default-auto-keep-results" :class="['settings-item flex items-center justify-between gap-4 rounded-md border bg-muted/20 px-3 py-2', settingsSearchTargetClass('default-auto-keep-results')]">
                   <div class="min-w-0 space-y-1">
@@ -7666,8 +8139,8 @@ onUnmounted(() => {
                     <Label for="query-result-max-rows-enabled">
                       {{ t("settings.queryResultMaxRows") }}
                     </Label>
-                    <p class="text-xs" :class="hasBlockingQueryResultRowLimit ? 'text-destructive' : 'text-muted-foreground'">
-                      {{ hasBlockingQueryResultRowLimit ? t("settings.queryResultMaxRowsTooSmall", { pageSize: editPageSize }) : editQueryResultMaxRowsEnabled ? t("settings.queryResultMaxRowsDescription") : t("settings.queryResultMaxRowsUnlimitedDescription") }}
+                    <p class="text-xs" :class="queryResultRowLimitViolated ? 'text-destructive' : 'text-muted-foreground'">
+                      {{ queryResultRowLimitViolated ? t("settings.queryResultMaxRowsTooSmall", { pageSize: editPageSize }) : editQueryResultMaxRowsEnabled ? t("settings.queryResultMaxRowsDescription") : t("settings.queryResultMaxRowsUnlimitedDescription") }}
                     </p>
                   </div>
                   <div class="flex shrink-0 items-center gap-2">
@@ -7680,7 +8153,7 @@ onUnmounted(() => {
                       :max="MAX_QUERY_RESULT_MAX_ROWS"
                       :model-value="editQueryResultMaxRows"
                       :disabled="!editQueryResultMaxRowsEnabled"
-                      :aria-invalid="hasBlockingQueryResultRowLimit"
+                      :aria-invalid="queryResultRowLimitViolated"
                       @input="updateQueryResultMaxRowsInput"
                     />
                     <Switch id="query-result-max-rows-enabled" v-model="editQueryResultMaxRowsEnabled" :aria-label="t('settings.queryResultMaxRowsEnabled')" />
@@ -7729,6 +8202,28 @@ onUnmounted(() => {
                     </p>
                   </div>
                   <Switch id="show-column-types-in-header" v-model="editShowColumnTypesInHeader" />
+                </div>
+                <div class="settings-item flex items-center justify-between gap-4 rounded-md border bg-muted/20 px-3 py-2">
+                  <div class="space-y-1">
+                    <Label for="show-column-header-tooltips">
+                      {{ t("settings.showColumnHeaderTooltips") }}
+                    </Label>
+                    <p class="text-xs text-muted-foreground">
+                      {{ t("settings.showColumnHeaderTooltipsDescription") }}
+                    </p>
+                  </div>
+                  <Switch id="show-column-header-tooltips" v-model="editShowColumnHeaderTooltips" />
+                </div>
+                <div class="settings-item flex items-center justify-between gap-4 rounded-md border bg-muted/20 px-3 py-2">
+                  <div class="space-y-1">
+                    <Label for="show-result-source-database">
+                      {{ t("settings.showResultSourceDatabase") }}
+                    </Label>
+                    <p class="text-xs text-muted-foreground">
+                      {{ t("settings.showResultSourceDatabaseDescription") }}
+                    </p>
+                  </div>
+                  <Switch id="show-result-source-database" v-model="editShowResultSourceDatabase" />
                 </div>
                 <div class="settings-item flex items-center justify-between gap-4 rounded-md border bg-muted/20 px-3 py-2">
                   <div class="space-y-1">
@@ -8490,7 +8985,7 @@ LIMIT 100;</pre
               </div>
             </section>
 
-            <section v-else-if="activeSettingsTab === 'backups' && !isWeb" data-settings-search-id="backups" :class="['py-2', settingsSearchTargetClass('backups')]">
+            <section v-else-if="activeSettingsTab === 'backups'" data-settings-search-id="backups" :class="['py-2', settingsSearchTargetClass('backups')]">
               <ScheduledDatabaseBackupSettings />
             </section>
 
@@ -8817,6 +9312,80 @@ LIMIT 100;</pre
                 </div>
               </div>
 
+              <div v-if="aiConfigListMode === 'list'" data-settings-search-id="ai-typography" class="space-y-3">
+                <Separator />
+                <div class="settings-item space-y-3 rounded-md border bg-muted/20 px-3 py-2">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="space-y-1">
+                      <h3 class="text-sm font-medium">{{ t("ai.conversationTypography") }}</h3>
+                      <p class="text-xs text-muted-foreground">{{ t("ai.conversationTypographyDescription") }}</p>
+                    </div>
+                    <Button type="button" size="sm" variant="ghost" class="h-7 shrink-0 gap-1 px-2 text-xs" :disabled="aiTypographySaving || (editAiFontFamily === AI_CONVERSATION_FONT_FAMILY_DEFAULT && Number(editAiFontSize) === AI_CONVERSATION_FONT_SIZE_DEFAULT)" @click="resetAiTypography">
+                      <RotateCcw class="h-3.5 w-3.5" />
+                      {{ t("settings.reset") }}
+                    </Button>
+                  </div>
+                  <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]">
+                    <div class="min-w-0 space-y-1.5">
+                      <Label>{{ t("ai.conversationFontFamily") }}</Label>
+                      <SearchableSelect
+                        :model-value="editAiFontFamily"
+                        :options="aiFontOptions"
+                        :placeholder="t('ai.conversationFontFollowInterface')"
+                        :search-placeholder="t('settings.searchFont')"
+                        :empty-text="t('settings.noFontsFound')"
+                        :loading-text="t('settings.loadingFonts')"
+                        :disabled="aiTypographySaving"
+                        allow-custom
+                        clearable
+                        :display-name="displayAiFontFamily"
+                        :normalize-custom="normalizeAiConversationFontFamilyInput"
+                        :trigger-class="appearanceFontSearchTriggerClass"
+                        :trigger-icon-class="appearanceFontSearchTriggerIconClass"
+                        content-class="w-[var(--reka-popover-trigger-width)] min-w-[260px]"
+                        @update:model-value="onAiFontFamilyChange"
+                        @update:open="(open: boolean) => open && loadSystemFontOptions()"
+                      >
+                        <template #trigger-label="{ label, loading }">
+                          <span class="truncate" :style="editAiFontFamily ? { fontFamily: editAiFontFamily } : undefined">
+                            {{ loading ? t("settings.loadingFonts") : label }}
+                          </span>
+                        </template>
+                        <template #option-label="{ option, label }">
+                          <span class="truncate" :style="fontOptionStyle(option, editAiFontFamily)">{{ label }}</span>
+                        </template>
+                        <template #custom-option-label="{ value }">
+                          <span class="truncate" :style="{ fontFamily: value }">
+                            {{ t("settings.useCustomFont", { font: readableFontFamily(value) }) }}
+                          </span>
+                        </template>
+                      </SearchableSelect>
+                    </div>
+                    <div class="space-y-1.5">
+                      <Label for="ai-conversation-font-size">{{ t("ai.conversationFontSize") }}</Label>
+                      <div class="flex items-center gap-2">
+                        <Input
+                          id="ai-conversation-font-size"
+                          v-model.number="editAiFontSize"
+                          type="number"
+                          :min="AI_CONVERSATION_FONT_SIZE_MIN"
+                          :max="AI_CONVERSATION_FONT_SIZE_MAX"
+                          step="1"
+                          class="h-8 text-xs"
+                          :disabled="aiTypographySaving"
+                          @change="commitAiFontSize"
+                          @keydown.enter="blurAiFontSizeInput"
+                        />
+                        <span class="text-xs text-muted-foreground">px</span>
+                      </div>
+                      <p class="text-[11px] text-muted-foreground">
+                        {{ t("ai.conversationFontSizeRange", { min: AI_CONVERSATION_FONT_SIZE_MIN, max: AI_CONVERSATION_FONT_SIZE_MAX }) }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Agent Turn Limit (list mode, global) -->
               <div v-if="aiConfigListMode === 'list'" class="space-y-3">
                 <Separator />
@@ -8902,6 +9471,26 @@ LIMIT 100;</pre
                     </p>
                   </div>
                   <Switch id="ai-restore-last-conversation" :model-value="settingsStore.restoreLastConversation" @update:model-value="(value) => settingsStore.setRestoreLastConversation(Boolean(value))" />
+                </div>
+              </div>
+
+              <!-- Custom skill directory (list mode, global, desktop-only) -->
+              <div v-if="aiConfigListMode === 'list' && !isWeb" class="space-y-3">
+                <Separator />
+                <div class="settings-item space-y-2 rounded-md border bg-muted/20 px-3 py-2">
+                  <div class="flex items-center justify-between gap-4">
+                    <div class="space-y-1">
+                      <Label for="ai-custom-skill-root">{{ t("settings.aiSkillRoot") }}</Label>
+                      <p class="text-xs text-muted-foreground">{{ t("settings.aiSkillRootDesc") }}</p>
+                    </div>
+                    <Switch id="ai-custom-skill-root" :model-value="settingsStore.desktopSettings.custom_ai_skill_root_enabled === true" @update:model-value="(value) => settingsStore.updateDesktopSettings({ custom_ai_skill_root_enabled: Boolean(value) })" />
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <Input v-model="customSkillRootDraft" :placeholder="t('settings.aiSkillRootPath')" :disabled="settingsStore.desktopSettings.custom_ai_skill_root_enabled !== true" class="h-8 flex-1 font-mono text-xs" @blur="commitCustomSkillRoot" @keydown.enter="commitCustomSkillRoot" />
+                    <Button variant="outline" size="sm" class="h-8 shrink-0 px-2" :disabled="settingsStore.desktopSettings.custom_ai_skill_root_enabled !== true" :aria-label="t('settings.aiSkillRootBrowse')" @click="pickCustomSkillRoot">
+                      <FolderOpen class="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -9128,7 +9717,7 @@ LIMIT 100;</pre
                               <span class="flex w-full min-w-0 items-center gap-2">
                                 <AiProviderLogo :provider="provider.provider" :label="provider.label" :icon-slug="provider.iconSlug" :icon-path="provider.iconPath" />
                                 <span class="min-w-0 flex-1 truncate">{{ provider.label }}</span>
-                                <Badge variant="outline" class="h-5 shrink-0 px-1.5 text-[10px] font-normal">{{ t("ai.jalapenoSponsored") }}</Badge>
+                                <Badge v-if="provider.badgeKey" variant="outline" class="h-5 shrink-0 px-1.5 text-[10px] font-normal">{{ t(provider.badgeKey) }}</Badge>
                               </span>
                             </SelectItem>
                           </SelectGroup>
@@ -9428,25 +10017,63 @@ LIMIT 100;</pre
                       </TabsList>
                       <TabsContent value="http" class="m-0 space-y-4">
                         <div v-if="isWeb" class="space-y-4">
-                          <div class="rounded-md border bg-muted/20 p-4 space-y-2">
+                          <div class="space-y-3 border-t border-border/60 pt-3">
                             <div class="flex items-center justify-between gap-3">
                               <Label class="text-base">{{ t("settings.mcpHttpWebServiceTitle") }}</Label>
                               <Badge :variant="webMcpHttpStatus?.enabled ? 'default' : 'outline'">{{ webMcpHttpStatus?.enabled ? t("settings.mcpHttpStatusLabelEnabled") : t("settings.mcpHttpStatusLabelDisabled") }}</Badge>
                             </div>
                             <p class="text-xs text-muted-foreground">{{ t("settings.mcpHttpWebServiceDescription") }}</p>
+                            <p v-if="mcpHttpError" class="text-xs text-destructive">{{ mcpHttpError }}</p>
                             <template v-if="webMcpHttpStatus">
-                              <code class="block rounded border bg-background px-2 py-1.5 text-xs">{{ webMcpEndpoint }}</code>
+                              <p v-if="!webMcpHttpStatus.enabled" class="text-xs text-muted-foreground">{{ t("settings.mcpHttpWebDisabledHint") }}</p>
+                              <code v-else class="block overflow-x-auto rounded border bg-background px-2 py-1.5 text-xs">{{ webMcpEndpoint }}</code>
                               <p class="text-[11px] text-muted-foreground">
                                 {{
                                   t("settings.mcpHttpWebTokenSourceAndHosts", {
-                                    tokenSource: webMcpHttpStatus.tokenSource || t("settings.mcpHttpNotConfigured"),
+                                    tokenSource: webMcpHttpStatus.tokenSource === "managed" ? t("settings.mcpHttpWebManagedTokenSource") : webMcpHttpStatus.tokenSource || t("settings.mcpHttpNotConfigured"),
                                     hosts: webMcpHttpStatus.allowedHosts.join(", ") || t("settings.mcpHttpNotConfigured"),
                                   })
                                 }}
                               </p>
                               <p v-if="webMcpHttpStatus.allowedOrigins.length" class="text-[11px] text-muted-foreground">{{ t("settings.mcpHttpWebAllowedOrigins", { origins: webMcpHttpStatus.allowedOrigins.join(", ") }) }}</p>
+                              <p v-if="webMcpHttpStatus.deploymentManaged" class="text-xs text-muted-foreground">{{ t("settings.mcpHttpWebDeploymentManaged") }}</p>
+                              <p v-else-if="!webMcpHttpStatus.managementAvailable" class="text-xs text-muted-foreground">{{ t("settings.mcpHttpWebPasswordRequired") }}</p>
+                              <template v-else>
+                                <div class="flex items-center justify-between gap-3 border-t border-border/60 pt-3">
+                                  <Label for="web-mcp-enabled" class="text-sm">{{ t("settings.mcpHttpWebEnableLabel") }}</Label>
+                                  <Switch id="web-mcp-enabled" v-model="webMcpEnabledDraft" :disabled="webMcpSaving" />
+                                </div>
+                                <div class="space-y-1.5">
+                                  <Label for="web-mcp-hosts">{{ t("settings.mcpHttpAllowedHostsLabel") }}</Label>
+                                  <textarea id="web-mcp-hosts" v-model="webMcpAllowedHostsText" rows="2" :disabled="webMcpSaving" class="min-h-16 w-full rounded-md border bg-background px-3 py-2 font-mono text-xs" placeholder="192.168.0.77:4224" />
+                                  <p class="text-[11px] text-muted-foreground">{{ t("settings.mcpHttpHostsHint") }}</p>
+                                </div>
+                                <div class="space-y-1.5">
+                                  <Label for="web-mcp-origins">{{ t("settings.mcpHttpAllowedOriginsLabel") }}</Label>
+                                  <textarea id="web-mcp-origins" v-model="webMcpAllowedOriginsText" rows="2" :disabled="webMcpSaving" class="min-h-16 w-full rounded-md border bg-background px-3 py-2 font-mono text-xs" placeholder="https://mcp-client.example.com" />
+                                  <p class="text-[11px] text-muted-foreground">{{ t("settings.mcpHttpWebOriginsHint") }}</p>
+                                </div>
+                                <div v-if="webMcpHttpStatus.enabled && webMcpHttpStatus.accessToken" class="space-y-1.5">
+                                  <div class="flex items-center justify-between gap-2">
+                                    <Label>Bearer Token</Label>
+                                    <Button type="button" variant="outline" size="sm" :disabled="webMcpSaving" @click="rotateWebMcpAccessToken">{{ t("settings.mcpHttpRotateToken") }}</Button>
+                                  </div>
+                                  <div class="flex min-w-0 items-center gap-2">
+                                    <code class="min-w-0 flex-1 overflow-x-auto rounded border bg-background px-2 py-1.5 text-xs">{{ webMcpHttpStatus.accessToken }}</code>
+                                    <Button type="button" variant="outline" size="icon" :title="t('common.copy')" @click="copyMcpText('http-token', webMcpHttpStatus.accessToken || '')">
+                                      <CheckCircle2 v-if="mcpCopied === 'http-token'" class="h-3.5 w-3.5 text-green-500" />
+                                      <Copy v-else class="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                <p v-if="webMcpError" class="text-xs text-destructive">{{ webMcpError }}</p>
+                                <div class="flex flex-wrap justify-end gap-2">
+                                  <Button type="button" variant="outline" size="sm" :disabled="mcpHttpLoading || webMcpSaving" @click="loadMcpHttpSettings">{{ t("settings.mcpHttpReloadStatus") }}</Button>
+                                  <Button type="button" size="sm" :disabled="webMcpSaving || (webMcpEnabledDraft && !mcpHttpList(webMcpAllowedHostsText).length)" @click="saveWebMcpSettings">{{ t("settings.mcpHttpWebSave") }}</Button>
+                                </div>
+                              </template>
                             </template>
-                            <Button type="button" variant="outline" size="sm" :disabled="mcpHttpLoading" @click="loadMcpHttpSettings">{{ t("settings.mcpHttpReloadStatus") }}</Button>
+                            <Button v-if="!webMcpHttpStatus || webMcpHttpStatus.deploymentManaged" type="button" variant="outline" size="sm" :disabled="mcpHttpLoading" @click="loadMcpHttpSettings">{{ t("settings.mcpHttpReloadStatus") }}</Button>
                           </div>
                         </div>
 
@@ -9457,7 +10084,7 @@ LIMIT 100;</pre
                                 <div class="flex items-center gap-2">
                                   <Label class="text-base">{{ t("settings.mcpHttpServiceTitle") }}</Label>
                                   <Badge :variant="mcpHttpStatus?.running ? 'default' : 'outline'">
-                                    {{ mcpHttpStatus?.running ? t("settings.mcpHttpStatusLabelRunning") : mcpHttpSettings.enabled ? t("settings.mcpHttpStatusLabelPending") : t("settings.mcpHttpStatusLabelDisabled") }}
+                                    {{ mcpHttpStatus?.running ? t("settings.mcpHttpStatusLabelRunning") : mcpHttpSettings.enabled ? t("settings.mcpHttpStatusLabelNotRunning") : t("settings.mcpHttpStatusLabelDisabled") }}
                                   </Badge>
                                 </div>
                                 <p class="text-xs leading-relaxed text-muted-foreground">{{ t("settings.mcpHttpServiceDescription") }}</p>
@@ -9523,10 +10150,9 @@ LIMIT 100;</pre
                                 {{ mcpHttpHasUnsavedChanges ? t("settings.mcpHttpUnsavedChangesHint") : t("settings.mcpHttpSaveHint") }}
                               </p>
                               <div class="flex shrink-0 justify-end gap-2">
-                                <Button type="button" variant="outline" :disabled="mcpHttpLoading || mcpHttpSaving" @click="loadMcpHttpSettings">{{ t("settings.mcpHttpReload") }}</Button>
                                 <Button type="button" :disabled="mcpHttpLoading || mcpHttpSaving || Boolean(mcpHttpDraftValidationError)" @click="saveMcpHttpSettings">
                                   <Loader2 v-if="mcpHttpSaving" class="mr-2 h-4 w-4 animate-spin" />
-                                  {{ t("settings.mcpHttpSaveAndStart") }}
+                                  {{ t("settings.mcpHttpApply") }}
                                 </Button>
                               </div>
                             </div>
@@ -9535,10 +10161,9 @@ LIMIT 100;</pre
                           <div v-else class="flex flex-col gap-3 rounded-md border border-dashed px-4 py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                             <p>{{ t("settings.mcpHttpDisabledHint") }}</p>
                             <div class="flex shrink-0 justify-end gap-2">
-                              <Button type="button" variant="outline" :disabled="mcpHttpLoading || mcpHttpSaving" @click="loadMcpHttpSettings">{{ t("settings.mcpHttpReload") }}</Button>
                               <Button type="button" :disabled="mcpHttpLoading || mcpHttpSaving" @click="saveMcpHttpSettings">
                                 <Loader2 v-if="mcpHttpSaving" class="mr-2 h-4 w-4 animate-spin" />
-                                {{ t("settings.mcpHttpSaveAndStop") }}
+                                {{ t("settings.mcpHttpApply") }}
                               </Button>
                             </div>
                           </div>
@@ -9642,7 +10267,10 @@ LIMIT 100;</pre
                         </div>
 
                         <div v-if="!isWeb" class="space-y-2">
-                          <Label>{{ mcpStatus?.installed ? t("settings.mcpUpdateCommand") : t("settings.mcpInstallCommand") }}</Label>
+                          <Label>{{ mcpStatus?.installed && !mcpNativeMigrationAvailable ? t("settings.mcpUpdateCommand") : t("settings.mcpInstallCommand") }}</Label>
+                          <p v-if="mcpNativeMigrationAvailable" class="rounded-md border border-blue-500/30 bg-blue-500/5 px-3 py-2 text-xs text-blue-700 dark:text-blue-300">
+                            {{ t("settings.mcpNativeMigrationHint") }}
+                          </p>
                           <div class="flex min-w-0 items-center gap-2">
                             <div class="min-w-0 flex-1 overflow-x-auto rounded-md border bg-background px-3 py-2 font-mono text-xs whitespace-nowrap">
                               {{ mcpCommand }}
@@ -9651,10 +10279,10 @@ LIMIT 100;</pre
                               <CheckCircle2 v-if="mcpCopied === 'install'" class="h-4 w-4 text-green-500" />
                               <Copy v-else class="h-4 w-4" />
                             </Button>
-                            <Button type="button" variant="default" :disabled="mcpInstalling || mcpUninstalling || !mcpStatus?.npm_available || (mcpStatus?.installed && !mcpStatus?.update_available)" @click="installMcp">
+                            <Button type="button" variant="default" :disabled="mcpInstallDisabled" @click="installMcp">
                               <Loader2 v-if="mcpInstalling" class="mr-2 h-4 w-4 animate-spin" />
-                              <CheckCircle2 v-if="!mcpInstalling && mcpStatus?.installed && !mcpStatus?.update_available" class="mr-2 h-4 w-4" />
-                              {{ mcpInstalling ? t("settings.mcpInstalling") : !mcpStatus?.installed ? t("settings.mcpInstallButton") : mcpStatus?.update_available ? t("settings.mcpUpdateButton") : t("settings.mcpUpToDate") }}
+                              <CheckCircle2 v-if="!mcpInstalling && mcpStatus?.installed && !mcpStatus?.update_available && !mcpNativeMigrationAvailable" class="mr-2 h-4 w-4" />
+                              {{ mcpInstallButtonLabel }}
                             </Button>
                           </div>
                           <div
@@ -9678,10 +10306,23 @@ LIMIT 100;</pre
                               <CheckCircle2 v-if="mcpCopied === 'uninstall'" class="h-4 w-4 text-green-500" />
                               <Copy v-else class="h-4 w-4" />
                             </Button>
-                            <Button type="button" variant="outline" class="text-destructive hover:text-destructive" :disabled="mcpInstalling || mcpUninstalling || !mcpStatus.npm_available" @click="uninstallMcp">
+                            <Button type="button" variant="outline" class="text-destructive hover:text-destructive" :disabled="mcpInstalling || mcpUninstalling" @click="uninstallMcp">
                               <Loader2 v-if="mcpUninstalling" class="mr-2 h-4 w-4 animate-spin" />
                               <Trash2 v-else class="mr-2 h-4 w-4" />
                               {{ mcpUninstalling ? t("settings.mcpUninstalling") : t("settings.mcpUninstallButton") }}
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div v-if="!isWeb && mcpStatus?.installation_source !== 'npm' && mcpStatus?.npm_installed" class="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+                          <div class="flex flex-wrap items-center justify-between gap-3">
+                            <p class="min-w-0 flex-1 text-xs text-amber-800 dark:text-amber-200">
+                              {{ t("settings.mcpNpmFallbackHint") }}
+                            </p>
+                            <Button type="button" variant="outline" size="sm" :disabled="mcpInstalling || mcpUninstalling" @click="uninstallNpmMcpFallback">
+                              <Loader2 v-if="mcpUninstalling" class="mr-2 h-4 w-4 animate-spin" />
+                              <Trash2 v-else class="mr-2 h-4 w-4" />
+                              {{ t("settings.mcpRemoveNpmFallbackButton") }}
                             </Button>
                           </div>
                         </div>
@@ -9713,6 +10354,7 @@ LIMIT 100;</pre
                           @update:scope="onMcpResourceScopeChange"
                           @set:group-policy="onMcpGroupExecutionModeChange"
                           @set:connection-policy="onMcpConnectionExecutionModeChange"
+                          @set:connection-salesforce-dml="onMcpConnectionSalesforceDmlChange"
                         />
                       </div>
                     </template>
@@ -10096,7 +10738,7 @@ LIMIT 100;</pre
 
                   <div v-if="mcpTransportTab === 'stdio'" class="flex items-center gap-2 text-xs text-muted-foreground">
                     <Terminal class="h-3.5 w-3.5" />
-                    <span>{{ t("settings.mcpDetectionTiming") }} {{ t("settings.mcpNpmBoundary") }}</span>
+                    <span>{{ t("settings.mcpDetectionTiming") }} {{ t("settings.mcpNativeManagementBoundary") }}</span>
                   </div>
                 </div>
               </Tabs>

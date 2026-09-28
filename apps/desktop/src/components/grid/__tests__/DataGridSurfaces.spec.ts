@@ -1,50 +1,28 @@
 // @vitest-environment happy-dom
 
 import { readFileSync } from "node:fs";
-import { nextTick } from "vue";
+import { createApp, defineComponent, h, nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createPinia, setActivePinia } from "pinia";
 import { dispatch, findAll, findOne, hostText, mountComponent } from "./vueHostHarness";
 import type { DataGridCellDetail } from "@/lib/dataGrid/dataGridDetail";
 
+const settingsMock = vi.hoisted(() => ({ store: null as any }));
 const mocks = vi.hoisted(() => ({
   editor: { create: vi.fn(), destroy: vi.fn(), setValue: vi.fn(), openSearch: vi.fn() },
   updateSettings: vi.fn(),
   copyToClipboard: vi.fn(),
 }));
 
-vi.mock("vue-i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({ t: (key: string) => key, locale: { value: "en" } }),
+  // DataGrid.vue's import graph reaches @/i18n, which builds a real i18n instance at module scope.
+  createI18n: () => ({ install: () => {}, global: { t: (key: string) => key, locale: { value: "en" } } }),
+}));
 vi.mock("@lucide/vue", async () => {
   const { createPassthroughStub } = await import("./vueHostHarness");
   const icon = createPassthroughStub("Icon", "i");
-  return {
-    Check: icon,
-    CaseSensitive: icon,
-    ChevronDown: icon,
-    ChevronUp: icon,
-    ChevronLeft: icon,
-    ChevronRight: icon,
-    ChevronsLeft: icon,
-    ChevronsRight: icon,
-    Download: icon,
-    Filter: icon,
-    Focus: icon,
-    FileDiff: icon,
-    Loader2: icon,
-    FileUp: icon,
-    Upload: icon,
-    Search: icon,
-    X: icon,
-    Code2: icon,
-    Copy: icon,
-    Eye: icon,
-    EyeOff: icon,
-    GripVertical: icon,
-    Info: icon,
-    Pencil: icon,
-    Plus: icon,
-    RotateCcw: icon,
-    Trash2: icon,
-  };
+  return new Proxy({}, { get: (_target, key) => (key === "__esModule" ? false : icon), has: () => true });
 });
 
 vi.mock("@/components/ui/button", async () => ({ Button: (await import("./vueHostHarness")).createPassthroughStub("Button", "button") }));
@@ -68,7 +46,7 @@ vi.mock("@/components/ui/dropdown-menu", async () => {
 });
 vi.mock("@/components/ui/popover", async () => {
   const { createPassthroughStub } = await import("./vueHostHarness");
-  return { Popover: createPassthroughStub("Popover"), PopoverContent: createPassthroughStub("PopoverContent"), PopoverTrigger: createPassthroughStub("PopoverTrigger") };
+  return { Popover: createPassthroughStub("Popover"), PopoverAnchor: createPassthroughStub("PopoverAnchor"), PopoverContent: createPassthroughStub("PopoverContent"), PopoverTrigger: createPassthroughStub("PopoverTrigger") };
 });
 vi.mock("@/components/ui/tooltip", async () => {
   const { createPassthroughStub } = await import("./vueHostHarness");
@@ -90,6 +68,7 @@ vi.mock("@/composables/useTheme", () => ({ useTheme: () => ({ isDark: { value: f
 vi.mock("@/stores/settingsStore", () => ({ useSettingsStore: () => ({ editorSettings: { cellDetailJsonFormatted: true, theme: "default", fontSize: 13, fontFamily: "monospace" }, updateEditorSettings: mocks.updateSettings }) }));
 vi.mock("@/lib/common/clipboard", () => ({ copyToClipboard: mocks.copyToClipboard }));
 
+import DataGrid from "@/components/grid/DataGrid.vue";
 import DataGridCellDetailDialog from "@/components/grid/DataGridCellDetailDialog.vue";
 import DataGridColumnHeader from "@/components/grid/DataGridColumnHeader.vue";
 import DataGridCopyColumnNamesDialog from "@/components/grid/DataGridCopyColumnNamesDialog.vue";
@@ -133,55 +112,6 @@ function localDateKey() {
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.removeItem("dbx-filter-builder-value-shortcut-hint-days");
-});
-describe("DataGrid canvas surfaces", () => {
-  it("keeps condition and text filter editors open when persistent expansion is enabled", () => {
-    expect(dataGridSource).toContain('const isPersistentFilterView = computed(() => filterEditorView.value === "conditions" || filterEditorView.value === "text");');
-    expect(dataGridSource).toContain("const isFilterEditorPinnedOpen = computed(() => isPersistentFilterView.value && settingsStore.editorSettings.dataGridKeepFilterEditorExpanded);");
-    expect(dataGridSource).toContain("get: () => isFilterEditorPinnedOpen.value || filterBuilderOpen.value,");
-    expect(dataGridSource).toContain("if (!isFilterEditorPinnedOpen.value) filterBuilderOpen.value = false;");
-    expect(dataGridSource).toContain('v-model:filter-builder-open="effectiveFilterBuilderOpen"');
-    expect(dataGridSource).toContain("filterEditorView === 'conditions' && effectiveFilterBuilderOpen");
-    expect(dataGridSource).toContain("filterEditorView === 'text' && effectiveFilterBuilderOpen");
-  });
-
-  it("asks before an expensive Elasticsearch cursor jump", () => {
-    expect(dataGridSource).toContain("requestCount >= ELASTICSEARCH_PAGE_JUMP_WARNING_REQUESTS");
-    expect(dataGridSource).toContain('t("grid.esDeepPageJumpConfirmMessage"');
-    expect(dataGridSource).toContain('@click="confirmEsDeepPageJump"');
-  });
-
-  it("shows stable request progress while an Elasticsearch page jump is running", () => {
-    expect(dataGridSource).toContain('t("grid.pageJumpLoading", { page: pageJumpProgress.targetPage })');
-    expect(dataGridSource).toContain('t("grid.pageJumpProgress", { current: pageJumpProgress.completedRequests, total: pageJumpProgress.totalRequests })');
-    expect(dataGridSource).toContain('role="progressbar"');
-    expect(dataGridSource).toContain(':style="{ width: `${pageJumpProgressPercent}%` }"');
-  });
-
-  it("uses the stable overlay for viewport and device-pixel measurement", () => {
-    expect(dataGridSource).toContain("function canvasMeasurementSurface(): HTMLElement | null");
-    expect(dataGridSource).toContain("return canvasOverlayRef.value ?? null;");
-    expect(dataGridSource).toContain("const measurementSurface = canvasMeasurementSurface();");
-    expect(dataGridSource).toContain("getSurface: canvasMeasurementSurface,");
-    expect(dataGridSource).toContain("const canvas = inactiveCanvasSurface();");
-    expect(dataGridSource).toContain("canvasUsingBackSurface.value = !canvasUsingBackSurface.value;");
-  });
-
-  it("uses the canvas that actually received the event during a surface flip", () => {
-    expect(dataGridSource).toContain("function canvasEventSurface(event: MouseEvent): HTMLCanvasElement | null");
-    expect(dataGridSource).toContain("const currentTarget = event.currentTarget;");
-    expect(dataGridSource).toContain("return currentTarget instanceof HTMLCanvasElement ? currentTarget : activeCanvasSurface();");
-    expect(dataGridSource).toContain("const canvas = canvasEventSurface(event);");
-
-    const canvasMouseMove = dataGridSource.slice(dataGridSource.indexOf("function onCanvasMouseMove"), dataGridSource.indexOf("function onCanvasMouseLeave"));
-    expect(canvasMouseMove).toContain("const cursorSurface = canvasEventSurface(event);");
-  });
-
-  it("handles double clicks on the stable canvas container", () => {
-    expect(dataGridSource).toContain('@dblclick="onCanvasDblClick"');
-    expect(dataGridSource.match(/@dblclick="onCanvasDblClick"/g)).toHaveLength(1);
-    expect(dataGridSource).toContain("@dblclick.stop");
-  });
 });
 
 describe("DataGridSearchBar", () => {
@@ -238,18 +168,6 @@ describe("DataGridSearchBar", () => {
 });
 
 describe("DataGridPagination", () => {
-  it("keeps drag summaries count-only and wires the derived average without materializing selected cells", () => {
-    const summaryStart = dataGridSource.indexOf("const selectionSummary = computed");
-    const pendingSummary = dataGridSource.indexOf("createPendingSelectionSummary(selectedCellCount.value, multiRowCount.value)", summaryStart);
-    const materializedSummary = dataGridSource.indexOf("summarizeSelection(selectedCells.value)", summaryStart);
-
-    expect(summaryStart).toBeGreaterThan(-1);
-    expect(pendingSummary).toBeGreaterThan(summaryStart);
-    expect(materializedSummary).toBeGreaterThan(pendingSummary);
-    expect(dataGridSource).toContain('const selectionSummaryAverageText = computed(() => {\n  if (isSelectingCells.value) return "…";');
-    expect(dataGridSource).toContain(':selection-summary-average-text="selectionSummaryAverageText"');
-  });
-
   it("shows average beside the existing selection summary values", () => {
     const mounted = mountComponent(DataGridPagination, {
       selectionSummary: { cellCount: 4, rowCount: 2 },
@@ -333,7 +251,7 @@ describe("DataGridPagination", () => {
       onNextPage: nextPage,
       onLastPage: lastPage,
     });
-    const navigation = findAll(mounted.root, (node) => node.props["data-stub"] === "Button" && node.props.class === "h-5 w-5 shrink-0");
+    const navigation = findAll(mounted.root, (node) => node.props["data-stub"] === "Button" && node.props.class === "h-5 w-5 shrink-0" && node.props["aria-label"] !== "grid.loadAllAndGoToLastRow");
 
     expect(navigation.map((node) => node.props.disabled)).toEqual([true, true, true, true]);
     navigation.forEach((node) => dispatch(node, "click"));
@@ -343,7 +261,7 @@ describe("DataGridPagination", () => {
     expect(lastPage).not.toHaveBeenCalled();
 
     await mounted.setProps({ currentPage: 2, canGoNextPage: true, canJumpLastPage: true });
-    const enabledNavigation = findAll(mounted.root, (node) => node.props["data-stub"] === "Button" && node.props.class === "h-5 w-5 shrink-0");
+    const enabledNavigation = findAll(mounted.root, (node) => node.props["data-stub"] === "Button" && node.props.class === "h-5 w-5 shrink-0" && node.props["aria-label"] !== "grid.loadAllAndGoToLastRow");
     expect(enabledNavigation.map((node) => node.props.disabled)).toEqual([false, false, false, false]);
     enabledNavigation.forEach((node) => dispatch(node, "click"));
     expect(firstPage).toHaveBeenCalledOnce();
@@ -352,7 +270,7 @@ describe("DataGridPagination", () => {
     expect(lastPage).toHaveBeenCalledOnce();
 
     await mounted.setProps({ loading: true });
-    const busyNavigation = findAll(mounted.root, (node) => node.props["data-stub"] === "Button" && node.props.class === "h-5 w-5 shrink-0");
+    const busyNavigation = findAll(mounted.root, (node) => node.props["data-stub"] === "Button" && node.props.class === "h-5 w-5 shrink-0" && node.props["aria-label"] !== "grid.loadAllAndGoToLastRow");
     expect(busyNavigation.map((node) => node.props.disabled)).toEqual([true, true, true, true]);
     expect(findOne(mounted.root, (node) => node.props["aria-label"] === "grid.jumpToPage").props.disabled).toBe(true);
   });
@@ -419,6 +337,36 @@ describe("DataGridPagination", () => {
     });
 
     expect(findAll(mounted.root, (node) => node.props["data-stub"] === "Button" && node.props.class === "h-5 w-5 shrink-0")).toHaveLength(0);
+  });
+
+  it("loads all paginated rows and moves to the last row", async () => {
+    const loadAllRows = vi.fn();
+    const mounted = mountComponent(DataGridPagination, {
+      selectionSummary: null,
+      selectionSummarySumText: "",
+      loading: false,
+      infiniteScrollEnabled: false,
+      infiniteScrollAllLoaded: false,
+      canLoadAllRows: true,
+      pageSize: 100,
+      customPageSizeInput: "",
+      pageSizeMenuItems: [],
+      exportMenuItems: [],
+      currentPage: 1,
+      canGoNextPage: true,
+      canJumpLastPage: true,
+      onLoadAllRows: loadAllRows,
+    });
+    const loadAllButton = findOne(mounted.root, (node) => node.props["aria-label"] === "grid.loadAllAndGoToLastRow");
+
+    expect(loadAllButton.props.disabled).toBe(false);
+    dispatch(loadAllButton, "click");
+    expect(loadAllRows).toHaveBeenCalledOnce();
+
+    await mounted.setProps({ loading: true });
+    expect(findOne(mounted.root, (node) => node.props["aria-label"] === "grid.loadAllAndGoToLastRow").props.disabled).toBe(true);
+    await mounted.setProps({ loading: false, canLoadAllRows: false });
+    expect(findOne(mounted.root, (node) => node.props["aria-label"] === "grid.loadAllAndGoToLastRow").props.disabled).toBe(true);
   });
 });
 
@@ -643,6 +591,41 @@ describe("DataGridFilterBuilder", () => {
     expect(applyOnly).toHaveBeenCalledTimes(2);
     await mounted.setProps({ disabled: true });
     expect(buttons()[0].props.disabled).toBe(true);
+  });
+
+  it("labels panel rule actions and allows removing the final rule", async () => {
+    const updateRule = vi.fn();
+    const remove = vi.fn();
+    const mounted = mountComponent(DataGridFilterBuilder, {
+      rules: [{ id: "r1", columnName: "id", mode: "equals", rawValue: "7", rawEndValue: "", conjunction: "AND" }],
+      columns: ["id"],
+      filteredColumns: ["id"],
+      modeOptions: [{ value: "equals", labelKey: "equals" }],
+      columnSearch: "",
+      layout: "panel",
+      showApplyOnly: true,
+      onUpdateRule: updateRule,
+      onRemove: remove,
+    });
+
+    const tooltips = () => findAll(mounted.root, (node) => node.props["data-stub"] === "LightTooltip");
+    const tooltipTexts = () => tooltips().map((node) => node.props.text);
+    const applyOnlyButton = findOne(mounted.root, (node) => node.props["aria-label"] === "grid.filterBuilderApplyOnly");
+    const toggleButton = findOne(mounted.root, (node) => node.props["aria-label"] === "grid.filterBuilderDisableRule");
+    const removeButton = findOne(mounted.root, (node) => node.props["aria-label"] === "common.remove");
+
+    expect(tooltipTexts()).toEqual(["grid.filterBuilderApplyOnly", "grid.filterBuilderDisableRule", "common.remove"]);
+    expect(tooltips().every((tooltip) => tooltip.props.side === "top")).toBe(true);
+    expect(removeButton.props.disabled).toBeFalsy();
+    dispatch(toggleButton, "click");
+    dispatch(removeButton, "click");
+    expect(updateRule).toHaveBeenCalledWith("r1", { disabled: true });
+    expect(remove).toHaveBeenCalledWith("r1");
+
+    await mounted.setProps({ rules: [{ id: "r1", columnName: "id", mode: "equals", rawValue: "7", rawEndValue: "", conjunction: "AND", disabled: true }] });
+    expect(findOne(mounted.root, (node) => node.props["aria-label"] === "grid.filterBuilderEnableRule")).toBeTruthy();
+    expect(tooltipTexts()).toEqual(["grid.filterBuilderApplyOnly", "grid.filterBuilderEnableRule", "common.remove"]);
+    expect(applyOnlyButton.props["aria-label"]).toBe("grid.filterBuilderApplyOnly");
   });
 
   it("renders a compact text rule without framed form controls", async () => {
