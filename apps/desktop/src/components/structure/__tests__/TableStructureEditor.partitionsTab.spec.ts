@@ -378,7 +378,7 @@ beforeEach(() => {
   mocks.executeQuery.mockResolvedValue({ columns: [], rows: [] });
   mocks.executeBatch.mockResolvedValue({ rowsAffected: 0 });
   mocks.listDataTypes.mockResolvedValue([]);
-  mocks.getTablePartitionStatus.mockResolvedValue({ isPartitionedParent: true, isPartition: false });
+  mocks.getTablePartitionStatus.mockResolvedValue({ isPartitionedParent: true, isPartition: false, isForeign: false });
   mocks.buildTablePartitionOperationSql.mockResolvedValue({ statements: [], warnings: [] });
   mocks.buildCreatePartitionedTableSql.mockResolvedValue({ statements: [], warnings: [] });
   mocks.getTablePartitioning.mockResolvedValue({
@@ -534,7 +534,7 @@ describe("TableStructureEditor partitions tab", () => {
   });
 
   it("hides the Partitions tab for a table that is not partitioned", async () => {
-    mocks.getTablePartitionStatus.mockResolvedValue({ isPartitionedParent: false, isPartition: false });
+    mocks.getTablePartitionStatus.mockResolvedValue({ isPartitionedParent: false, isPartition: false, isForeign: false });
     const root = await mountStructureEditor();
 
     await settle();

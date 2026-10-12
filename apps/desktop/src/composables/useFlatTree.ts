@@ -3,7 +3,13 @@ import type { TreeNode, TreeNodeType } from "@/types/database";
 // Sidebar rows follow the macOS source-list rhythm (32px, 16px indent).
 // Scroll offsets, sticky headers and the virtualizer all derive from this, so
 // it stays the single source for row geometry.
-export const SIDEBAR_TREE_ROW_HEIGHT = 32;
+export const SIDEBAR_TREE_ROW_HEIGHT_DEFAULT = 32;
+export const SIDEBAR_TREE_ROW_HEIGHT_COMPACT = 24;
+export const SIDEBAR_TREE_ROW_HEIGHT = SIDEBAR_TREE_ROW_HEIGHT_DEFAULT;
+
+export function getSidebarTreeRowHeight(density?: string): number {
+  return density === "compact" ? SIDEBAR_TREE_ROW_HEIGHT_COMPACT : SIDEBAR_TREE_ROW_HEIGHT_DEFAULT;
+}
 // Sized in pixels against the row height so the buffer always covers about
 // twenty rows of overscan; it is what keeps fast wheel scrolling from showing
 // blank rows before the virtualizer catches up.

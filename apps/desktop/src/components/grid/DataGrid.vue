@@ -5,6 +5,7 @@ import DdlStorageToggle from "@/components/objects/DdlStorageToggle.vue";
 import { useUpdateBlocker } from "@/lib/app/updatePreparation";
 import { useResultViewUpdateTiming } from "@/composables/useResultViewUpdateTiming";
 import { computed, nextTick, onMounted, onUnmounted, onActivated, onDeactivated, ref, shallowRef, toRaw, useSlots, watch, defineAsyncComponent, type Component, type CSSProperties } from "vue";
+import { formatShortcutTooltip } from "@/lib/editor/shortcutDisplay";
 import { useI18n } from "vue-i18n";
 import {
   ArrowUp,
@@ -325,7 +326,7 @@ import { reserveDataGridHeaderLine } from "@/lib/dataGrid/dataGridHeaderLayout";
 import { buildColumnIndexMap, columnIndexColorClass, columnIndexNameKey, type ColumnIndexKind } from "@/lib/dataGrid/dataGridColumnIndexIcon";
 import { supportsTableStructureEditing } from "@/lib/database/databaseCapabilities";
 import { rememberDataGridConditionHistory } from "@/lib/dataGrid/dataGridConditionHistory";
-import { restoreDataGridLocalColumnFilters, type DataGridLocalFilterOption } from "@/lib/dataGrid/dataGridLocalColumnFilterState";
+import { restoreDataGridLocalColumnFilters } from "@/lib/dataGrid/dataGridLocalColumnFilterState";
 import { effectiveDatabaseTypeForConnection, gaussdbCountQueryDopHint } from "@/lib/database/jdbcDialect";
 import { mongoCollectionSupportsIndexes, supportsMongoIndexMutations } from "@/lib/mongo/mongoCapabilities";
 import { isProtectedMongoIndex, mongoDropAllIndexesPreview, mongoDropIndexFailureCount, mongoDropIndexPreview } from "@/lib/sidebar/mongoCollectionMutation";
@@ -1009,7 +1010,6 @@ const conditionHistoryScope = computed(() => ({
   tableName: props.tableMeta?.tableName,
 }));
 type LocalFilterMode = "local" | "server";
-type LocalFilterOption = DataGridLocalFilterOption;
 
 type LocalColumnFilterDraft = {
   columnIndex: number;
@@ -1058,9 +1058,7 @@ let localFilterResizeStartLeft = 0;
 let localFilterResizeStartRight = 0;
 const serverFilterLoading = ref(false);
 const serverFilterError = ref("");
-const serverFilterOptions = ref<LocalFilterOption[]>([]);
 const serverFilterLimited = ref(false);
-const serverFilterValueByKey = ref<Map<string, CellValue>>(new Map());
 const serverColumnFilters = ref<Record<number, DataGridCachedServerColumnFilter>>({});
 let getGridNewRows: () => readonly (readonly CellValue[])[] = () => [];
 let getGridRowData: (row: CellValue[], sourceIndex: number) => readonly CellValue[] = (row) => row;
@@ -1196,16 +1194,13 @@ function formatForeignKeyCellDisplay(value: CellValue, columnIndex: number): str
 }
 
 const localColumnFilterRuntime = useDataGridColumnFilters({
+  scopeIdentity: structuredFilterScopeKey,
+  getGlobalQueryTimeoutSecs: () => settingsStore.editorSettings.globalQueryTimeoutSecs,
   state: {
     localColumnFilters,
     localFilterOpenColumn,
     localFilterSearch,
     localFilterDraft,
-    serverFilterLoading,
-    serverFilterError,
-    serverFilterOptions,
-    serverFilterLimited,
-    serverFilterValueByKey,
     serverColumnFilters,
   },
   getResult: () => props.result,
@@ -1880,6 +1875,8 @@ const displayableColumnIndexes = computed(() =>
     .map(({ index }) => index),
 );
 const allNullColumnIndexesForResult = computed(() => allNullColumnIndexes(props.result.rows, displayableColumnIndexes.value));
+const allEmptyColumnIndexesForResult = computed(() => allNullColumnIndexes(props.result.rows, displayableColumnIndexes.value, true));
+const allEmptyColumnCount = computed(() => allEmptyColumnIndexesForResult.value.length);
 const {
   hiddenColumnIndexes,
   nullColumnsHidden,
@@ -2041,6 +2038,27 @@ function scrollToColumn(columnIndex: number) {
 function focusGoToColumnSearch() {
   goToColumnSearchInput.value?.focus();
 }
+
+const goToColumnTooltip = computed(() => formatShortcutTooltip(t("grid.goToColumn"), settingsStore.editorSettings.shortcuts.goToColumn));
+
+function toggleGoToColumn(): boolean {
+  if (goToColumnOpen.value) {
+    goToColumnOpen.value = false;
+    return false;
+  }
+  return openGoToColumn();
+}
+
+// 供外部工具条（文档浏览器 / HBase 等）复用的「转到列」入口描述。
+const goToColumnToolbarCapability = computed<DataGridToolbarActionCapability>(() => ({
+  label: t("grid.goToColumn"),
+  tooltip: goToColumnTooltip.value,
+  visible: props.result.columns.length > 0,
+  active: goToColumnOpen.value,
+  onTrigger: () => {
+    toggleGoToColumn();
+  },
+}));
 
 function scrollGoToColumnSelectionIntoView() {
   void nextTick(() => {
@@ -9479,7 +9497,7 @@ function openCopyColumnNamesDialog(names: string[]) {
 }
 
 function openCopyAllColumnNamesDialog() {
-  openCopyColumnNamesDialog(columnNamesForCopy(props.result.columns, visibleColumns.value, "all"));
+  openCopyColumnNamesDialog(columnNamesForCopy({ scope: "all", allColumnNames: props.result.columns, displayableIndexes: displayableColumnIndexes.value, visibleColumnNames: visibleColumns.value }));
 }
 
 function copyHeaderColumnOrSelected() {
@@ -10777,6 +10795,8 @@ defineExpose({
   resetColumnOrder,
   nullColumnsHidden,
   allNullColumnCount,
+  allEmptyColumnCount,
+  goToColumnToolbarCapability,
   canToggleAllNullColumns,
   toggleAllNullColumns,
   exportCsv,

@@ -1347,3 +1347,8 @@ html.dbx-legacy-webview .vertical-tab-layout .app-tab-pill:not(.tab-group-tab)[d
   height: auto;
   align-self: center;
 }
+
+.app-tab-bar:not(.vertical-tab-layout):not(:has(.wrap-mode))[data-has-max-tab-width="true"] .tab-group-entry[data-tab-group-id] > .tab-group-tab {
+  min-width: var(--tab-group-entry-expanded-width, 0) !important;
+  max-width: var(--tab-max-width, 100%);
+}

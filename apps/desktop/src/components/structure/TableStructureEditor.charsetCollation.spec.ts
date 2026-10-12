@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   executeQuery: vi.fn(),
   listDataTypes: vi.fn(),
   buildTableStructureChangeSql: vi.fn(),
+  buildCreateTableSql: vi.fn(),
   buildMysqlAutoIncrementSql: vi.fn(),
   getMysqlTableAutoIncrement: vi.fn(),
   executeBatch: vi.fn(),
@@ -230,6 +231,7 @@ vi.mock("@/lib/backend/api", () => ({
   executeQuery: mocks.executeQuery,
   listDataTypes: mocks.listDataTypes,
   buildTableStructureChangeSql: mocks.buildTableStructureChangeSql,
+  buildCreateTableSql: mocks.buildCreateTableSql,
   buildMysqlAutoIncrementSql: mocks.buildMysqlAutoIncrementSql,
   getMysqlTableAutoIncrement: mocks.getMysqlTableAutoIncrement,
   executeBatch: mocks.executeBatch,
@@ -280,7 +282,7 @@ function draft(autoIncrement = false, counter?: { value?: string; originalValue?
   };
 }
 
-async function mountEditor(autoIncrement = false, counter?: { value?: string; originalValue?: string }, draftOverride?: ReturnType<typeof draft>) {
+async function mountEditor(autoIncrement = false, counter?: { value?: string; originalValue?: string }, draftOverride?: ReturnType<typeof draft>, createMode = false) {
   mocks.ensureConnected.mockResolvedValue(undefined);
   mocks.listDataTypes.mockResolvedValue([]);
   mocks.buildTableStructureChangeSql.mockResolvedValue({ statements: [], warnings: [] });
@@ -291,7 +293,7 @@ async function mountEditor(autoIncrement = false, counter?: { value?: string; or
     connectionId: mocks.connection.id,
     database: "test",
     schema: "test",
-    tableName: "users",
+    tableName: createMode ? undefined : "users",
     draft: draftOverride ?? draft(autoIncrement, counter),
   });
   mountedApps.push(app);
@@ -321,6 +323,7 @@ beforeEach(() => {
   mocks.loadObjectDdl.mockResolvedValue({ ddl: "CREATE TABLE users (id varchar(255))", cacheStatus: "remote" });
   mocks.invalidateObjectDdl.mockResolvedValue(undefined);
   mocks.loadObjectMetadataFacet.mockResolvedValue({ value: [], cacheStatus: "remote" });
+  mocks.buildCreateTableSql.mockResolvedValue({ statements: ["CREATE TABLE users (id INT PRIMARY KEY AUTO_INCREMENT);"], warnings: [] });
   mocks.getMysqlTableAutoIncrement.mockResolvedValue("10");
   mocks.buildMysqlAutoIncrementSql.mockImplementation(async ({ value }: { value: string }) => `ALTER TABLE \`test\`.\`users\` AUTO_INCREMENT = ${value};`);
   mocks.executeBatch.mockResolvedValue({ affected_rows: 0 });

@@ -149,7 +149,8 @@
   /* Fonts: system SF stack, PingFang for CJK, so DBX matches the OS instead of
    * carrying a bundled brand face. */
   --dbx-font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
-  --dbx-font-mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+  /* CJK 回退与 appFonts 的 DEFAULT_MONO_FALLBACK_FONTS 保持一致（dbx#674/#1510）。 */
+  --dbx-font-mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", monospace;
 
   /* Radius: 4/6/8/10/14/20. `2xs` is the inline-chip step (a highlight on a
    * token inside a line of text, where the control radius would read as a
@@ -201,6 +202,7 @@
   --dbx-accent: rgb(0 113 227);
   --accent-soft: rgb(0 113 227 / 0.12);
 
+  color-scheme: light;
   --background: rgb(255 255 255);
   /* 旧 WebView 无法在内联 color-mix 里解析 var()，标签等内联样式改用这些分量。 */
   --foreground: rgb(29 29 31);
@@ -273,6 +275,7 @@
   --dbx-accent: rgb(10 132 255);
   --accent-soft: rgb(10 132 255 / 0.2);
 
+  color-scheme: dark;
   --background: rgb(30 30 32);
   --foreground: rgb(245 245 247);
   --dbx-foreground-rgb: 215, 215, 219;

@@ -27,6 +27,7 @@ vi.mock("@/stores/connectionStore", () => ({
       if (id === "connection-1") return { id, name: "SQLite", db_type: "sqlite" };
       if (id === "postgres-1") return { id, name: "PostgreSQL", db_type: "postgres" };
       if (id === "sqlserver-1") return { id, name: "SQL Server", db_type: "sqlserver" };
+      if (id === "duckdb-1") return { id, name: "DuckDB", db_type: "duckdb" };
       return undefined;
     },
     ensureConnected: mocks.ensureConnected,
@@ -112,16 +113,29 @@ vi.mock("@/components/ui/label", async () => {
 });
 
 vi.mock("@/components/ui/select", async () => {
-  const { defineComponent, h } = await import("vue");
+  const { defineComponent, h, inject, provide } = await import("vue");
   const passthrough = defineComponent({
     setup(_props, { slots }) {
       return () => h("div", slots.default?.());
     },
   });
   return {
-    Select: passthrough,
+    Select: defineComponent({
+      props: { modelValue: String },
+      emits: ["update:modelValue"],
+      setup(_props, { emit, slots }) {
+        provide("selectOption", (value: string) => emit("update:modelValue", value));
+        return () => h("div", slots.default?.());
+      },
+    }),
     SelectContent: passthrough,
-    SelectItem: passthrough,
+    SelectItem: defineComponent({
+      props: { value: String },
+      setup(props, { slots }) {
+        const selectOption = inject<(value: string) => void>("selectOption");
+        return () => h("span", { "data-select-option": props.value, onClick: () => selectOption?.(props.value || "") }, slots.default?.());
+      },
+    }),
     SelectTrigger: passthrough,
     SelectValue: passthrough,
   };
@@ -198,7 +212,7 @@ async function flushAsyncUpdates() {
   }
 }
 
-async function mountDialog(files = [new File(["workbook"], "rows.xlsx")], connectionId = "connection-1") {
+async function mountSourceDialog(connectionId = "connection-1") {
   const container = document.createElement("div");
   document.body.append(container);
   const app = createApp(defineComponent({ setup: () => () => h(TableImportDialog, { open: true, prefillConnectionId: connectionId, prefillDatabase: "main" }) }));
@@ -206,10 +220,18 @@ async function mountDialog(files = [new File(["workbook"], "rows.xlsx")], connec
   app.use(i18n);
   app.mount(container);
   await flushAsyncUpdates();
+}
+
+async function selectFiles(files: File[]) {
   const input = document.body.querySelector<HTMLInputElement>('input[type="file"]')!;
   Object.defineProperty(input, "files", { configurable: true, value: files });
   input.dispatchEvent(new Event("change", { bubbles: true }));
   await flushAsyncUpdates();
+}
+
+async function mountDialog(files = [new File(["workbook"], "rows.xlsx")], connectionId = "connection-1") {
+  await mountSourceDialog(connectionId);
+  await selectFiles(files);
 }
 
 function button(text: string) {
@@ -270,6 +292,50 @@ afterEach(() => {
 });
 
 describe("TableImportDialog batch selection", () => {
+  it("reloads a single CSV preview and passes the selected decimal separator to import", async () => {
+    mocks.previewTableImportFile.mockImplementation(() => Promise.resolve(delimitedPreview()));
+    await mountDialog([new File(['amount,note\n"12,50",plain'], "rows.csv")]);
+    expect(mocks.previewTableImportFile.mock.calls.at(-1)?.[1].parseOptions.decimalSeparator).toBe(".");
+
+    document.body.querySelector<HTMLElement>('[data-select-option=","]')!.click();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await flushAsyncUpdates();
+    expect(mocks.previewTableImportFile.mock.calls.at(-1)?.[1].parseOptions.decimalSeparator).toBe(",");
+
+    await startImport();
+    expect(mocks.importTableFile.mock.calls[0]![0].parseOptions?.decimalSeparator).toBe(",");
+  });
+
+  it("reloads selected batch CSV previews when the decimal separator changes", async () => {
+    mocks.previewTableImportFile.mockImplementation(() => Promise.resolve(delimitedPreview()));
+    await mountDialog([new File(["id,name"], "first.csv"), new File(["id,name"], "second.csv")]);
+    mocks.previewTableImportFile.mockClear();
+    document.body.querySelector<HTMLElement>('[data-select-option=","]')!.click();
+    await flushAsyncUpdates();
+    expect(mocks.previewTableImportFile).toHaveBeenCalledTimes(2);
+    expect(mocks.previewTableImportFile.mock.calls.map(([, options]) => options.parseOptions.decimalSeparator)).toEqual([",", ","]);
+  });
+
+  it("uses all desktop grid columns when Parquet is unavailable", async () => {
+    await mountSourceDialog();
+
+    const formats = document.body.querySelector<HTMLElement>('[data-testid="table-import-format-options"]');
+    expect(formats?.classList.contains("lg:grid-cols-6")).toBe(true);
+    expect(formats?.classList.contains("lg:grid-cols-7")).toBe(false);
+  });
+
+  it("offers Parquet for DuckDB and forwards the connection context to preview", async () => {
+    mocks.previewTableImportFile.mockImplementation(() => Promise.resolve({ ...delimitedPreview(), fileName: "rows.parquet", fileType: "parquet", sourceFingerprint: "rows-parquet" }));
+    await mountSourceDialog("duckdb-1");
+
+    const fileInput = document.body.querySelector<HTMLInputElement>('input[type="file"]');
+    const formats = document.body.querySelector<HTMLElement>('[data-testid="table-import-format-options"]');
+    expect(fileInput?.accept).toContain(".parquet");
+    expect(formats?.classList.contains("lg:grid-cols-7")).toBe(true);
+    await selectFiles([new File(["parquet"], "rows.parquet")]);
+    expect(mocks.previewTableImportFile).toHaveBeenCalledWith(expect.any(File), expect.objectContaining({ connectionId: "duckdb-1", database: "main", sourceFormat: "parquet" }));
+  });
+
   it("lets the import setup dialog be minimized and restored before import starts", async () => {
     await mountDialog();
     expect(button("Next").disabled).toBe(false);
@@ -528,5 +594,95 @@ describe("TableImportDialog batch selection", () => {
     expect(mocks.importTableFile).toHaveBeenCalledTimes(1);
     expect(mocks.importTableFile.mock.calls[0]![0]).toMatchObject({ table: "second", sourceFormat: "csv", parseOptions: { encoding: "utf8", sheetName: null } });
     expect(mocks.releaseTableImportSource.mock.calls.map(([source]) => source).sort()).toEqual(["first.csv-source", "second.csv-source"]);
+  });
+
+  it("recovers preview and enables next step when data start row is adjusted after an invalid title row (#11689)", async () => {
+    mocks.previewTableImportFile.mockImplementation((_source, options) => {
+      const { titleRow, dataStartRow } = options.parseOptions;
+      if (titleRow !== null && titleRow !== undefined && titleRow >= dataStartRow) {
+        return Promise.reject(new Error("Title row must be before the data start row"));
+      }
+      return Promise.resolve(delimitedPreview());
+    });
+    await mountDialog([new File(["id,name\n1,alice\n2,bob"], "rows.csv")]);
+    expect(button("Next").disabled).toBe(false);
+
+    await editInputWithValue("1", "3");
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await flushAsyncUpdates();
+
+    expect(document.body.textContent).toContain("Title row must be before the data start row");
+    expect(button("Next").disabled).toBe(true);
+
+    await editInputWithValue("2", "4");
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await flushAsyncUpdates();
+
+    expect(document.body.textContent).not.toContain("Title row must be before the data start row");
+    expect(button("Next").disabled).toBe(false);
+  });
+
+  it("reloads preview when returning to options step after preview was cleared by error (#11689)", async () => {
+    let failPreview = false;
+    mocks.previewTableImportFile.mockImplementation((_source, _options) => {
+      if (failPreview) {
+        return Promise.reject(new Error("Title row must be before the data start row"));
+      }
+      return Promise.resolve(delimitedPreview());
+    });
+    await mountDialog([new File(["id,name\n1,alice"], "rows.csv")]);
+    expect(button("Next").disabled).toBe(false);
+
+    failPreview = true;
+    await editInputWithValue("1", "3");
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await flushAsyncUpdates();
+
+    expect(document.body.textContent).toContain("Title row must be before the data start row");
+    expect(button("Next").disabled).toBe(true);
+
+    failPreview = false;
+    await click("Back");
+    expect(button("Next").disabled).toBe(false);
+    await click("Next");
+    await flushAsyncUpdates();
+
+    expect(document.body.textContent).not.toContain("Title row must be before the data start row");
+    expect(button("Next").disabled).toBe(false);
+  });
+
+  it("renders empty string as null option for Excel source and passes it to parse options (#11608)", async () => {
+    let capturedOptions: any = null;
+    mocks.previewTableImportFile.mockImplementation((_source, options) => {
+      capturedOptions = options;
+      return Promise.resolve({
+        fileName: "rows.xlsx",
+        filePath: "/tmp/rows.xlsx",
+        sourceRef: "workbook-source",
+        fileType: "excel",
+        sizeBytes: 10,
+        columns: ["id", "name"],
+        rows: [[1, "test"]],
+        totalRows: 1,
+        totalRowsExact: true,
+        sourceFingerprint: "rows-Sheet1",
+        sheets: ["Sheet1"],
+      });
+    });
+    await mountDialog([new File(["workbook"], "rows.xlsx")]);
+    expect(button("Next").disabled).toBe(false);
+
+    const emptyStringCheckbox = [...document.body.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')].find((el) => el.parentElement?.textContent?.includes("Empty string as NULL"));
+    expect(emptyStringCheckbox).toBeTruthy();
+    expect(emptyStringCheckbox!.checked).toBe(false);
+
+    emptyStringCheckbox!.click();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await flushAsyncUpdates();
+
+    expect(capturedOptions?.parseOptions?.emptyStringAsNull).toBe(true);
+
+    await startImport();
+    expect(mocks.importTableFile.mock.calls.at(-1)?.[0].parseOptions.emptyStringAsNull).toBe(true);
   });
 });
