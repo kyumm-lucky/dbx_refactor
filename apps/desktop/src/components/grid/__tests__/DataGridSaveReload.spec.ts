@@ -18,7 +18,10 @@ describe("DataGrid save reload integration", () => {
     const rollbackSource = functionSource("onToolbarRollback", "addRow");
 
     expect(dataGridSource).toContain("prepareFullReload,\n  emit,");
-    expect(dataGridSource).toContain("refreshSavedRows,\n  onCellValueChanged");
+    // 上游在 refreshSavedRows 与 onCellValueChanged 之间插入了 prepareSaveBaseline，
+    // 这里只断言两个编辑器钩子都已接线，不再要求二者相邻。
+    expect(dataGridSource).toContain("refreshSavedRows,");
+    expect(dataGridSource).toContain("onCellValueChanged: (rowId, columnIndex)");
     expect(toolbarSource).toContain("prepareFullReload();");
     expect(rollbackSource).toContain("prepareFullReload();");
     expect(toolbarSource).toContain("const resetToFirstPage = hasPendingConditionInputs();");

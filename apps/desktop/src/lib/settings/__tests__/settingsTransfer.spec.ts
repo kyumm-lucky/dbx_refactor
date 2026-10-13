@@ -413,4 +413,80 @@ describe("settingsTransfer", () => {
     expect(transferCategoryForKey("csvQuoteMode")).toBe("data");
     expect(collectTransferCategories(["csvQuoteMode", "pageSize"])).toEqual(["data"]);
   });
+
+  it("maps csvNullMode into the data category", () => {
+    expect(transferCategoryForKey("csvNullMode")).toBe("data");
+    expect(collectTransferCategories(["csvNullMode", "csvQuoteMode"])).toEqual(["data"]);
+  });
+
+  it("round-trips zebra row background in data category", () => {
+    expect(transferCategoryForKey("dataGridZebraRowBg")).toBe("data");
+
+    const text = serializeSettingsTransfer({
+      ...DEFAULT_EDITOR_SETTINGS,
+      dataGridZebraRowBg: "#232323",
+    });
+    const result = parseSettingsTransferFile(text);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.editorSettings.dataGridZebraRowBg).toBe("#232323");
+  });
+
+  it("round-trips crosshair row and column backgrounds in data category", () => {
+    expect(transferCategoryForKey("dataGridCrosshairRowBg")).toBe("data");
+    expect(transferCategoryForKey("dataGridCrosshairColBg")).toBe("data");
+
+    const text = serializeSettingsTransfer({
+      ...DEFAULT_EDITOR_SETTINGS,
+      dataGridCrosshairRowBg: "#232323",
+      dataGridCrosshairColBg: "#343434",
+    });
+    const result = parseSettingsTransferFile(text);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.editorSettings.dataGridCrosshairRowBg).toBe("#232323");
+    expect(result.value.editorSettings.dataGridCrosshairColBg).toBe("#343434");
+  });
+
+  it("maps csvNullMode into the data category", () => {
+    expect(transferCategoryForKey("csvNullMode")).toBe("data");
+    expect(collectTransferCategories(["csvNullMode", "csvQuoteMode"])).toEqual(["data"]);
+  });
+
+  it("round-trips zebra row background in data category", () => {
+    expect(transferCategoryForKey("dataGridZebraRowBg")).toBe("data");
+
+    const text = serializeSettingsTransfer({
+      ...DEFAULT_EDITOR_SETTINGS,
+      dataGridZebraRowBg: "#232323",
+    });
+    const result = parseSettingsTransferFile(text);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.editorSettings.dataGridZebraRowBg).toBe("#232323");
+  });
+
+  it("round-trips crosshair row and column backgrounds in data category", () => {
+    expect(transferCategoryForKey("dataGridCrosshairRowBg")).toBe("data");
+    expect(transferCategoryForKey("dataGridCrosshairColBg")).toBe("data");
+
+    const text = serializeSettingsTransfer({
+      ...DEFAULT_EDITOR_SETTINGS,
+      dataGridCrosshairRowBg: "#232323",
+      dataGridCrosshairColBg: "#343434",
+    });
+    const result = parseSettingsTransferFile(text);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.editorSettings.dataGridCrosshairRowBg).toBe("#232323");
+    expect(result.value.editorSettings.dataGridCrosshairColBg).toBe("#343434");
+  });
+
+  it("round-trips caretBrowsingEnabled in editor category (#11827)", () => {
+    expect(transferCategoryForKey("caretBrowsingEnabled")).toBe("editor");
+    const text = serializeSettingsTransfer({ ...DEFAULT_EDITOR_SETTINGS, caretBrowsingEnabled: true });
+    const result = parseSettingsTransferFile(text);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.editorSettings.caretBrowsingEnabled).toBe(true);
+  });
 });

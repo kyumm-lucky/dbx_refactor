@@ -96,6 +96,7 @@ function mountBar(
             duplicateTab: "Duplicate",
             copyName: "Copy name",
             closeTab: "Close",
+            reopenClosedTab: "Reopen closed tab",
             closeOtherTabs: "Close other tabs",
             closeLeftTabs: "Close left tabs",
             closeRightTabs: "Close right tabs",

@@ -86,7 +86,7 @@ interface MountGridOptions {
   quickEntry?: boolean;
   hideNullColumns?: boolean;
   readonlyColumnIndexes?: number[];
-  databaseType?: "dameng" | "mongodb";
+  databaseType?: "dameng" | "mongodb" | "iris";
   customSaveHandler?: CustomSaveHandler;
 }
 
@@ -514,5 +514,21 @@ describe("DataGrid multi-row paste from a blank cell", () => {
     await settle();
 
     expect(updates).toEqual([{ $set: { status: "{plain text" } }, { $set: { status: "{plain text" } }]);
+  });
+});
+
+// fork 备注：上游的 INSERT 语句粘贴解析（parseInsertStatementPaste）尚未接入本 fork
+// 重写后的粘贴管线（pasteTextIntoGrid/appendPastedRowsToNewRow），因此这里不再保留
+// 上游对应的两个用例；如需该能力，需先在 fork 管线中接入按列名对齐。
+
+// fork 备注：上游「选中范围转置」特性（转置视图按选中记录集渲染，commit 73692376e）依赖上游的
+// transposeScopeRecordIndexes/transposeSelectedRowIds 实现，本 fork 的转置视图为“单记录 / 整表”两种模式
+// （由 dataGridMultiRowTranspose 控制），因此不保留上游这一组用例。
+
+describe("DataGrid add-row toolbar action", () => {
+  it("renders the add-row toolbar action for Caché / IRIS table data (#11808)", async () => {
+    const { host } = mountGrid({ databaseType: "iris" });
+    await settle();
+    expect(host.querySelector("[data-toolbar-action='addRow']")).not.toBeNull();
   });
 });

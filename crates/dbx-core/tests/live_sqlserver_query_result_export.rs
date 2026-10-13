@@ -70,6 +70,7 @@ fn live_sqlserver_config(id: &str, database: &str) -> dbx_core::models::connecti
         read_only: false,
         is_production: false,
         production_databases: vec![],
+        production_badge_scope: None,
         show_system_schemas: false,
         sidebar_auto_load_all_tables: false,
         show_database_links: None,
@@ -145,7 +146,7 @@ async fn live_sqlserver_xlsx_export_can_outlive_query_timeout_while_rows_keep_ar
         auto_filter: None,
         identifier_quote: None,
         numeric_column_right_align: false,
-        exclude_primary_keys: false,
+        primary_key_mode: dbx_core::data_grid_sql::DataGridPrimaryKeyMode::Include,
         primary_keys: Vec::new(),
     };
     let rows_exported = AtomicU64::new(0);

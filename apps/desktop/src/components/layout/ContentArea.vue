@@ -1358,6 +1358,7 @@ async function loadActiveDdlViewer(force: boolean) {
         connectionId: tab.connectionId,
         database: tab.database,
         schema: ddlViewer.schema || tab.database,
+        queryTimeoutSecs: (connectionStore.getConfig(tab.connectionId) ?? props.activeConnection)?.query_timeout_secs,
         tableName: ddlViewer.tableName,
         objectType: ddlViewer.objectType,
         catalog: tab.catalog,
@@ -2049,6 +2050,8 @@ defineExpose({
               :format-dialect="activeSqlFormatDialect"
               :format-request-id="formatSqlRequest?.tabId === activeTab.id ? formatSqlRequest.id : undefined"
               :compress-request-id="compressSqlRequest?.tabId === activeTab.id ? compressSqlRequest.id : undefined"
+              :keyword-case-request-id="keywordCaseRequest?.tabId === activeTab.id ? keywordCaseRequest.id : undefined"
+              :keyword-case-request-mode="keywordCaseRequest?.tabId === activeTab.id ? keywordCaseRequest.mode : undefined"
               :execution-error="activeQueryError"
               :execution-error-sql="activeTab.lastExecutedSql"
               :execution-error-result="activeQueryError ? activeTab.result : undefined"
