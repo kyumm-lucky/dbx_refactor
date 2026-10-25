@@ -1026,6 +1026,7 @@ describe("StarRocks create layout integration", () => {
 
 describe("StarRocks existing-table layout", () => {
   it("replaces inline ALTER controls with an independent create-and-transfer dialog", async () => {
+    mocks.renderColumnRows = true;
     const previousType = mocks.connection.db_type;
     mocks.connection.db_type = "starrocks";
     mocks.loadObjectDdl.mockResolvedValue({ ddl: 'CREATE TABLE `events` (`id` bigint NOT NULL) ENGINE=OLAP DUPLICATE KEY(`id`) DISTRIBUTED BY RANDOM PROPERTIES("bucket_size"="1073741824")', cacheStatus: "remote" });
@@ -1058,7 +1059,7 @@ describe("StarRocks existing-table layout", () => {
       await settle();
       expect(root.querySelector("[data-starrocks-alter-layout]")).toBeNull();
       await vi.waitFor(() => expect(root.querySelector("[data-starrocks-layout-copy-button]")).not.toBeNull());
-      const button = root.querySelector<HTMLButtonElement>("[data-starrocks-layout-copy-button]")!;
+      const button = root.querySelector<HTMLElement>("[data-starrocks-layout-copy-button]")!;
       button.click();
       await vi.waitFor(() => expect(root.querySelector("[data-starrocks-layout-copy-dialog] pre")?.textContent).toContain("CREATE TABLE"));
       const dialog = root.querySelector("[data-starrocks-layout-copy-dialog]")!;
@@ -1348,6 +1349,10 @@ it.each(["existing", "added", "create"].flatMap((mode) => ["decimal(7,0)", "varc
     });
     mountedApps.push(app);
     app.mount(root);
+    await vi.waitFor(() => expect(root.querySelector("[data-column-name-input]")).not.toBeNull());
+    const nameInput = root.querySelector<HTMLInputElement>("[data-column-name-input]")!;
+    nameInput.click();
+    await settle();
     await vi.waitFor(() => expect(root.querySelector(".structure-column-default-value input")).not.toBeNull());
     await settle();
     const input = root.querySelector<HTMLInputElement>(".structure-column-default-value input")!;

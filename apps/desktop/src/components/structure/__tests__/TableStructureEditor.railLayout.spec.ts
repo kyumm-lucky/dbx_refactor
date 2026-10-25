@@ -1,7 +1,6 @@
 // @vitest-environment happy-dom
 
 import { createApp, nextTick, type App } from "vue";
-import { EditorView } from "@codemirror/view";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const TABLE_DDL = "CREATE TABLE `users` (\n  `id` bigint NOT NULL AUTO_INCREMENT,\n  `email` varchar(255) DEFAULT NULL,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB";
@@ -301,23 +300,6 @@ import TableStructureEditor from "@/components/structure/TableStructureEditor.vu
 
 const mountedApps: App[] = [];
 
-function structureDraft(overrides: Partial<Record<string, unknown>> = {}): Record<string, unknown> {
-  return {
-    dirty: false,
-    activeTab: "columns",
-    newTableName: "",
-    tableComment: "",
-    originalTableComment: "",
-    columns: [],
-    indexes: [],
-    foreignKeys: [],
-    constraints: [],
-    triggers: [],
-    initialized: true,
-    ...overrides,
-  };
-}
-
 async function mountStructureEditor(props: Record<string, unknown> = {}) {
   const root = document.createElement("div");
   document.body.append(root);
@@ -379,42 +361,36 @@ afterEach(() => {
 });
 
 describe("TableStructureEditor rail layout", () => {
-  it("renders the vertical section rail instead of the horizontal tab strip", async () => {
+  it("renders the segmented viewbar instead of a vertical rail", async () => {
     const root = await mountStructureEditor({ layout: "rail" });
 
-    const rail = root.querySelector("[data-structure-rail]");
-    expect(rail).not.toBeNull();
-    expect(rail?.getAttribute("aria-orientation")).toBe("vertical");
-    expect(rail?.querySelectorAll('[role="tab"]').length).toBeGreaterThan(0);
-    // 横向 tab 条与身份横幅（表名/驱动/刷新）在 rail 模式下不再渲染
-    expect(root.querySelector('[data-tab-trigger="columns"]')).toBeNull();
-    expect(root.textContent).not.toContain("structureEditor.density");
+    expect(root.querySelector("[data-structure-rail]")).toBeNull();
+    const triggers = [...root.querySelectorAll("[data-tab-trigger]")];
+    expect(triggers.length).toBeGreaterThan(0);
+    expect(triggers.some((trigger) => trigger.getAttribute("data-tab-trigger") === "columns")).toBe(true);
+    // 对象头（表名/驱动/刷新）在两种布局下都保留
+    expect(root.querySelector("[data-structure-header]")).not.toBeNull();
+    expect(root.querySelector("[data-refresh-structure-shortcut]")).not.toBeNull();
   });
 
-  it("keeps the SQL preview and apply bar as full-width rows below the rail and content", async () => {
+  it("keeps the SQL drawer and change bar inside the workspace", async () => {
     const root = await mountStructureEditor({ layout: "rail" });
 
-    const rail = root.querySelector("[data-structure-rail]");
     const preview = root.querySelector("[data-structure-sql-preview]");
-    expect(rail).not.toBeNull();
+    const changebar = root.querySelector("[data-structure-changebar]");
     expect(preview).not.toBeNull();
-
-    // 行方向只包住「分区栏 + 内容」：预览不能落在同一行里，否则会被挤成右栏。
-    const row = rail!.parentElement as HTMLElement;
-    expect(row.contains(preview)).toBe(false);
-    expect(row.querySelectorAll(":scope > *").length).toBe(2);
-    expect((row.parentElement as HTMLElement).classList.contains("flex-col")).toBe(true);
+    expect(changebar).not.toBeNull();
+    expect(root.querySelector("[data-structure-rail]")).toBeNull();
   });
 
-  it("switches the visible section from the rail and keeps the section title in the pane header", async () => {
+  it("switches the visible section from the viewbar and swaps the section actions", async () => {
     const root = await mountStructureEditor({ layout: "rail" });
 
-    const indexRailItem = Array.from(root.querySelectorAll<HTMLElement>('[data-structure-rail] [role="tab"]')).find((item) => item.textContent?.includes("structureEditor.indexes"));
-    expect(indexRailItem).toBeTruthy();
-    indexRailItem?.click();
+    const indexTrigger = root.querySelector<HTMLElement>('[data-tab-trigger="indexes"]');
+    expect(indexTrigger).not.toBeNull();
+    indexTrigger!.click();
     await settle();
 
-    expect(indexRailItem?.getAttribute("aria-selected")).toBe("true");
     expect(root.textContent).toContain("structureEditor.addIndex");
     expect(root.textContent).not.toContain("structureEditor.addColumn");
   });

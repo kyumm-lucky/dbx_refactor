@@ -660,6 +660,10 @@ async function settle() {
   }
 }
 
+function columnNames(root: HTMLElement): string[] {
+  return [...root.querySelectorAll<HTMLInputElement>("[data-column-name-input]")].map((input) => input.value);
+}
+
 async function mountStructureEditor(draft?: TableStructureEditorDraft, tableName = "users") {
   const root = document.createElement("div");
   document.body.append(root);
@@ -1103,9 +1107,10 @@ describe("TableStructureEditor column index actions", () => {
   it("still validates a changed field used by an existing spatial index", async () => {
     loadMetadata([{ name: "legacy_location", columns: ["location"], is_unique: false, is_primary: false, index_type: "SPATIAL" }]);
     const root = await mountStructureEditor();
-    const nullable = fieldRow(root, "location").querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[0];
-    nullable.checked = true;
-    nullable.dispatchEvent(new Event("change"));
+    fieldRow(root, "location").querySelector<HTMLInputElement>("[data-column-name-input]")!.click();
+    await settle();
+    const nullable = root.querySelector<HTMLElement>('[role="switch"][aria-label="structureEditor.nullable"]')!;
+    nullable.click();
     await vi.waitFor(() => expect(root.textContent).toContain("structureEditor.spatialIndexNullable"));
     expect(mocks.buildTableStructureChangeSql).not.toHaveBeenCalled();
     expect(mocks.executeBatch).not.toHaveBeenCalled();
@@ -1186,14 +1191,15 @@ describe("TableStructureEditor column index actions", () => {
     // The action guard also protects against a stale/programmatically invoked menu item.
     indexRow(root).querySelector<HTMLElement>('[data-index-column="email"]')!.click();
     await vi.waitFor(() => expect(latestDraft().indexes[0]?.columns).toEqual(["location"]));
-    const nullable = fieldRow(root, "location").querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[0];
-    nullable.checked = true;
-    nullable.dispatchEvent(new Event("change"));
+    fieldRow(root, "location").querySelector<HTMLInputElement>("[data-column-name-input]")!.click();
+    await settle();
+    const nullable = root.querySelector<HTMLElement>('[role="switch"][aria-label="structureEditor.nullable"]')!;
+    nullable.click();
     await vi.waitFor(() => expect(root.textContent).toContain("structureEditor.spatialIndexNullable"));
     expect(mocks.executeBatch).not.toHaveBeenCalled();
   });
 
-  it("renders checkboxes without dynamic yes/no toggle text (#8148)", async () => {
+  it("renders nullable state without dynamic yes/no toggle text (#8148)", async () => {
     loadMetadata();
     const root = await mountStructureEditor();
     await openSubmenu(fieldRow(root, "email"), "structureEditor.createColumnIndex");
@@ -1209,14 +1215,18 @@ describe("TableStructureEditor column index actions", () => {
     await settle();
     expect(uniqueCell.textContent?.trim()).toBe("");
 
-    const nullable = fieldRow(root, "location").querySelector<HTMLInputElement>('input[aria-label="structureEditor.nullable"]')!;
-    const nullableCell = nullable.closest("td")!;
-    expect(nullableCell.textContent?.trim()).toBe("");
-
-    nullable.checked = true;
-    nullable.dispatchEvent(new Event("change"));
+    fieldRow(root, "location").querySelector<HTMLInputElement>("[data-column-name-input]")!.click();
     await settle();
-    expect(nullableCell.textContent?.trim()).toBe("");
+    const nullableSwitch = root.querySelector<HTMLElement>('[role="switch"][aria-label="structureEditor.nullable"]')!;
+    const switchRow = nullableSwitch.closest(".sr-switch-row")!;
+    expect(switchRow.textContent).toContain("structureEditor.nullable");
+    expect(switchRow.textContent).not.toContain("structureEditor.yes");
+    expect(switchRow.textContent).not.toContain("structureEditor.no");
+
+    nullableSwitch.click();
+    await settle();
+    expect(switchRow.textContent).not.toContain("structureEditor.yes");
+    expect(switchRow.textContent).not.toContain("structureEditor.no");
   });
 });
 
@@ -1241,7 +1251,7 @@ describe("TableStructureEditor metadata revalidation (#8816)", () => {
 
     await vi.waitFor(() => expect(columnsFacetCalls().length).toBe(2), { timeout: 3000 });
     expect(columnsFacetCalls()[1][3]).toEqual({ force: true });
-    expect(root.textContent).toContain("email");
+    expect(columnNames(root)).toContain("email");
     // The revalidation must not loop: applying happens outside loadStructure.
     await settle();
     expect(columnsFacetCalls().length).toBe(2);
@@ -1316,7 +1326,7 @@ describe("TableStructureEditor metadata revalidation (#8816)", () => {
 
     await vi.waitFor(() => expect(columnsFacetCalls().length).toBe(2), { timeout: 3000 });
     await settle();
-    expect(root.textContent).toContain("email");
+    expect(columnNames(root)).toContain("email");
   });
 });
 

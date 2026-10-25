@@ -923,7 +923,9 @@ describe("Oracle independent index execution", () => {
     container.querySelector<HTMLElement>('[role=tab][aria-selected="true"]')!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
     await vi.waitFor(() => expect(columnsTab!.getAttribute("aria-selected")).toBe("true"));
     await vi.waitFor(() => expect(container.querySelector("[data-column-row-index='0']")).toBeTruthy());
-    const typeTrigger = container.querySelector<HTMLElement>("[data-column-row-index='0'] .dbx-searchable-select-trigger");
+    container.querySelector<HTMLInputElement>("[data-column-name-input]")!.click();
+    await nextTick();
+    const typeTrigger = container.querySelector<HTMLElement>(".sr-inspector .dbx-searchable-select-trigger");
     expect(typeTrigger).toBeTruthy();
     typeTrigger!.click();
     await vi.waitFor(() => expect(document.querySelector(".dbx-searchable-select-list")).toBeTruthy());
@@ -937,9 +939,9 @@ describe("Oracle independent index execution", () => {
     expect(customOption).toBeTruthy();
     customOption!.click();
     await nextTick();
-    expect(container.querySelector<HTMLInputElement>("[data-column-row-index='0'] input")?.value).toBe("EMAIL");
-    expect(Array.from(container.querySelectorAll<HTMLInputElement>("[data-column-row-index='0'] input")).map((input) => input.value)).toContain("40");
-    expect(container.querySelector("[data-column-row-index='0']")?.textContent).toContain("CHAR");
+    expect(container.querySelector<HTMLInputElement>("[data-column-row-index='0'] [data-column-name-input]")?.value).toBe("EMAIL");
+    expect(Array.from(container.querySelectorAll<HTMLInputElement>(".sr-inspector input")).map((input) => input.value)).toContain("40");
+    expect(container.querySelector(".sr-inspector")?.textContent).toContain("CHAR");
     safety.confirm();
     await expect(pending).resolves.toBe(false);
     expect(fixture.ddl).toEqual([]);
@@ -956,7 +958,9 @@ describe("Oracle independent index execution", () => {
       },
       "columns",
     );
-    const typeTrigger = container.querySelector<HTMLElement>("[data-column-row-index='0'] .dbx-searchable-select-trigger")!;
+    container.querySelector<HTMLInputElement>("[data-column-name-input]")!.click();
+    await nextTick();
+    const typeTrigger = container.querySelector<HTMLElement>(".sr-inspector .dbx-searchable-select-trigger")!;
     typeTrigger.click();
     await vi.waitFor(() => expect(document.querySelector(".dbx-searchable-select-list")).toBeTruthy());
     const searchInput = document.querySelector(".dbx-searchable-select-list")!.parentElement!.querySelector<HTMLInputElement>("input")!;
@@ -973,7 +977,10 @@ describe("Oracle independent index execution", () => {
     await vi.waitFor(() => expect(indexesTab.getAttribute("aria-selected")).toBe("true"));
     await vi.waitFor(() => expect(container.querySelector("[data-index-name-input]")).toBeTruthy());
     container.querySelector<HTMLElement>("[role=tab][aria-selected=true]")!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
-    await vi.waitFor(() => expect(Array.from(container.querySelectorAll<HTMLInputElement>("[data-column-row-index='0'] input")).map((input) => input.value)).toContain("40"));
+    await vi.waitFor(() => expect(container.querySelector("[data-column-name-input]")).toBeTruthy());
+    container.querySelector<HTMLInputElement>("[data-column-name-input]")!.click();
+    await nextTick();
+    await vi.waitFor(() => expect(Array.from(container.querySelectorAll<HTMLInputElement>(".sr-inspector input")).map((input) => input.value)).toContain("40"));
     container.querySelector<HTMLElement>("[role=tab][aria-selected=true]")!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
     await vi.waitFor(() => expect(indexesTab.getAttribute("aria-selected")).toBe("true"));
     const indexName = container.querySelector<HTMLInputElement>("[data-index-name-input]")!;
@@ -1120,7 +1127,9 @@ describe("Oracle independent index execution", () => {
       },
     );
     await started;
-    const typeTrigger = container.querySelector<HTMLElement>("[data-column-row-index='0'] .dbx-searchable-select-trigger")!;
+    container.querySelector<HTMLInputElement>("[data-column-name-input]")!.click();
+    await nextTick();
+    const typeTrigger = container.querySelector<HTMLElement>(".sr-inspector .dbx-searchable-select-trigger")!;
     typeTrigger.click();
     await vi.waitFor(() => expect(document.querySelector(".dbx-searchable-select-list")).toBeTruthy());
     const searchInput = document.querySelector(".dbx-searchable-select-list")!.parentElement!.querySelector<HTMLInputElement>("input")!;
@@ -1134,7 +1143,7 @@ describe("Oracle independent index execution", () => {
     await nextTick();
     releaseRevalidation();
     await vi.waitFor(() => expect(vi.mocked(api.saveSchemaCache).mock.calls.length).toBeGreaterThan(0));
-    expect(Array.from(container.querySelectorAll<HTMLInputElement>("[data-column-row-index='0'] input")).map((input) => input.value)).toContain("40");
+    expect(Array.from(container.querySelectorAll<HTMLInputElement>(".sr-inspector input")).map((input) => input.value)).toContain("40");
 
     expect(await editor!.applyChanges()).toBe(false);
     expect(fixture.ddl).toEqual([]);

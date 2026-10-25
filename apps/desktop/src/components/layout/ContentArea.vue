@@ -45,7 +45,6 @@ import {
   Minus,
   Plus,
   ShieldAlert,
-  SlidersHorizontal,
   AlignLeft,
   AlignRight,
   Binary,
@@ -204,7 +203,6 @@ import { buildInfluxDbV1DeleteStatements, canDeleteInfluxDbV1Row, resolveInfluxD
 import type { DataGridSortMode } from "@/lib/dataGrid/dataGridSort";
 import { isDataGridToolbarCompact, type DataGridReloadIntent, type DataGridToolbarActionCapability } from "@/lib/dataGrid/dataGridToolbar";
 import { useTabScroll } from "@/composables/useTabScroll";
-import { useToolbarOverflow } from "@/composables/useToolbarOverflow";
 import { formatElapsedSeconds } from "@/lib/common/elapsedTime";
 import { copyToClipboard } from "@/lib/common/clipboard";
 import DdlStorageToggle from "@/components/objects/DdlStorageToggle.vue";
@@ -385,9 +383,6 @@ watch(activeTableDataView, (view) => {
   else visitedStructureView.value = true;
 });
 
-const dataToolbarRef = ref<HTMLElement | null>(null);
-const { tier: dataToolbarTier } = useToolbarOverflow(dataToolbarRef, [() => props.activeTab.id, () => !!props.activeTab.result, () => activeTableDataView.value]);
-
 type TableStructureViewHandle = {
   structureDensity?: StructureEditorDensity;
   structureDensityOptions?: Array<{ value: StructureEditorDensity; label: string }>;
@@ -396,13 +391,7 @@ type TableStructureViewHandle = {
 };
 
 const structureViewRef = ref<TableStructureViewHandle>();
-const structureViewDensity = computed(() => structureViewRef.value?.structureDensity);
-const structureViewDensityOptions = computed(() => structureViewRef.value?.structureDensityOptions ?? []);
-const structureViewDensityLabel = computed(() => structureViewDensityOptions.value.find((option) => option.value === structureViewDensity.value)?.label ?? "");
 const structureViewTableName = computed(() => activeDataTabTableMeta.value?.tableName?.trim() || "");
-function refreshStructureView() {
-  void structureViewRef.value?.refreshStructure();
-}
 
 // ── Table rename (structure view top bar) ──
 // The structure editor only raises the intent: the dialog owns the SQL preview
@@ -411,16 +400,20 @@ function refreshStructureView() {
 // name and hands the sidebar refresh to the existing `structureEditorSaved`
 // contract.
 const renameTableOpen = ref(false);
+// The header can hand over a name typed in place; the dialog opens prefilled
+// with it instead of discarding the keystrokes.
+const renameTableInitialName = ref("");
 // The dialog is bound to the tab/target that opened it, so a tab switch while
 // it is open cannot retarget the rename at another object.
 const renameTableTarget = ref<{ tabId: string; connectionId: string; database: string; tableName: string; schema?: string }>();
 const renameTableDatabaseType = computed(() => effectiveDatabaseTypeForConnection(props.activeConnection) ?? props.activeConnection?.db_type);
 
-function onRequestRenameTable() {
+function onRequestRenameTable(initialName?: string) {
   const tab = props.activeTab;
   const structureMode = tab.mode === "structure";
   const tableName = (structureMode ? tab.structureTableName : activeDataTabTableMeta.value?.tableName)?.trim();
   if (!tableName) return;
+  renameTableInitialName.value = initialName?.trim() ?? "";
   renameTableTarget.value = {
     tabId: tab.id,
     connectionId: tab.connectionId,
@@ -461,7 +454,6 @@ async function onTableRenamed(payload: { oldName: string; newName: string }) {
   await nextTick();
   if (tab.id === props.activeTab.id && tab.mode === "data") void structureViewRef.value?.refreshStructure();
 }
-const dataToolbarCompact = computed(() => dataToolbarTier.value >= 1);
 const dataGridRenderMode = computed(() => settingsStore.editorSettings.dataGridRenderMode);
 const dataGridSearchMode = computed(() => settingsStore.editorSettings.dataGridSearchMode);
 const dataGridRowNumberMode = computed(() => settingsStore.editorSettings.dataGridRowNumberMode);
@@ -3136,31 +3128,9 @@ defineExpose({
         <!-- 视图切换与「数据工具」在数据视图里已并入网格顶栏（见 DataGrid 的 #topbar-leading），
              这里只在「表结构」视图、以及网格未挂载（加载中 / 空 / 错误）时提供这条 32px 工具条，
              保证切换入口始终可达。 -->
-        <div v-if="activeTableDataView === 'structure' || !activeTab.result" ref="dataToolbarRef" class="h-8 shrink-0 border-b bg-background/80 px-3 flex items-center gap-2 text-xs overflow-hidden">
+        <div v-if="activeTableDataView === 'structure' || !activeTab.result" class="h-8 shrink-0 border-b bg-background/80 px-3 flex items-center gap-2 text-xs overflow-hidden">
           <TableDataViewSwitcher :active-view="activeTableDataView" @select-view="selectTableDataView" />
           <span class="ml-auto" />
-          <template v-if="activeTableDataView === 'structure'">
-            <DropdownMenu>
-              <DropdownMenuTrigger as-child>
-                <Button variant="ghost" size="sm" class="h-5 gap-1 px-1.5 text-xs shrink-0" :title="t('structureEditor.density')" :aria-label="t('structureEditor.density')">
-                  <SlidersHorizontal class="h-3.5 w-3.5" />
-                  <span v-if="!dataToolbarCompact">{{ structureViewDensityLabel }}</span>
-                  <ChevronDown class="h-3 w-3 opacity-50" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" class="w-32">
-                <DropdownMenuItem v-for="option in structureViewDensityOptions" :key="option.value" class="gap-2" @select="structureViewRef?.setStructureDensity(option.value)">
-                  <Check v-if="structureViewDensity === option.value" class="h-3.5 w-3.5" />
-                  <span v-else class="h-3.5 w-3.5" />
-                  {{ option.label }}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button variant="ghost" size="sm" class="h-5 gap-1 px-1.5 text-xs shrink-0" :title="t('structureEditor.refresh')" :aria-label="t('structureEditor.refresh')" @click="refreshStructureView">
-              <RefreshCcw class="h-3.5 w-3.5" />
-              <span v-if="!dataToolbarCompact">{{ t("structureEditor.refresh") }}</span>
-            </Button>
-          </template>
         </div>
         <div v-if="visitedDataTableView" v-show="activeTableDataView === 'data'" data-table-data-view class="flex-1 min-h-0 flex flex-col">
           <DataGrid
@@ -3250,7 +3220,7 @@ defineExpose({
           <TableStructureEditor
             v-if="structureViewTableName"
             ref="structureViewRef"
-            layout="rail"
+            layout="tabs"
             :key="`${activeTab.id}:structure`"
             :connection-id="activeTab.connectionId"
             :database="activeTab.database"
@@ -3635,6 +3605,7 @@ defineExpose({
       :schema="renameTableTarget?.schema"
       :table-name="renameTableTarget?.tableName ?? ''"
       :database-type="renameTableDatabaseType"
+      :initial-name="renameTableInitialName"
       @renamed="onTableRenamed"
     />
   </div>

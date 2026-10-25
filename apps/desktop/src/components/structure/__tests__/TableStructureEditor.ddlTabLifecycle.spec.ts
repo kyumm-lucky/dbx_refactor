@@ -59,6 +59,7 @@ vi.mock("@lucide/vue", async () => {
     Trash2: Icon,
     UserRound: Icon,
     X: Icon,
+    XIcon: Icon,
   };
 });
 
@@ -468,7 +469,9 @@ describe("TableStructureEditor DDL tab lifecycle", () => {
     });
     app.mount(root);
 
-    const commentInput = () => root.querySelector<HTMLInputElement>('input[placeholder="structureEditor.tableCommentPlaceholder"]');
+    root.querySelector<HTMLButtonElement>("[data-table-info-button]")!.click();
+    await nextTick();
+    const commentInput = () => document.querySelector<HTMLInputElement>('input[placeholder="structureEditor.tableCommentPlaceholder"]');
     await vi.waitFor(() => expect(commentInput()?.value).toBe("Old comment"));
     await vi.waitFor(() => expect(root.querySelector(".cm-content")?.textContent).toContain(DDL), { timeout: 5000 });
 
@@ -511,7 +514,9 @@ describe("TableStructureEditor DDL tab lifecycle", () => {
     expect(mocks.invalidateObjectDdl).not.toHaveBeenCalled();
 
     pendingDdl.resolve({ ddl: DDL, cacheStatus: "remote" });
-    const commentInput = () => root.querySelector<HTMLInputElement>('input[placeholder="structureEditor.tableCommentPlaceholder"]');
+    root.querySelector<HTMLButtonElement>("[data-table-info-button]")!.click();
+    await nextTick();
+    const commentInput = () => document.querySelector<HTMLInputElement>('input[placeholder="structureEditor.tableCommentPlaceholder"]');
     await vi.waitFor(() => expect(refreshButton().disabled).toBe(false));
     await vi.waitFor(() => expect(commentInput()?.value).toBe("Old comment"));
     expect(refreshButton().getAttribute("aria-keyshortcuts")).toBe("F5");

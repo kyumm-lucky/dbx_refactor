@@ -29,7 +29,11 @@ vi.mock("@/components/structure/TableStructureEditor.vue", () => ({
     emits: ["requestRename", "saved", "update:draft"],
     setup(props, { attrs, emit, expose }) {
       expose({ refreshStructure: mocks.refreshStructure });
-      return () => h("div", { ...attrs, "data-structure-view": "", "data-structure-table": props.tableName }, [h("button", { "data-stub-request-rename": "", onClick: () => emit("requestRename") }, "rename")]);
+      return () =>
+        h("div", { ...attrs, "data-structure-view": "", "data-structure-table": props.tableName }, [
+          h("button", { "data-stub-request-rename": "", onClick: () => emit("requestRename") }, "rename"),
+          h("button", { "data-stub-request-rename-prefilled": "", onClick: () => emit("requestRename", "orders_typed") }, "rename with name"),
+        ]);
     },
   }),
 }));
@@ -43,10 +47,14 @@ vi.mock("@/components/structure/RenameTableDialog.vue", () => ({
       tableName: { type: String, default: "" },
       schema: { type: String, default: undefined },
       databaseType: { type: String, default: undefined },
+      initialName: { type: String, default: "" },
     },
     emits: ["update:open", "renamed"],
     setup(props, { attrs, emit }) {
-      return () => h("div", { ...attrs, "data-rename-dialog": "", "data-open": String(props.open), "data-table": props.tableName }, [h("button", { "data-stub-confirm-rename": "", onClick: () => emit("renamed", { oldName: props.tableName, newName: "orders_renamed" }) }, "confirm")]);
+      return () =>
+        h("div", { ...attrs, "data-rename-dialog": "", "data-open": String(props.open), "data-table": props.tableName, "data-initial-name": props.initialName }, [
+          h("button", { "data-stub-confirm-rename": "", onClick: () => emit("renamed", { oldName: props.tableName, newName: "orders_renamed" }) }, "confirm"),
+        ]);
     },
   }),
 }));
@@ -185,5 +193,37 @@ describe("table structure rename flow", () => {
     expect(tab.structureTableName).toBe("orders_renamed");
     expect(tab.title).toContain("structureEditor.editTabTitle");
     expect(savedEvents).toEqual([[tab.id, true]]);
+  });
+
+  // A name typed into the structure header must reach the dialog, otherwise the
+  // in-place rename silently restarts from the current name.
+  it("hands a name typed in the structure header to the rename dialog", async () => {
+    const pinia = createTestPinia();
+    const tab = registerDataTab();
+    const { root } = mountTab(pinia, tab);
+    await flushAsyncSurfaces();
+
+    root.querySelectorAll<HTMLButtonElement>("[data-table-view-switcher] button")[1]?.click();
+    await flushAsyncSurfaces();
+
+    root.querySelector<HTMLButtonElement>("[data-stub-request-rename-prefilled]")!.click();
+    await flushAsyncSurfaces();
+
+    expect(root.querySelector("[data-rename-dialog]")?.getAttribute("data-initial-name")).toBe("orders_typed");
+  });
+
+  it("opens the rename dialog without a prefill when only the current name is known", async () => {
+    const pinia = createTestPinia();
+    const tab = registerDataTab();
+    const { root } = mountTab(pinia, tab);
+    await flushAsyncSurfaces();
+
+    root.querySelectorAll<HTMLButtonElement>("[data-table-view-switcher] button")[1]?.click();
+    await flushAsyncSurfaces();
+
+    root.querySelector<HTMLButtonElement>("[data-stub-request-rename]")!.click();
+    await flushAsyncSurfaces();
+
+    expect(root.querySelector("[data-rename-dialog]")?.getAttribute("data-initial-name")).toBe("");
   });
 });

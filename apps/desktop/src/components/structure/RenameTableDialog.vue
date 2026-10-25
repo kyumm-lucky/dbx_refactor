@@ -28,6 +28,8 @@ const props = defineProps<{
   schema?: string;
   tableName: string;
   databaseType?: DatabaseType;
+  /** Name typed into the structure header before the dialog opened; blank uses `tableName`. */
+  initialName?: string;
 }>();
 
 const emit = defineEmits<{
@@ -123,13 +125,14 @@ async function refreshPreview() {
 }
 
 // A rename dialog is bound to one table identity: reopening (or navigating to
-// another table while it is open) restarts from the current name.
+// another table while it is open) restarts from the current name, or from the
+// name already typed into the structure header.
 watch(
-  () => [props.open, props.connectionId, props.database, props.schema, props.tableName] as const,
+  () => [props.open, props.connectionId, props.database, props.schema, props.tableName, props.initialName] as const,
   ([open]) => {
     resetPreview();
     if (!open) return;
-    newName.value = props.tableName;
+    newName.value = props.initialName?.trim() || props.tableName;
     schedulePreview();
   },
   { immediate: true },

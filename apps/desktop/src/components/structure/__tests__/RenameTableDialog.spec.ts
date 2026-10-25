@@ -97,7 +97,7 @@ const mountedApps: App[] = [];
 
 type RenamedPayload = { oldName: string; newName: string };
 
-function mountDialog(options: { open?: boolean; databaseType?: string; tableName?: string } = {}) {
+function mountDialog(options: { open?: boolean; databaseType?: string; tableName?: string; initialName?: string } = {}) {
   const renamed: RenamedPayload[] = [];
   const openEvents: boolean[] = [];
   const state = reactive({
@@ -107,6 +107,7 @@ function mountDialog(options: { open?: boolean; databaseType?: string; tableName
     schema: "public",
     tableName: options.tableName ?? "users",
     databaseType: options.databaseType ?? "postgres",
+    initialName: options.initialName,
   });
   const host = document.createElement("div");
   document.body.append(host);
@@ -184,6 +185,21 @@ describe("RenameTableDialog", () => {
     await flush();
     expect(mocks.buildRenameObjectSql).toHaveBeenCalledWith({ databaseType: "postgres", objectType: "TABLE", schema: "public", oldName: "users", newName: "accounts" });
     expect(host.querySelector("[data-rename-table-preview]")?.textContent).toContain('ALTER TABLE "public"."users" RENAME TO "accounts"');
+    expect(confirmButton(host).disabled).toBe(false);
+  });
+
+  // The structure header can rename in place before opening this dialog; the
+  // typed name must survive the hand-off instead of being reset to the old one.
+  it("prefills the name typed into the structure header", async () => {
+    mocks.buildRenameObjectSql.mockResolvedValue('ALTER TABLE "public"."users" RENAME TO "accounts"');
+    const { host } = mountDialog({ initialName: "accounts" });
+    await flush();
+
+    expect(nameInput(host).value).toBe("accounts");
+
+    await vi.advanceTimersByTimeAsync(300);
+    await flush();
+    expect(mocks.buildRenameObjectSql).toHaveBeenCalledWith({ databaseType: "postgres", objectType: "TABLE", schema: "public", oldName: "users", newName: "accounts" });
     expect(confirmButton(host).disabled).toBe(false);
   });
 
