@@ -311,7 +311,7 @@ onMounted(() => {
       <ShieldCheck class="h-4 w-4 text-primary" />
       <div class="min-w-0 flex-1">
         <div class="truncate text-sm font-semibold">{{ t("damengRoleAdmin.title") }}</div>
-        <div class="truncate text-[11px] text-muted-foreground">{{ connection.name }}</div>
+        <div class="truncate text-xs text-muted-foreground">{{ connection.name }}</div>
       </div>
       <Button size="sm" variant="outline" class="h-8 gap-1.5" :disabled="loadingRoles" @click="loadRoles">
         <Loader2 v-if="loadingRoles" class="h-3.5 w-3.5 animate-spin" />
@@ -341,8 +341,8 @@ onMounted(() => {
           <button v-for="role in filteredRoles" :key="role.role" type="button" class="mb-1 w-full rounded border px-2 py-2 text-left text-xs transition hover:bg-accent" :class="selectedRoleName === role.role ? 'border-primary bg-primary/10' : 'border-transparent'" @click="selectRole(role)">
             <div class="flex items-center gap-2">
               <span class="min-w-0 flex-1 truncate font-medium">{{ role.role }}</span>
-              <Badge v-if="role.passwordRequired === 'YES'" variant="outline" class="h-5 px-1.5 text-[10px]">PWD</Badge>
-              <Badge v-if="isDamengPredefinedRole(role.role)" variant="outline" class="h-5 border-amber-500/50 px-1.5 text-[10px] text-amber-700 dark:text-amber-300">{{ t("damengRoleAdmin.builtinRole") }}</Badge>
+              <Badge v-if="role.passwordRequired === 'YES'" variant="outline" class="h-5 px-1.5 text-xs">PWD</Badge>
+              <Badge v-if="isDamengPredefinedRole(role.role)" variant="outline" class="h-5 border-amber-500/50 px-1.5 text-xs text-amber-700 dark:text-amber-300">{{ t("damengRoleAdmin.builtinRole") }}</Badge>
             </div>
           </button>
           <div v-if="!loadingRoles && filteredRoles.length === 0" class="p-6 text-center text-xs text-muted-foreground">
@@ -392,9 +392,9 @@ onMounted(() => {
               <div v-for="member in members" :key="member.grantee" class="flex items-center gap-2 rounded border bg-muted/20 px-3 py-2">
                 <UsersRound class="h-3.5 w-3.5 shrink-0 text-primary" />
                 <span class="min-w-0 flex-1 truncate font-mono text-xs">{{ member.grantee }}</span>
-                <Badge v-if="isSystemMember(member.grantee)" variant="outline" class="h-5 border-amber-500/50 px-1.5 text-[10px] text-amber-700 dark:text-amber-300">{{ t("damengRoleAdmin.systemUser") }}</Badge>
-                <Badge v-if="isDamengPredefinedRole(member.grantee)" variant="outline" class="h-5 border-amber-500/50 px-1.5 text-[10px] text-amber-700 dark:text-amber-300">{{ t("damengRoleAdmin.builtinRole") }}</Badge>
-                <Badge v-if="member.adminOption" variant="outline" class="h-5 px-1.5 text-[10px]">ADMIN OPTION</Badge>
+                <Badge v-if="isSystemMember(member.grantee)" variant="outline" class="h-5 border-amber-500/50 px-1.5 text-xs text-amber-700 dark:text-amber-300">{{ t("damengRoleAdmin.systemUser") }}</Badge>
+                <Badge v-if="isDamengPredefinedRole(member.grantee)" variant="outline" class="h-5 border-amber-500/50 px-1.5 text-xs text-amber-700 dark:text-amber-300">{{ t("damengRoleAdmin.builtinRole") }}</Badge>
+                <Badge v-if="member.adminOption" variant="outline" class="h-5 px-1.5 text-xs">ADMIN OPTION</Badge>
                 <Button
                   size="sm"
                   variant="ghost"
@@ -432,7 +432,7 @@ onMounted(() => {
               <div v-for="grant in grantedPrivileges" :key="grant.privilege" class="flex items-center gap-2 rounded border bg-muted/20 px-3 py-2">
                 <ShieldCheck class="h-3.5 w-3.5 shrink-0 text-primary" />
                 <span class="min-w-0 flex-1 truncate font-mono text-xs">{{ grant.privilege }}</span>
-                <Badge v-if="grant.adminOption" variant="outline" class="h-5 px-1.5 text-[10px]">ADMIN OPTION</Badge>
+                <Badge v-if="grant.adminOption" variant="outline" class="h-5 px-1.5 text-xs">ADMIN OPTION</Badge>
                 <Button
                   size="sm"
                   variant="ghost"
@@ -487,7 +487,7 @@ onMounted(() => {
               </SelectContent>
             </Select>
           </label>
-          <p class="text-[11px] text-muted-foreground">{{ t("damengRoleAdmin.grantUserHint", { role: selectedRole?.role ?? "" }) }}</p>
+          <p class="text-xs text-muted-foreground">{{ t("damengRoleAdmin.grantUserHint", { role: selectedRole?.role ?? "" }) }}</p>
         </div>
         <DialogFooter>
           <Button variant="outline" @click="grantUserDialogOpen = false">{{ t("common.cancel") }}</Button>
@@ -511,8 +511,8 @@ onMounted(() => {
               </SelectContent>
             </Select>
           </label>
-          <p v-if="!enableDdlAnyPriv" class="text-[11px] text-amber-600 dark:text-amber-400">{{ t("damengRoleAdmin.anyPrivilegeDisabled") }}</p>
-          <p class="text-[11px] text-muted-foreground">{{ t("damengRoleAdmin.grantPrivilegeHint", { role: selectedRole?.role ?? "" }) }}</p>
+          <p v-if="!enableDdlAnyPriv" class="text-xs text-amber-600 dark:text-amber-400">{{ t("damengRoleAdmin.anyPrivilegeDisabled") }}</p>
+          <p class="text-xs text-muted-foreground">{{ t("damengRoleAdmin.grantPrivilegeHint", { role: selectedRole?.role ?? "" }) }}</p>
         </div>
         <DialogFooter>
           <Button variant="outline" @click="grantPrivilegeDialogOpen = false">{{ t("common.cancel") }}</Button>

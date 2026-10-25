@@ -397,7 +397,7 @@ function createDragGhost(sourceEl: HTMLElement, x: number, y: number) {
     max-width: 220px;
     height: 24px;
     padding: 0 8px;
-    font-size: 13px;
+    font-size: var(--dbx-ui-font-size);
     line-height: 24px;
     white-space: nowrap;
     overflow: hidden;
@@ -567,7 +567,7 @@ function taskRowClass(taskId: string) {
 <template>
   <div class="h-full flex flex-col overflow-hidden bg-muted/10 select-none">
     <div class="h-9 flex items-center gap-1 px-2 border-b shrink-0 bg-muted/20">
-      <span class="text-[13px] font-medium">{{ t("transfer.tasks.title") }}</span>
+      <span class="text-xs font-medium">{{ t("transfer.tasks.title") }}</span>
       <span class="flex-1" />
       <LightTooltip :text="t('transfer.tasks.newTask')" side="bottom" :delay="0" :close-delay="0" nowrap>
         <Button variant="ghost" size="icon" class="h-5 w-5" @click="requestNewBlank">
@@ -584,7 +584,7 @@ function taskRowClass(taskId: string) {
     <div class="border-b shrink-0 px-2 py-1">
       <div class="relative">
         <Search class="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-        <input v-model="searchText" autocapitalize="off" autocorrect="off" spellcheck="false" class="w-full h-6 pl-7 pr-6 text-[13px] rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring" :placeholder="t('transfer.tasks.searchTasks')" />
+        <input v-model="searchText" autocapitalize="off" autocorrect="off" spellcheck="false" class="w-full h-6 pl-7 pr-6 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring" :placeholder="t('transfer.tasks.searchTasks')" />
         <button v-if="searchText" type="button" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" @click="searchText = ''">
           <X class="h-3 w-3" />
         </button>
@@ -605,7 +605,7 @@ function taskRowClass(taskId: string) {
             <div v-for="row in visibleFolderRows" :key="row.type === 'folder' ? row.folder.id : row.task.id">
               <div
                 v-if="row.type === 'folder'"
-                class="relative flex cursor-default items-center gap-1 py-1.5 pr-2 text-[13px] group"
+                class="relative flex cursor-default items-center gap-1 py-1.5 pr-2 text-xs group"
                 :style="{ paddingLeft: `${8 + row.depth * 16}px` }"
                 :class="[showDropInside(row.folder.id) ? 'ring-1 ring-primary/50 bg-primary/5' : 'hover:bg-muted/70', isDraggingItem(row.folder.id) ? 'opacity-50' : '']"
                 @mousedown="handleDragMouseDown($event, row.folder.id, 'folder')"
@@ -627,7 +627,7 @@ function taskRowClass(taskId: string) {
                     :ref="setRenameInputRef"
                     v-model="renameValue"
                     data-no-drag="true"
-                    class="min-w-0 flex-1 rounded border border-primary/50 bg-transparent px-1 text-[13px] outline-none"
+                    class="min-w-0 flex-1 rounded border border-primary/50 bg-transparent px-1 text-xs outline-none"
                     @keydown.enter.prevent="confirmRename"
                     @keydown.escape.prevent="cancelRename"
                     @blur="confirmRename"
@@ -643,7 +643,7 @@ function taskRowClass(taskId: string) {
 
               <div
                 v-else
-                class="relative flex cursor-default items-center gap-1 py-1.5 pr-2 text-[13px] group"
+                class="relative flex cursor-default items-center gap-1 py-1.5 pr-2 text-xs group"
                 :style="{ paddingLeft: `${8 + row.depth * 16}px` }"
                 :class="[taskRowClass(row.task.id), isDraggingItem(row.task.id) ? 'opacity-50' : '']"
                 @mousedown="handleDragMouseDown($event, row.task.id, 'task')"
@@ -664,7 +664,7 @@ function taskRowClass(taskId: string) {
                     :ref="setRenameInputRef"
                     v-model="renameValue"
                     data-no-drag="true"
-                    class="min-w-0 flex-1 rounded border border-primary/50 bg-transparent px-1 text-[13px] outline-none"
+                    class="min-w-0 flex-1 rounded border border-primary/50 bg-transparent px-1 text-xs outline-none"
                     @keydown.enter.prevent="confirmRename"
                     @keydown.escape.prevent="cancelRename"
                     @blur="confirmRename"
@@ -679,7 +679,7 @@ function taskRowClass(taskId: string) {
             <div v-if="visibleRootTasks.length > 0 || dragState.draggedType === 'task'">
               <div
                 v-if="dragState.draggedType === 'task' && (visibleFolderRows.length > 0 || searchQuery)"
-                class="relative px-2 py-1 text-[10px] font-medium uppercase text-muted-foreground"
+                class="relative px-2 py-1 text-xs font-medium uppercase text-muted-foreground"
                 :class="showDropInside(UNFILED_DROP_TARGET_ID) ? 'ring-1 ring-primary/50 bg-primary/5' : ''"
                 @mousemove="updateDropTarget($event, UNFILED_DROP_TARGET_ID, 'unfiled')"
                 @mouseleave="clearDropTarget(UNFILED_DROP_TARGET_ID)"
@@ -689,7 +689,7 @@ function taskRowClass(taskId: string) {
               <div
                 v-for="task in visibleRootTasks"
                 :key="task.id"
-                class="relative flex cursor-default items-center gap-1 px-2 py-1.5 text-[13px] group"
+                class="relative flex cursor-default items-center gap-1 px-2 py-1.5 text-xs group"
                 :class="[taskRowClass(task.id), isDraggingItem(task.id) ? 'opacity-50' : '']"
                 @mousedown="handleDragMouseDown($event, task.id, 'task')"
                 @mousemove="updateDropTarget($event, task.id, 'task')"
@@ -709,7 +709,7 @@ function taskRowClass(taskId: string) {
                     :ref="setRenameInputRef"
                     v-model="renameValue"
                     data-no-drag="true"
-                    class="min-w-0 flex-1 rounded border border-primary/50 bg-transparent px-1 text-[13px] outline-none"
+                    class="min-w-0 flex-1 rounded border border-primary/50 bg-transparent px-1 text-xs outline-none"
                     @keydown.enter.prevent="confirmRename"
                     @keydown.escape.prevent="cancelRename"
                     @blur="confirmRename"
@@ -723,7 +723,7 @@ function taskRowClass(taskId: string) {
 
             <div v-if="!hasAnyVisibleItem" class="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
               <ArrowRightLeft class="h-8 w-8 opacity-30" />
-              <p class="text-[13px]">{{ t("transfer.tasks.empty") }}</p>
+              <p class="text-xs">{{ t("transfer.tasks.empty") }}</p>
             </div>
           </div>
         </template>

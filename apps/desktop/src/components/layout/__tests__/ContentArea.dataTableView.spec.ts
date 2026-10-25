@@ -117,33 +117,33 @@ describe("data tab view switcher", () => {
     cleanups.splice(0).forEach((cleanup) => cleanup());
   });
 
-  it("opens on the structure view and keeps the row grid unmounted", async () => {
+  it("opens on the table data view and leaves the structure editor unloaded", async () => {
     const { root, tab } = mountDataTab(dataTab());
     await flushAsyncSurfaces();
 
-    expect(root.querySelector("[data-structure-view]")).not.toBeNull();
-    expect(root.querySelector('[data-structure-layout="rail"]')).not.toBeNull();
-    // The row grid is heavy and stays unloaded until the user asks for it.
-    expect(root.querySelector("[data-table-data-view]")).toBeNull();
+    expect(root.querySelector("[data-data-grid]")).not.toBeNull();
+    expect(root.querySelector("[data-table-data-view]")).not.toBeNull();
+    // The structure editor is the heavyweight side and stays unloaded until the user asks for it.
+    expect(root.querySelector("[data-structure-view]")).toBeNull();
     expect(tab.tableView).toBeUndefined();
 
-    const [structureButton, dataButton] = switcherButtons(root);
-    expect(structureButton?.getAttribute("aria-selected")).toBe("true");
-    expect(dataButton?.getAttribute("aria-selected")).toBe("false");
+    const [dataButton, structureButton] = switcherButtons(root);
+    expect(dataButton?.getAttribute("aria-selected")).toBe("true");
+    expect(structureButton?.getAttribute("aria-selected")).toBe("false");
   });
 
-  it("switches to the row grid and remembers the choice on the tab", async () => {
+  it("switches to the structure view and remembers the choice on the tab", async () => {
     const { root, tab } = mountDataTab(dataTab());
     await flushAsyncSurfaces();
 
     switcherButtons(root)[1]?.click();
     await flushAsyncSurfaces();
 
-    expect(tab.tableView).toBe("data");
-    expect(root.querySelector("[data-data-grid]")).not.toBeNull();
-    expect((root.querySelector("[data-table-data-view]") as HTMLElement).style.display).not.toBe("none");
-    // The structure surface stays mounted but hidden, so switching back is instant.
-    expect((root.querySelector("[data-table-structure-view]") as HTMLElement).style.display).toBe("none");
+    expect(tab.tableView).toBe("structure");
+    expect(root.querySelector("[data-structure-view]")).not.toBeNull();
+    expect((root.querySelector("[data-table-structure-view]") as HTMLElement).style.display).not.toBe("none");
+    // The row grid stays mounted but hidden, so switching back is instant.
+    expect((root.querySelector("[data-table-data-view]") as HTMLElement).style.display).toBe("none");
   });
 
   it("restores the data view for a tab that was left on it", async () => {
@@ -152,6 +152,15 @@ describe("data tab view switcher", () => {
 
     expect(root.querySelector("[data-data-grid]")).not.toBeNull();
     expect(root.querySelector("[data-table-structure-view]")).toBeNull();
+    expect(switcherButtons(root)[0]?.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("restores the structure view for a tab that was left on it", async () => {
+    const { root } = mountDataTab(dataTab({ tableView: "structure" }));
+    await flushAsyncSurfaces();
+
+    expect(root.querySelector("[data-structure-view]")).not.toBeNull();
+    expect(root.querySelector("[data-table-data-view]")).toBeNull();
     expect(switcherButtons(root)[1]?.getAttribute("aria-selected")).toBe("true");
   });
 

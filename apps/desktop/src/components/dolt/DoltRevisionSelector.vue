@@ -167,7 +167,7 @@ onUnmounted(() => document.removeEventListener("pointerdown", onDocumentPointerD
         >
           <GitBranch v-if="option.kind === 'branch'" class="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
           <Tag v-else class="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-          <span class="min-w-0 flex-1 truncate font-mono text-[11px]">{{ option.name }}</span>
+          <span class="min-w-0 flex-1 truncate font-mono text-xs">{{ option.name }}</span>
           <Check v-if="option.name === modelValue" class="h-3.5 w-3.5 text-primary" />
         </button>
       </VirtualScrollArea>
@@ -193,7 +193,7 @@ onUnmounted(() => document.removeEventListener("pointerdown", onDocumentPointerD
   visibility: hidden;
   white-space: pre;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .dolt-revision-selector-field {
@@ -229,7 +229,7 @@ onUnmounted(() => document.removeEventListener("pointerdown", onDocumentPointerD
   overflow: hidden;
   text-overflow: ellipsis;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--foreground);
 }
 

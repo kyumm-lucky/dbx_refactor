@@ -3132,7 +3132,7 @@ useUpdateBlocker(() => (hasUnsavedRedisDraft.value || editingTtl.value || saving
           </template>
           <div ref="editTtlWrapper" v-else class="flex min-w-0 max-w-full flex-wrap items-center gap-1">
             <Select v-model="ttlExpiryMode" :disabled="savingTtl">
-              <SelectTrigger size="sm" class="h-6 max-w-[min(100%,14rem)] shrink-0 gap-1 py-0 pl-2 pr-1.5 text-[11px]" :aria-label="t('redis.expiry')">
+              <SelectTrigger size="sm" class="h-6 max-w-[min(100%,14rem)] shrink-0 gap-1 py-0 pl-2 pr-1.5 text-xs" :aria-label="t('redis.expiry')">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent data-redis-expiry-mode-content class="min-w-[12rem]">
@@ -3800,7 +3800,7 @@ useUpdateBlocker(() => (hasUnsavedRedisDraft.value || editingTtl.value || saving
                   <section v-if="!selectedStreamConsumer" data-redis-stream-consumers class="overflow-hidden rounded-lg border bg-card text-card-foreground">
                     <div class="flex min-h-10 items-center gap-2 border-b px-3 py-2">
                       <span class="text-sm font-medium">{{ t("redis.streamConsumers") }}</span>
-                      <Badge v-if="streamConsumers.length" variant="secondary" class="h-5 min-w-5 justify-center px-1.5 text-[10px] tabular-nums">{{ formatStreamMetric(streamConsumers.length) }}</Badge>
+                      <Badge v-if="streamConsumers.length" variant="secondary" class="h-5 min-w-5 justify-center px-1.5 text-xs tabular-nums">{{ formatStreamMetric(streamConsumers.length) }}</Badge>
                       <Loader2 v-if="streamConsumersLoading" class="ml-auto h-3.5 w-3.5 animate-spin text-muted-foreground" />
                     </div>
 
@@ -3859,7 +3859,7 @@ useUpdateBlocker(() => (hasUnsavedRedisDraft.value || editingTtl.value || saving
                     <div class="flex min-h-10 items-center gap-2 border-b px-3 py-2">
                       <span class="text-sm font-medium">{{ t("redis.pendingEntries") }}</span>
                       <Badge v-if="selectedStreamConsumer" variant="outline" class="dbx-editor-font-family min-w-0 max-w-48 truncate px-1.5 text-[10px]" :title="formatValue(selectedStreamConsumer.name)">{{ formatValue(selectedStreamConsumer.name) }}</Badge>
-                      <Badge v-if="streamPendingEntries.length" variant="secondary" class="h-5 min-w-5 justify-center px-1.5 text-[10px] tabular-nums">{{ formatStreamMetric(streamPendingEntries.length) }}</Badge>
+                      <Badge v-if="streamPendingEntries.length" variant="secondary" class="h-5 min-w-5 justify-center px-1.5 text-xs tabular-nums">{{ formatStreamMetric(streamPendingEntries.length) }}</Badge>
                       <Loader2 v-if="streamPendingLoading || streamPendingLoadingMore" class="ml-auto h-3.5 w-3.5 animate-spin text-muted-foreground" />
                     </div>
 

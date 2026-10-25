@@ -206,8 +206,8 @@ onUnmounted(stopAutoRefresh);
     <div class="flex h-11 shrink-0 items-center gap-2 border-b bg-muted/20 px-3">
       <Gauge class="h-4 w-4 text-primary" />
       <div class="truncate text-sm font-semibold">{{ t("serverDashboard.title") }}</div>
-      <Badge variant="outline" class="h-5 max-w-48 truncate rounded-md px-1.5 text-[11px]" :title="connectionName">{{ connectionName }}</Badge>
-      <Badge v-if="serverVersion" variant="secondary" class="h-5 max-w-64 truncate rounded-md px-1.5 text-[11px]" :title="serverVersion">{{ serverVersion }}</Badge>
+      <Badge variant="outline" class="h-5 max-w-48 truncate rounded-md px-1.5 text-xs" :title="connectionName">{{ connectionName }}</Badge>
+      <Badge v-if="serverVersion" variant="secondary" class="h-5 max-w-64 truncate rounded-md px-1.5 text-xs" :title="serverVersion">{{ serverVersion }}</Badge>
       <div class="ml-auto flex items-center gap-2">
         <span class="text-xs text-muted-foreground">{{ t("serverDashboard.autoRefresh") }}</span>
         <Select :model-value="String(autoRefreshInterval)" @update:model-value="onIntervalChange">

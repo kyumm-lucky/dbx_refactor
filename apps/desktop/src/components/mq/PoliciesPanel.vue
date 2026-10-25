@@ -310,7 +310,7 @@ watch(
 .scope-label {
   margin-top: 4px;
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .policies-content {
@@ -336,7 +336,7 @@ watch(
 .policy-section h4,
 .json-section h4 {
   margin: 0 0 12px;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
 }
 
@@ -346,7 +346,7 @@ label {
   gap: 6px;
   margin-bottom: 10px;
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 input,
@@ -388,7 +388,7 @@ pre {
   padding: 12px 16px;
   margin-bottom: 12px;
   border-radius: var(--dbx-radius-fixed-6);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .panel-placeholder {

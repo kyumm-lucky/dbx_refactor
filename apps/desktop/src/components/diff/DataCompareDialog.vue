@@ -1326,7 +1326,7 @@ onBeforeUnmount(() => {
           <div class="grid grid-cols-[1fr_auto_1fr] gap-4 items-start">
             <div class="space-y-2 rounded-lg border border-blue-500/35 bg-blue-500/5 p-3">
               <div class="flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400">
-                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/15 text-[11px] font-semibold">S</span>
+                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/15 text-xs font-semibold">S</span>
                 {{ t("diff.source") }}
               </div>
               <CompareConnectionSelect v-model="sourceConnectionId" :disabled="comparing || executionLocked" :connections="compareConnections" :layout="store.sidebarLayout" />
@@ -1372,7 +1372,7 @@ onBeforeUnmount(() => {
 
             <div class="space-y-2 rounded-lg border border-emerald-500/35 bg-emerald-500/5 p-3">
               <div class="flex items-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-[11px] font-semibold">T</span>
+                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-semibold">T</span>
                 {{ t("diff.target") }}
               </div>
               <CompareConnectionSelect v-model="targetConnectionId" :disabled="comparing || executionLocked" :connections="compareConnections" :layout="store.sidebarLayout" />
@@ -1438,15 +1438,15 @@ onBeforeUnmount(() => {
           <div class="space-y-1">
             <div class="flex flex-wrap items-center gap-2">
               <Label class="text-xs font-medium">{{ t("dataCompare.keyColumns") }}</Label>
-              <span v-if="singleKeyColumnRow" class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium" :class="singleKeyColumnRow.manual ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'">
+              <span v-if="singleKeyColumnRow" class="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium" :class="singleKeyColumnRow.manual ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'">
                 {{ singleKeyColumnRow.manual ? t("dataCompare.keyColumnsStatusManual") : t("dataCompare.keyColumnsStatusAuto") }}
               </span>
-              <Button v-if="singleKeyColumnRow?.manual" size="sm" variant="ghost" class="h-6 px-1.5 text-[11px]" :disabled="comparing || executionLocked" @click="clearTableKeyColumnsOverride(singleKeyColumnRow.table)">
+              <Button v-if="singleKeyColumnRow?.manual" size="sm" variant="ghost" class="h-6 px-1.5 text-xs" :disabled="comparing || executionLocked" @click="clearTableKeyColumnsOverride(singleKeyColumnRow.table)">
                 {{ t("dataCompare.keyColumnsResetAuto") }}
               </Button>
             </div>
 
-            <div v-if="!selectedSourceTableNames.length" class="text-[11px] text-muted-foreground">
+            <div v-if="!selectedSourceTableNames.length" class="text-xs text-muted-foreground">
               {{ t("dataCompare.keyColumnsSelectTableHint") }}
             </div>
 
@@ -1459,7 +1459,7 @@ onBeforeUnmount(() => {
                 :disabled="comparing || executionLocked"
                 @update:model-value="(columns) => setTableKeyColumns(singleKeyColumnRow!.table, columns)"
               />
-              <div class="text-[11px]" data-key-column-hint :class="singleKeyColumnRow.error || singleKeyColumnRow.status === 'missing' ? 'text-destructive' : 'text-muted-foreground'">
+              <div class="text-xs" data-key-column-hint :class="singleKeyColumnRow.error || singleKeyColumnRow.status === 'missing' ? 'text-destructive' : 'text-muted-foreground'">
                 {{ singleKeyColumnRow.hint }}
               </div>
             </div>
@@ -1467,7 +1467,7 @@ onBeforeUnmount(() => {
             <!-- Batch compare: every table keeps its own match columns. -->
             <div v-else class="space-y-1">
               <div class="rounded-lg border">
-                <div class="border-b bg-muted/20 px-2 py-1 text-[11px] text-muted-foreground">
+                <div class="border-b bg-muted/20 px-2 py-1 text-xs text-muted-foreground">
                   {{ t("dataCompare.keyColumnsPerTableHint") }}
                 </div>
                 <div class="max-h-56 divide-y overflow-auto">
@@ -1479,15 +1479,15 @@ onBeforeUnmount(() => {
                       <span class="min-w-0 max-w-[45%] shrink-0 truncate font-mono" :class="row.columns.length > 0 ? (row.manual ? 'text-foreground' : 'text-muted-foreground') : 'text-destructive'">
                         {{ row.loading ? t("dataCompare.keyColumnsLoading") : row.columns.length > 0 ? row.columns.join(", ") : t("dataCompare.keyColumnsNeedsSelection") }}
                       </span>
-                      <span class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium" :class="row.status === 'manual' ? 'bg-primary/15 text-primary' : row.status === 'auto' ? 'bg-muted text-muted-foreground' : 'bg-destructive/15 text-destructive'">
+                      <span class="shrink-0 rounded px-1.5 py-0.5 text-xs font-medium" :class="row.status === 'manual' ? 'bg-primary/15 text-primary' : row.status === 'auto' ? 'bg-muted text-muted-foreground' : 'bg-destructive/15 text-destructive'">
                         {{ row.status === "manual" ? t("dataCompare.keyColumnsStatusManual") : row.status === "auto" ? t("dataCompare.keyColumnsStatusAuto") : t("dataCompare.keyColumnsNeedsSelection") }}
                       </span>
                     </button>
                     <div v-if="expandedKeyColumnTable === row.table" class="space-y-1 border-t bg-muted/10 px-2 py-2">
                       <CompareKeyColumnsSelect :model-value="row.columns" :columns="columnsForTable(row.table)" :loading="row.loading" :disabled="comparing || executionLocked" @update:model-value="(columns) => setTableKeyColumns(row.table, columns)" />
-                      <div class="flex flex-wrap items-center gap-2 text-[11px]">
+                      <div class="flex flex-wrap items-center gap-2 text-xs">
                         <span data-key-column-hint :class="row.error || (row.status === 'missing' && row.matched) ? 'text-destructive' : 'text-muted-foreground'">{{ row.hint }}</span>
-                        <Button v-if="row.manual" size="sm" variant="ghost" class="h-6 px-1.5 text-[11px]" :disabled="comparing || executionLocked" @click="clearTableKeyColumnsOverride(row.table)">
+                        <Button v-if="row.manual" size="sm" variant="ghost" class="h-6 px-1.5 text-xs" :disabled="comparing || executionLocked" @click="clearTableKeyColumnsOverride(row.table)">
                           {{ t("dataCompare.keyColumnsResetAuto") }}
                         </Button>
                       </div>
@@ -1576,7 +1576,7 @@ onBeforeUnmount(() => {
                       <td class="px-3 py-2 align-top font-mono">{{ item.sourceTable }}</td>
                       <td class="px-3 py-2 align-top font-mono text-muted-foreground">{{ item.targetTable }}</td>
                       <td class="px-3 py-2 align-top">
-                        <span class="inline-flex rounded px-2 py-0.5 text-[11px]" :class="resultStatusClass(item.status)">
+                        <span class="inline-flex rounded px-2 py-0.5 text-xs" :class="resultStatusClass(item.status)">
                           {{ resultStatusLabel(item.status) }}
                         </span>
                       </td>

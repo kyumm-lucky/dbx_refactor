@@ -154,7 +154,7 @@ watch(
         <TooltipContent side="top">Shift+Enter</TooltipContent>
       </Tooltip>
       <div class="flex min-w-0 flex-1 items-center gap-1.5 border-l pl-2">
-        <span class="shrink-0 text-[11px] text-muted-foreground">{{ t("grid.sortSqlPreview") }}</span>
+        <span class="shrink-0 text-xs text-muted-foreground">{{ t("grid.sortSqlPreview") }}</span>
         <code class="min-w-0 flex-1 truncate px-1 text-[11px]" :class="sqlPreview ? 'text-foreground' : 'text-muted-foreground'" :title="previewText">{{ previewText }}</code>
         <Button variant="ghost" size="icon" class="h-6 w-6 shrink-0" :disabled="!sqlPreview" :aria-label="t('grid.copySortSql')" @click="emit('copySql')"><Copy class="h-3 w-3" /></Button>
       </div>

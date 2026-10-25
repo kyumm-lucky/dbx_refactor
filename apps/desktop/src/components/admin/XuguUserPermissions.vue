@@ -672,8 +672,8 @@ onBeforeUnmount(() => {
               ><UserRound v-if="!principal.isRole" class="size-4 shrink-0 text-muted-foreground" /><UsersRound v-else class="size-4 shrink-0 text-muted-foreground" /><span class="truncate">{{ principal.name }}</span></span
             >
             <span class="flex gap-1"
-              ><Badge v-if="principal.isSystem" variant="outline" class="px-1.5 py-0 text-[10px]">{{ t("xuguUserPermissions.system") }}</Badge
-              ><Badge v-else-if="!principal.isRole && principal.locked" variant="destructive" class="px-1.5 py-0 text-[10px]">{{ t("xuguUserPermissions.locked") }}</Badge></span
+              ><Badge v-if="principal.isSystem" variant="outline" class="px-1.5 py-0 text-xs">{{ t("xuguUserPermissions.system") }}</Badge
+              ><Badge v-else-if="!principal.isRole && principal.locked" variant="destructive" class="px-1.5 py-0 text-xs">{{ t("xuguUserPermissions.locked") }}</Badge></span
             >
           </button>
           <div v-if="!loading && visiblePrincipals.length === 0" class="p-4 text-sm text-muted-foreground">{{ t("xuguUserPermissions.empty") }}</div>

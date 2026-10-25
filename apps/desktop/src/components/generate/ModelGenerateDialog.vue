@@ -160,7 +160,7 @@ async function save() {
             </div>
           </div>
           <nav class="min-h-0 flex-1 overflow-y-auto p-2" :aria-label="t('modelGeneration.targets')">
-            <div class="mb-1 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{{ t("modelGeneration.languages") }}</div>
+            <div class="mb-1 px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{{ t("modelGeneration.languages") }}</div>
             <button
               v-for="format in filteredRenderers"
               :key="format.id"
@@ -175,7 +175,7 @@ async function save() {
             >
               <span class="truncate">{{ format.label }}</span>
             </button>
-            <div v-if="filteredTemplates.length" class="mb-1 mt-4 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{{ t("modelGeneration.customTemplates") }}</div>
+            <div v-if="filteredTemplates.length" class="mb-1 mt-4 px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{{ t("modelGeneration.customTemplates") }}</div>
             <button
               v-for="item in filteredTemplates"
               :key="item.id"

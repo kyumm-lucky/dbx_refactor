@@ -1,15 +1,14 @@
 import type { DataTableTabView, QueryTab } from "@/types/database";
 
 /**
- * Data-table tabs remember their top-level view on the tab, so switching to
- * another tab and back restores what the user was looking at. An undefined
- * value means "never switched": the default is the structure view.
+ * 数据表标签页把顶层视图记在标签页上，切到别的标签再回来时恢复用户离开时的
+ * 视图。未记录（undefined）表示用户从未切换过，默认显示表数据视图。
  */
-export const DEFAULT_DATA_TABLE_VIEW: DataTableTabView = "structure";
+export const DEFAULT_DATA_TABLE_VIEW: DataTableTabView = "data";
 
 export function dataTableTabView(tab: Pick<QueryTab, "mode" | "tableView">): DataTableTabView {
   if (tab.mode !== "data") return "data";
-  return tab.tableView === "data" ? "data" : DEFAULT_DATA_TABLE_VIEW;
+  return tab.tableView === "structure" ? "structure" : DEFAULT_DATA_TABLE_VIEW;
 }
 
 /**

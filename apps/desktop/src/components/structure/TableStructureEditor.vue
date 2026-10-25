@@ -135,6 +135,7 @@ import { PARTITION_TREE_INDENT_PX, flattenPgPartitionNodes, pgPartitionBoundText
 import { formatBytes } from "@/lib/database/serverMetrics";
 import { hasTableStructureRefreshWork, unloadedTableStructureRefreshScope, visibleTableStructureRefreshScope, type TableStructureRefreshScope } from "@/lib/table/tableStructureMetadataLoading";
 import { canAddTableStructureColumn, getTableStructureCapabilities, hasLocalTableColumnOrderChange, isPhysicalTableColumnOrderChange, sanitizeStructureIndexesForCapabilities, supportsLocalTableColumnReorder } from "@/lib/table/tableStructureCapabilities";
+import { supportsObjectRename } from "@/lib/table/objectRenameSql";
 import { sortStructureIndexesByColumns, type StructureIndexColumnSort } from "@/lib/table/structureIndexSort";
 import { getConcurrentIndexAvailability, concurrentIndexNamesInStatements, normalizeUnsupportedConcurrentIndexes, type ConcurrentIndexAvailability } from "@/lib/table/concurrentIndexAvailability";
 import { orderedColumnIndexes, uniqueDataGridColumnOrderKeys } from "@/lib/dataGrid/dataGridColumnOrder";
@@ -278,6 +279,8 @@ const emit = defineEmits<{
   openSettings: [initialTab?: string, initialSection?: string];
   /** Jump from the DDL view to the table's data tab (issue #6724). */
   viewData: [];
+  /** The owner opens the rename dialog; the editor never executes DDL for a rename itself. */
+  requestRename: [];
 }>();
 
 const activeTab = ref<TableInfoTab>("columns");
@@ -1360,6 +1363,12 @@ function loadSqlPreviewCollapsed(): boolean {
 const structureDensity = computed(() => settingsStore.editorSettings.structureEditorDensity);
 const localStructureDensity = ref<StructureEditorDensity>(structureDensity.value);
 const structureDensityMetric = computed(() => metricsForDensity(localStructureDensity.value));
+// 结构编辑器字号跟随全程序 UI 字号（左侧栏字号）；密度只决定间距/控件高度。
+// 宽度计算若继续用密度自带的 11/12/13px 会与 14px 渲染文本错位，因此统一取运行时字号。
+const uiFontSizePx = computed(() => {
+  const size = Number(settingsStore.editorSettings.sidebarFontSize);
+  return Number.isFinite(size) && size > 0 ? size : 14;
+});
 const structureDensityOptions = computed(() => [
   { value: "compact", label: t("structureEditor.densityCompact") },
   { value: "standard", label: t("structureEditor.densityStandard") },
@@ -1368,7 +1377,7 @@ const structureDensityOptions = computed(() => [
 const structureDensityStyle = computed(() => {
   const metric = structureDensityMetric.value;
   return {
-    "--structure-font-size": `${metric.fontSize}px`,
+    "--structure-font-size": "var(--dbx-ui-font-size)",
     "--structure-shell-padding": `${metric.shellPadding}px`,
     "--structure-cell-px": `${metric.cellPaddingX}px`,
     "--structure-cell-py": `${metric.cellPaddingY}px`,
@@ -1826,7 +1835,7 @@ const columnOrdinalIndicatorWidth = computed(() => {
   // and divider. The indicator is shared by every row, so it must fit the
   // largest ordinal even when that row is a primary-key column.
   const iconCount = Math.max(1, ...columns.value.map((column) => columnIndexIndicators(column).length));
-  const requiredWidth = metric.fontSize * digitCount + (metric.iconSize + columnOrdinalIndicatorGap) * iconCount + columnOrdinalIndicatorTrailingChrome;
+  const requiredWidth = uiFontSizePx.value * digitCount + (metric.iconSize + columnOrdinalIndicatorGap) * iconCount + columnOrdinalIndicatorTrailingChrome;
   return Math.max(metric.columns[0], requiredWidth);
 });
 const columnActionsWidth = computed(() => {
@@ -2125,7 +2134,7 @@ function columnNeedsVariableGeometryHeight(column: EditableStructureColumn): boo
 }
 const columnVirtualItemSize = computed(() => (columns.value.some(columnNeedsVariableGeometryHeight) ? null : structureColumnRowHeight.value));
 const columnVirtualRows = computed(() => {
-  const geometryHintHeight = Math.ceil(structureDensityMetric.value.fontSize * structureDensityMetric.value.lineHeight) + 2;
+  const geometryHintHeight = Math.ceil(uiFontSizePx.value * structureDensityMetric.value.lineHeight) + 2;
   return columns.value.map((column, index) => ({
     id: column.id,
     column,
@@ -2172,6 +2181,10 @@ const triggerEventOptions = ["INSERT", "UPDATE", "DELETE"];
 const metadataSchema = computed(() => (props.exactIdentity ? (props.schema ?? "") : connectionObjectTreeQuerySchema(connection.value, props.database, props.schema)));
 const refreshVersion = computed(() => (props.connectionId && props.tableName ? queryStore.tableStructureRefreshVersion(props.connectionId, props.database, props.schema, props.tableName, props.exactIdentity === true, props.catalog) : 0));
 const isCreateMode = computed(() => !props.tableName);
+// The top info bar offers a rename entry point. Create drafts have no object to
+// rename yet, view tabs are outside the table-rename path, and dialects without
+// ALTER ... RENAME TO (see supportsObjectRename) keep the button hidden.
+const canRenameTable = computed(() => !isCreateMode.value && props.tableType !== "view" && supportsObjectRename(databaseType.value, "TABLE"));
 // Hidden for an existing table that is not partitioned: the tab could only ever
 // render an empty state. Create mode keeps it so partitioning can be declared.
 const showPartitionsTab = computed(() => tableMetadataCapabilities.value.partitions && (isCreateMode.value || isPartitionedParent.value || isTablePartition.value));
@@ -7844,9 +7857,15 @@ watch(
       :authorize="authorizeStarRocksLayoutCopy"
       @created="emit('saved', false)"
     />
-    <div class="flex shrink-0 items-center gap-2 rounded-md border bg-muted/20 px-[var(--structure-cell-px)] py-[var(--structure-header-py)] text-[length:var(--structure-font-size)]">
+    <div class="flex shrink-0 items-center gap-2 rounded-md border bg-muted/20 px-[var(--structure-cell-px)] py-[var(--structure-header-py)] text-[length:var(--structure-font-size)]" data-structure-identity-bar>
       <Database :class="[structureIconClass, 'text-muted-foreground']" />
-      <span class="min-w-0 flex-1 truncate font-medium">{{ targetLabel || t("editor.noDatabase") }}</span>
+      <div class="flex min-w-0 flex-1 items-center gap-1">
+        <span class="min-w-0 truncate font-medium">{{ targetLabel || t("editor.noDatabase") }}</span>
+        <Button v-if="canRenameTable" variant="ghost" size="sm" :class="[structureToolbarButtonClass, 'shrink-0']" :disabled="loading || saving || ddlLoading" :title="t('contextMenu.renameObject')" :aria-label="t('contextMenu.renameObject')" data-rename-table-button @click="emit('requestRename')">
+          <Pencil :class="structureIconClass" />
+          {{ t("contextMenu.renameObject") }}
+        </Button>
+      </div>
       <Badge variant="outline">{{ connection?.driver_label || databaseType }}</Badge>
       <Button v-if="!isCreateMode" variant="ghost" size="sm" :class="structureToolbarButtonClass" :disabled="loading || saving || ddlLoading" :title="t('structureEditor.refresh') + ' (F5)'" aria-keyshortcuts="F5" data-refresh-structure-shortcut @click="reloadStructureFromDatabase">
         <RefreshCw :class="structureIconClass" />
@@ -9539,7 +9558,7 @@ watch(
         <div class="flex shrink-0 items-center justify-between border-b px-[var(--structure-cell-px)] py-[var(--structure-header-py)] text-[length:var(--structure-font-size)] font-medium">
           <div class="flex items-center gap-1.5">
             <span>{{ t("structureEditor.sqlPreview") }}</span>
-            <Badge v-if="!saving && pendingStatements.length && warnings.length === 0" variant="outline" :class="['h-4 px-1 text-[10px]', sqlPreviewPending || sqlPreviewLoading ? 'invisible' : '']" :aria-hidden="sqlPreviewPending || sqlPreviewLoading">
+            <Badge v-if="!saving && pendingStatements.length && warnings.length === 0" variant="outline" :class="['h-5 px-1 text-xs', sqlPreviewPending || sqlPreviewLoading ? 'invisible' : '']" :aria-hidden="sqlPreviewPending || sqlPreviewLoading">
               <Check class="h-3 w-3" />
               {{ t("structureEditor.ready") }}
             </Badge>
@@ -9765,7 +9784,7 @@ watch(
                     <span v-if="columnEditorControls.comment && details.comment" class="min-w-0 truncate" :title="`${t('structureEditor.comment')}: ${details.comment}`">{{ t("structureEditor.comment") }}: {{ details.comment }}</span>
                   </span>
                 </span>
-                <Badge v-if="alreadyExists" variant="secondary" class="shrink-0 text-[10px]">{{ t("structureEditor.copyColumnsAlreadyExists") }}</Badge>
+                <Badge v-if="alreadyExists" variant="secondary" class="shrink-0 text-xs">{{ t("structureEditor.copyColumnsAlreadyExists") }}</Badge>
               </label>
             </div>
           </template>

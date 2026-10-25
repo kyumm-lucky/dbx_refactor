@@ -558,7 +558,7 @@ watch(
 
 .dialog-body h4 {
   margin: 16px 0 8px;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
 }
 
@@ -576,7 +576,7 @@ watch(
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   margin-bottom: 12px;
 }
 
@@ -594,7 +594,7 @@ watch(
 
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   word-break: break-all;
 }
 
@@ -615,7 +615,7 @@ watch(
   padding: 7px 10px;
   border: 1px solid var(--color-border);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .form-group {
@@ -625,14 +625,14 @@ watch(
 .config-hint {
   margin: 0 0 14px;
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1.5;
 }
 
 .form-group label {
   display: block;
   margin-bottom: 6px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
 }
 
@@ -645,7 +645,7 @@ watch(
   box-sizing: border-box;
   background: var(--color-background);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .form-group select {
@@ -664,7 +664,7 @@ watch(
 .form-hint {
   margin-top: 6px;
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .form-error {
@@ -672,7 +672,7 @@ watch(
   background: var(--color-error-bg);
   color: var(--color-error);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .dialog-footer {

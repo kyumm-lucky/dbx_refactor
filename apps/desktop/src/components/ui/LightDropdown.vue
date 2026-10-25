@@ -46,7 +46,7 @@ const props = withDefaults(
   {
     ariaLabel: undefined,
     contentClass: "",
-    triggerClass: "flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground",
+    triggerClass: "flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground",
     triggerTitle: undefined,
     triggerIcon: undefined,
     triggerLabel: undefined,
@@ -194,7 +194,7 @@ onBeforeUnmount(close);
       <div v-if="label" class="bg-border -mx-1 my-1 h-px" />
       <template v-for="item in items" :key="item.value">
         <div v-if="item.separatorBefore" class="bg-border -mx-1 my-1 h-px" />
-        <div v-if="item.groupLabel" class="px-1.5 py-1 text-[11px] font-medium text-muted-foreground">{{ item.groupLabel }}</div>
+        <div v-if="item.groupLabel" class="px-1.5 py-1 text-xs font-medium text-muted-foreground">{{ item.groupLabel }}</div>
         <button
           type="button"
           class="flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-sm outline-hidden hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"

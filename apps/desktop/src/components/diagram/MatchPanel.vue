@@ -85,7 +85,7 @@ function emitConfirmAll() {
 <template>
   <div class="flex h-full min-w-0 flex-col overflow-hidden">
     <div class="shrink-0 border-b border-border px-3 py-2">
-      <p class="mb-2 text-[11px] text-muted-foreground">{{ t("diagram.matchPickCardinality") }}</p>
+      <p class="mb-2 text-xs text-muted-foreground">{{ t("diagram.matchPickCardinality") }}</p>
       <div class="mb-2 flex min-w-0 items-center justify-between">
         <div class="flex min-w-0 flex-wrap items-center gap-1">
           <Badge variant="secondary" class="h-5 px-2 text-xs"> {{ relationships.length }} {{ t("diagram.total") }} </Badge>
@@ -129,13 +129,13 @@ function emitConfirmAll() {
         >
           <div class="flex min-w-0 flex-1 flex-col gap-1.5">
             <div class="flex min-w-0 items-center gap-1.5">
-              <Badge :class="confidenceBadge(relationship.confidence).class" class="h-4 shrink-0 px-1.5 text-[10px]">
+              <Badge :class="confidenceBadge(relationship.confidence).class" class="h-5 shrink-0 px-1.5 text-xs">
                 {{ confidenceBadge(relationship.confidence).text }}
               </Badge>
-              <span class="min-w-0 flex-1 truncate font-mono text-[11px]" :title="`${relationship.sourceTable}.${relationship.sourceColumn}`"> {{ relationship.sourceTable }}.{{ relationship.sourceColumn }} </span>
+              <span class="min-w-0 flex-1 truncate font-mono text-xs" :title="`${relationship.sourceTable}.${relationship.sourceColumn}`"> {{ relationship.sourceTable }}.{{ relationship.sourceColumn }} </span>
             </div>
             <Select v-if="!isConfirmed(relationship.id) && !isIgnored(relationship.id)" :model-value="choiceFor(relationship.id)" @update:model-value="(value: any) => (cardinalityById[relationship.id] = String(value) as CardinalityChoice)">
-              <SelectTrigger class="h-7 w-full text-[11px]">
+              <SelectTrigger class="h-7 w-full text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -145,8 +145,8 @@ function emitConfirmAll() {
                 <SelectItem value="many-to-many">{{ t("diagram.cardinalityManyToMany") }}</SelectItem>
               </SelectContent>
             </Select>
-            <div v-else class="text-center text-[10px] text-muted-foreground">↓</div>
-            <span class="min-w-0 truncate font-mono text-[11px]" :title="`${relationship.targetTable}.${relationship.targetColumn}`"> {{ relationship.targetTable }}.{{ relationship.targetColumn }} </span>
+            <div v-else class="text-center text-xs text-muted-foreground">↓</div>
+            <span class="min-w-0 truncate font-mono text-xs" :title="`${relationship.targetTable}.${relationship.targetColumn}`"> {{ relationship.targetTable }}.{{ relationship.targetColumn }} </span>
           </div>
           <div v-if="!isConfirmed(relationship.id) && !isIgnored(relationship.id)" class="flex shrink-0 flex-col justify-between">
             <Button variant="ghost" size="icon" class="h-7 w-7" :title="t('diagram.ignoreMatch')" @click="emit('ignore', relationship.id)">

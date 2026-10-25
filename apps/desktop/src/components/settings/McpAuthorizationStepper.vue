@@ -71,13 +71,13 @@ function nextStep(event: Event) {
         @click="selectStep(step.id, $event)"
       >
         <span
-          class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold"
+          class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs font-semibold"
           :class="currentStep === step.id ? 'border-primary bg-primary text-primary-foreground' : index < currentIndex ? 'border-primary/40 bg-primary/10 text-primary' : 'bg-background text-muted-foreground'"
           >{{ index + 1 }}</span
         >
         <span class="min-w-0 flex-1">
           <span class="block whitespace-normal text-xs font-medium leading-5">{{ step.title }}</span>
-          <span class="mt-0.5 block whitespace-normal text-[10px] leading-4 text-muted-foreground">{{ step.description }}</span>
+          <span class="mt-0.5 block whitespace-normal text-xs leading-4 text-muted-foreground">{{ step.description }}</span>
         </span>
       </button>
     </nav>

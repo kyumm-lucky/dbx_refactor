@@ -74,7 +74,7 @@ function isSelected(index: number): boolean {
       >
         <span class="w-3 shrink-0 text-center font-mono text-[10px] text-muted-foreground">{{ glyph(item) }}</span>
         <span class="min-w-0 flex-1 truncate font-mono">{{ item.label }}</span>
-        <span v-if="item.detail" class="max-w-[55%] shrink-0 truncate text-[11px] text-muted-foreground">{{ item.detail }}</span>
+        <span v-if="item.detail" class="max-w-[55%] shrink-0 truncate text-xs text-muted-foreground">{{ item.detail }}</span>
       </button>
     </div>
   </Teleport>

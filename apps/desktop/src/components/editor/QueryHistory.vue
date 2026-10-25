@@ -581,7 +581,7 @@ onBeforeUnmount(() => {
   <div class="h-full flex flex-col overflow-hidden border-l">
     <div class="h-9 flex items-center gap-1 px-2 border-b shrink-0 bg-muted/20">
       <span class="text-xs font-medium">{{ t("history.title") }}</span>
-      <span v-if="store.total > 0" class="text-[10px] text-muted-foreground">{{ store.total }}</span>
+      <span v-if="store.total > 0" class="text-xs text-muted-foreground">{{ store.total }}</span>
       <span class="flex-1" />
       <Button v-if="canClearHistory" variant="ghost" size="icon" class="h-5 w-5" @click="confirmClearHistory">
         <Trash2 class="h-3 w-3" />
@@ -657,7 +657,7 @@ onBeforeUnmount(() => {
               <div class="text-xs font-medium text-foreground">{{ t("history.dateRange.title") }}</div>
             </div>
             <div class="flex flex-wrap items-end gap-2">
-              <label class="grid min-w-0 gap-1 text-[11px] text-muted-foreground">
+              <label class="grid min-w-0 gap-1 text-xs text-muted-foreground">
                 <span>{{ t("history.dateRange.start") }}</span>
                 <input ref="startDateInputRef" v-model="dateRangeDraft.startDate" type="date" class="sr-only" tabindex="-1" aria-hidden="true" />
                 <button type="button" class="flex h-8 w-28 min-w-0 items-center gap-1.5 rounded-md border border-input bg-background px-2 text-left text-xs text-foreground outline-none hover:bg-muted/50 focus:border-ring focus:ring-2 focus:ring-ring/30" @click="openDatePicker(startDateInputRef)">
@@ -668,7 +668,7 @@ onBeforeUnmount(() => {
                 </button>
               </label>
               <span class="pb-2 text-xs text-muted-foreground">-></span>
-              <label class="grid min-w-0 gap-1 text-[11px] text-muted-foreground">
+              <label class="grid min-w-0 gap-1 text-xs text-muted-foreground">
                 <span>{{ t("history.dateRange.end") }}</span>
                 <input ref="endDateInputRef" v-model="dateRangeDraft.endDate" type="date" class="sr-only" tabindex="-1" aria-hidden="true" />
                 <button type="button" class="flex h-8 w-28 min-w-0 items-center gap-1.5 rounded-md border border-input bg-background px-2 text-left text-xs text-foreground outline-none hover:bg-muted/50 focus:border-ring focus:ring-2 focus:ring-ring/30" @click="openDatePicker(endDateInputRef)">
@@ -711,7 +711,7 @@ onBeforeUnmount(() => {
           <PopoverContent align="end" class="w-72 max-w-[calc(100vw-24px)] p-3" @click.stop @keydown.stop>
             <div class="mb-2 flex items-center justify-between gap-2">
               <div class="text-xs font-medium">{{ t("history.scope.title") }}</div>
-              <Button variant="ghost" size="sm" class="h-6 px-2 text-[11px]" :disabled="!hasScopeFilter" @click="resetScopeFilter">
+              <Button variant="ghost" size="sm" class="h-6 px-2 text-xs" :disabled="!hasScopeFilter" @click="resetScopeFilter">
                 {{ t("history.scope.reset") }}
               </Button>
             </div>
@@ -720,14 +720,14 @@ onBeforeUnmount(() => {
               <input v-model="scopeSearchText" class="h-7 w-full rounded border bg-background pl-7 pr-2 text-xs outline-none focus:border-ring" :placeholder="t('history.scope.search')" />
             </div>
             <div class="mb-2 flex gap-1">
-              <Button variant="outline" size="sm" class="h-7 flex-1 px-2 text-[11px]" @click="resetScopeFilter">
+              <Button variant="outline" size="sm" class="h-7 flex-1 px-2 text-xs" @click="resetScopeFilter">
                 {{ t("history.scope.allConnections") }}
               </Button>
-              <Button v-if="currentConnectionOption" variant="outline" size="sm" class="h-7 flex-1 px-2 text-[11px]" @click="selectCurrentScope">
+              <Button v-if="currentConnectionOption" variant="outline" size="sm" class="h-7 flex-1 px-2 text-xs" @click="selectCurrentScope">
                 {{ t("history.scope.current") }}
               </Button>
             </div>
-            <div class="mb-1 text-[11px] font-medium text-muted-foreground">{{ t("history.scope.connections") }}</div>
+            <div class="mb-1 text-xs font-medium text-muted-foreground">{{ t("history.scope.connections") }}</div>
             <div class="max-h-32 overflow-y-auto rounded border">
               <button v-for="connection in visibleConnectionOptions" :key="connectionKey(connection)" type="button" class="flex w-full items-center gap-2 border-b px-2 py-1.5 text-left text-xs last:border-b-0 hover:bg-accent" @click="toggleConnection(connection)">
                 <span class="flex h-4 w-4 shrink-0 items-center justify-center rounded border" :class="{ 'border-primary bg-primary text-primary-foreground': isConnectionSelected(connection) }">
@@ -735,26 +735,26 @@ onBeforeUnmount(() => {
                   <Check v-else-if="isConnectionSelected(connection)" class="h-3 w-3" />
                 </span>
                 <span class="min-w-0 flex-1 truncate">{{ connection.connection_name || t("history.scope.unknownConnection") }}</span>
-                <span class="shrink-0 text-[10px] text-muted-foreground">{{ connection.databases.length }}</span>
+                <span class="shrink-0 text-xs text-muted-foreground">{{ connection.databases.length }}</span>
               </button>
-              <div v-if="visibleConnectionOptions.length === 0" class="px-2 py-3 text-center text-[11px] text-muted-foreground">{{ t("history.scope.noOptions") }}</div>
+              <div v-if="visibleConnectionOptions.length === 0" class="px-2 py-3 text-center text-xs text-muted-foreground">{{ t("history.scope.noOptions") }}</div>
             </div>
-            <div class="mb-1 mt-3 text-[11px] font-medium text-muted-foreground">{{ t("history.scope.databases") }}</div>
+            <div class="mb-1 mt-3 text-xs font-medium text-muted-foreground">{{ t("history.scope.databases") }}</div>
             <div class="max-h-32 overflow-y-auto rounded border">
               <button v-for="database in visibleDatabaseOptions" :key="databaseKey(database)" type="button" class="flex w-full items-center gap-2 border-b px-2 py-1.5 text-left text-xs last:border-b-0 hover:bg-accent" @click="toggleDatabase(database)">
                 <span class="flex h-4 w-4 shrink-0 items-center justify-center rounded border" :class="{ 'border-primary bg-primary text-primary-foreground': isDatabaseSelected(database) }">
                   <Check v-if="isDatabaseSelected(database)" class="h-3 w-3" />
                 </span>
                 <span class="min-w-0 flex-1 truncate">{{ database.database }}</span>
-                <span class="max-w-24 shrink-0 truncate text-[10px] text-muted-foreground">{{ database.connection_name }}</span>
+                <span class="max-w-24 shrink-0 truncate text-xs text-muted-foreground">{{ database.connection_name }}</span>
               </button>
-              <div v-if="visibleDatabaseOptions.length === 0" class="px-2 py-3 text-center text-[11px] text-muted-foreground">{{ t("history.scope.noOptions") }}</div>
+              <div v-if="visibleDatabaseOptions.length === 0" class="px-2 py-3 text-center text-xs text-muted-foreground">{{ t("history.scope.noOptions") }}</div>
             </div>
           </PopoverContent>
         </Popover>
       </div>
       <div v-if="hasDateFilter || hasScopeFilter" class="flex flex-wrap items-center gap-1 px-2 pb-2">
-        <button v-if="hasDateFilter" type="button" class="flex min-w-0 items-center gap-1 rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/15" :title="t('history.dateRange.title')" @click="setDateRangeOpen(true)">
+        <button v-if="hasDateFilter" type="button" class="flex min-w-0 items-center gap-1 rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary hover:bg-primary/15" :title="t('history.dateRange.title')" @click="setDateRangeOpen(true)">
           <CalendarClock class="h-3 w-3 shrink-0" />
           <span class="shrink-0">{{ t("history.dateRange.label") }}</span>
           <span class="min-w-0 truncate tabular-nums">{{ dateRangeSummary }}</span>
@@ -762,7 +762,7 @@ onBeforeUnmount(() => {
         <button v-if="hasDateFilter" type="button" class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" :title="t('history.dateRange.clear')" @click="clearDateRangeFilter">
           <X class="h-3 w-3" />
         </button>
-        <button v-if="hasScopeFilter" type="button" class="flex min-w-0 items-center gap-1 rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/15" :title="t('history.scope.title')" @click="scopeFilterOpen = true">
+        <button v-if="hasScopeFilter" type="button" class="flex min-w-0 items-center gap-1 rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary hover:bg-primary/15" :title="t('history.scope.title')" @click="scopeFilterOpen = true">
           <ListFilter class="h-3 w-3 shrink-0" />
           <span class="min-w-0 truncate">{{ scopeSummary }}</span>
         </button>
@@ -779,11 +779,11 @@ onBeforeUnmount(() => {
             <div class="h-[80px] cursor-pointer select-none border-b border-border/50 px-2 py-1.5 text-xs" :class="isOpen || selectedEntry?.id === entry.id ? 'bg-accent text-accent-foreground' : ''" @click="selectedEntry = entry" @contextmenu="onContextMenu">
               <div class="h-full rounded-md border bg-card px-2 py-1.5 shadow-sm transition-colors hover:border-primary/30 hover:bg-accent/40">
                 <div class="mb-0.5 flex items-center gap-1">
-                  <span class="inline-flex h-5 w-9 shrink-0 items-center justify-center overflow-hidden rounded border px-1 text-[10px] leading-none text-muted-foreground">
+                  <span class="inline-flex h-5 w-9 shrink-0 items-center justify-center overflow-hidden rounded border px-1 text-xs leading-none text-muted-foreground">
                     {{ isMcpEntry(entry) ? "MCP" : kindShortLabel(entry) }}
                   </span>
                   <span class="truncate font-medium">{{ entryTitle(entry) }}</span>
-                  <span v-if="historyEntrySource(entry) && !isMcpEntry(entry)" class="inline-flex h-5 shrink-0 items-center rounded border border-primary/30 bg-primary/5 px-1 text-[10px] font-medium text-primary">
+                  <span v-if="historyEntrySource(entry) && !isMcpEntry(entry)" class="inline-flex h-5 shrink-0 items-center rounded border border-primary/30 bg-primary/5 px-1 text-xs font-medium text-primary">
                     {{ historyEntrySource(entry) }}
                   </span>
                   <span class="ml-auto shrink-0 text-muted-foreground">{{ formatTime(entry.executed_at) }}</span>

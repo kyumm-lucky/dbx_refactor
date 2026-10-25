@@ -61,7 +61,7 @@ function focusOption(event: KeyboardEvent, direction: 1 | -1) {
     <PopoverTrigger as-child>
       <Button type="button" variant="outline" :class="[triggerClass, 'w-full min-w-0 justify-between gap-2']" :aria-label="placeholder" :title="selected.join(', ')" data-index-column-trigger>
         <span class="min-w-0 flex-1 truncate text-left">{{ selected.join(", ") || placeholder }}</span>
-        <span v-if="selected.length > 1" class="shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground">{{ selected.length }}</span>
+        <span v-if="selected.length > 1" class="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">{{ selected.length }}</span>
         <ChevronDown class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       </Button>
     </PopoverTrigger>
@@ -94,7 +94,7 @@ function focusOption(event: KeyboardEvent, direction: 1 | -1) {
             <X class="h-3 w-3" />
           </button>
         </div>
-        <div class="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+        <div class="mt-2 flex items-center justify-between text-xs text-muted-foreground">
           <span>{{ t("structureEditor.indexSelectedColumns", { count: selected.length }) }}</span>
           <span>{{ t("structureEditor.dataType") }}</span>
         </div>
@@ -109,9 +109,9 @@ function focusOption(event: KeyboardEvent, direction: 1 | -1) {
           :title="column.name + (column.dataType ? ' (' + column.dataType + ')' : '')"
         >
           <input ref="optionInputs" type="checkbox" class="h-3.5 w-3.5 shrink-0 cursor-inherit accent-primary" :checked="selectedPositions.has(column.name)" :disabled="column.disabled" :aria-label="column.name" :data-index-column="column.name" @change="emit('toggle', column.name)" />
-          <span class="text-center text-[10px] font-medium tabular-nums text-muted-foreground" aria-hidden="true">{{ selectedPositions.get(column.name) ?? "" }}</span>
+          <span class="text-center text-xs font-medium tabular-nums text-muted-foreground" aria-hidden="true">{{ selectedPositions.get(column.name) ?? "" }}</span>
           <span class="min-w-0 truncate font-mono" :class="{ 'font-medium': selectedPositions.has(column.name) }">{{ column.name }}</span>
-          <span class="max-w-28 truncate text-right font-mono text-[10px] text-muted-foreground">
+          <span class="max-w-28 truncate text-right font-mono text-xs text-muted-foreground">
             <slot name="type" :column="column">{{ column.dataType }}</slot>
           </span>
         </label>

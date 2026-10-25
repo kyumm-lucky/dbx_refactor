@@ -18,7 +18,7 @@ withDefaults(
   <span v-if="marker" data-production-marker class="inline-flex h-4 w-4 shrink-0 items-center justify-center text-red-600 dark:text-red-300" role="img" :aria-label="t('production.title')" :title="t('production.title')">
     <ShieldAlert class="h-3 w-3" aria-hidden="true" />
   </span>
-  <span v-else class="inline-flex h-5 shrink-0 items-center gap-1 rounded-[4px] border border-red-500/40 bg-red-500/10 px-1.5 font-mono text-[10px] font-semibold leading-none text-red-700 dark:text-red-300" :class="compact ? 'px-1' : ''" :title="t('production.title')">
+  <span v-else class="inline-flex h-5 shrink-0 items-center gap-1 rounded-[4px] border border-red-500/40 bg-red-500/10 px-1.5 font-mono text-xs font-semibold leading-none text-red-700 dark:text-red-300" :class="compact ? 'px-1' : ''" :title="t('production.title')">
     <ShieldAlert class="h-3 w-3" aria-hidden="true" />
     <span>PROD</span>
   </span>

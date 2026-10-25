@@ -40,7 +40,7 @@ function toggle() {
 <template>
   <div v-if="visible">
     <div
-      class="group flex min-h-8 items-center gap-1 border-b border-border/50 py-1 pr-1 text-[13px] transition-colors"
+      class="group flex min-h-8 items-center gap-1 border-b border-border/50 py-1 pr-1 text-xs transition-colors"
       :class="selectedTopic === node.fullPath ? 'border-l-2 border-l-primary bg-primary/10 pl-1 text-primary' : 'border-l-2 border-l-transparent pl-1 text-foreground/90 hover:bg-muted/60'"
       :style="{ paddingLeft: `${depth * 14 + 4}px` }"
     >
@@ -53,9 +53,9 @@ function toggle() {
       <button type="button" class="min-w-0 flex-1 truncate text-left font-mono font-medium" :title="node.fullPath" @click="node.isLeaf ? emit('select', node.fullPath) : toggle()">{{ node.name }}<span v-if="!node.isLeaf" class="text-muted-foreground/70">/</span></button>
 
       <template v-if="savedConfig">
-        <span class="shrink-0 rounded border px-1 py-0.5 text-[10px] text-muted-foreground">QoS {{ savedConfig.qos === "atmostonce" ? 0 : savedConfig.qos === "atleastonce" ? 1 : 2 }}</span>
-        <span v-if="savedConfig.noLocal" class="shrink-0 rounded border border-blue-400/40 px-1 py-0.5 text-[10px] text-blue-600 dark:text-blue-400" :title="t('connection.mqttNoLocalMqtt5Only')">NL</span>
-        <span class="hidden shrink-0 text-[10px] text-muted-foreground sm:inline">{{ active ? t("connection.mqttSubscriptionStatusActive") : savedConfig.enabled ? t("connection.mqttSubscriptionStatusPending") : t("connection.mqttSubscriptionStatusDisabled") }}</span>
+        <span class="shrink-0 rounded border px-1 py-0.5 text-xs text-muted-foreground">QoS {{ savedConfig.qos === "atmostonce" ? 0 : savedConfig.qos === "atleastonce" ? 1 : 2 }}</span>
+        <span v-if="savedConfig.noLocal" class="shrink-0 rounded border border-blue-400/40 px-1 py-0.5 text-xs text-blue-600 dark:text-blue-400" :title="t('connection.mqttNoLocalMqtt5Only')">NL</span>
+        <span class="hidden shrink-0 text-xs text-muted-foreground sm:inline">{{ active ? t("connection.mqttSubscriptionStatusActive") : savedConfig.enabled ? t("connection.mqttSubscriptionStatusPending") : t("connection.mqttSubscriptionStatusDisabled") }}</span>
         <button
           type="button"
           class="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"

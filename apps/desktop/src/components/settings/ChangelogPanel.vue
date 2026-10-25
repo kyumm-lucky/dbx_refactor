@@ -179,11 +179,11 @@ watch(changelogLang, (lang) => {
     <div v-else class="mt-4 space-y-2">
       <div v-for="release in visibleReleases" :key="release.tag" class="relative overflow-hidden rounded-md border bg-muted/20" :class="isLatestRelease(release.tag) ? 'border-primary/35' : ''">
         <button type="button" class="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" :aria-expanded="isExpanded(release.tag)" @click="toggleRelease(release.tag)">
-          <Badge variant="secondary" class="shrink-0 gap-1 font-mono text-[11px]">
+          <Badge variant="secondary" class="shrink-0 gap-1 font-mono text-xs">
             <Tag class="h-3 w-3" />
             {{ release.tag.replace(/^v/, "") }}
           </Badge>
-          <span v-if="isLatestRelease(release.tag)" class="shrink-0 rounded-sm bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none tracking-wide text-primary-foreground">
+          <span v-if="isLatestRelease(release.tag)" class="shrink-0 rounded-sm bg-primary px-1.5 py-0.5 text-xs font-semibold leading-none tracking-wide text-primary-foreground">
             {{ t("settings.changelogNew") }}
           </span>
           <span class="min-w-0 flex-1 truncate text-xs text-muted-foreground">

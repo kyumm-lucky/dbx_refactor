@@ -336,14 +336,14 @@ onUnmounted(() => {
     <div class="flex h-10 shrink-0 items-center gap-2 border-b px-3">
       <Gauge class="h-4 w-4 text-primary" />
       <span class="text-xs font-medium">{{ t("nacos.dashboardTitle") }}</span>
-      <Badge variant="outline" class="h-5 rounded-md px-1.5 text-[11px]">{{ namespaceLabel }}</Badge>
-      <Badge v-if="metrics?.status" :variant="metrics.status.toUpperCase() === 'UP' ? 'secondary' : 'destructive'" class="h-5 rounded-md px-1.5 text-[11px]">
+      <Badge variant="outline" class="h-5 rounded-md px-1.5 text-xs">{{ namespaceLabel }}</Badge>
+      <Badge v-if="metrics?.status" :variant="metrics.status.toUpperCase() === 'UP' ? 'secondary' : 'destructive'" class="h-5 rounded-md px-1.5 text-xs">
         {{ metrics.status }}
       </Badge>
-      <Badge variant="outline" class="h-5 max-w-48 truncate rounded-md px-1.5 text-[11px]" :title="prometheus?.source.endpoint">
+      <Badge variant="outline" class="h-5 max-w-48 truncate rounded-md px-1.5 text-xs" :title="prometheus?.source.endpoint">
         {{ prometheus ? "OpenAPI + Prometheus" : "OpenAPI" }}
       </Badge>
-      <span class="ml-auto text-[11px] text-muted-foreground">{{ t("nacos.dashboardUpdatedAt", { time: lastUpdated }) }}</span>
+      <span class="ml-auto text-xs text-muted-foreground">{{ t("nacos.dashboardUpdatedAt", { time: lastUpdated }) }}</span>
       <span class="text-xs text-muted-foreground">{{ t("nacos.dashboardAutoRefresh") }}</span>
       <Select :model-value="String(autoRefreshInterval)" @update:model-value="onIntervalChange">
         <SelectTrigger class="h-7 w-24 text-xs">
@@ -445,7 +445,7 @@ onUnmounted(() => {
                 <tr v-for="node in snapshot?.nodes ?? []" :key="node.address" class="border-t hover:bg-accent/40">
                   <td class="px-3 py-2 font-mono">{{ node.address }}</td>
                   <td class="px-3 py-2">
-                    <Badge :variant="isHealthyNacosNode(node) ? 'secondary' : 'destructive'" class="h-5 rounded-md px-1.5 text-[10px]">{{ nodeState(node) }}</Badge>
+                    <Badge :variant="isHealthyNacosNode(node) ? 'secondary' : 'destructive'" class="h-5 rounded-md px-1.5 text-xs">{{ nodeState(node) }}</Badge>
                   </td>
                   <td class="px-3 py-2 text-muted-foreground">{{ node.site || "—" }}</td>
                   <td class="px-3 py-2 tabular-nums text-muted-foreground">{{ node.weight ?? "—" }}</td>

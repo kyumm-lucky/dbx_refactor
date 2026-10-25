@@ -698,9 +698,9 @@ watch(
         <div class="flex items-center justify-between gap-2">
           <div>
             <div class="text-xs font-medium text-muted-foreground">{{ t("contextMenu.createDatabaseUsers") }}</div>
-            <div class="mt-1 text-[11px] text-muted-foreground">{{ t("contextMenu.createDatabaseUsersHint") }}</div>
+            <div class="mt-1 text-xs text-muted-foreground">{{ t("contextMenu.createDatabaseUsersHint") }}</div>
           </div>
-          <span class="text-[11px] text-muted-foreground">{{ t("contextMenu.createDatabaseUsersSelected", { count: createDatabaseSelectedUsers.length }) }}</span>
+          <span class="text-xs text-muted-foreground">{{ t("contextMenu.createDatabaseUsersSelected", { count: createDatabaseSelectedUsers.length }) }}</span>
         </div>
         <div class="max-h-40 overflow-auto rounded-md border">
           <div v-if="createDatabaseUsersLoading" class="flex items-center gap-2 p-3 text-xs text-muted-foreground">

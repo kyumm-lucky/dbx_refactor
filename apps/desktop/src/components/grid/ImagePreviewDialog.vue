@@ -191,13 +191,13 @@ onUnmounted(() => {
       <div class="flex h-12 shrink-0 items-center gap-3 border-b border-white/10 bg-white/[0.035] px-4">
         <div class="min-w-0 flex-1">
           <DialogTitle class="truncate text-sm font-semibold text-white">{{ imageTitle }}</DialogTitle>
-          <div class="truncate text-[11px] text-white/45">{{ hostLabel || src }}</div>
+          <div class="truncate text-xs text-white/45">{{ hostLabel || src }}</div>
         </div>
         <div class="flex items-center gap-1 rounded-md border border-white/10 bg-black/20 p-1">
           <Button variant="ghost" size="icon" class="h-7 w-7 text-white/75 hover:bg-white/10 hover:text-white" :title="t('grid.zoomOut')" @click="zoomOut">
             <ZoomOut class="h-3.5 w-3.5" />
           </Button>
-          <div class="w-12 text-center text-[11px] tabular-nums text-white/65">{{ zoomLabel }}</div>
+          <div class="w-12 text-center text-xs tabular-nums text-white/65">{{ zoomLabel }}</div>
           <Button variant="ghost" size="icon" class="h-7 w-7 text-white/75 hover:bg-white/10 hover:text-white" :title="t('grid.zoomIn')" @click="zoomIn">
             <ZoomIn class="h-3.5 w-3.5" />
           </Button>

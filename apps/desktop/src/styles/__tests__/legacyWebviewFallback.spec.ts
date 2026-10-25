@@ -253,7 +253,7 @@ describe("legacy WebView CSS fallbacks", () => {
     // real tint behind `@supports (color: color-mix(...))`. WebKit without
     // color-mix() keeps the full-color one, so the update dialog tab badge
     // rendered as a solid near-black pill on macOS 12 (Safari < 16.2).
-    expect(updateDialogSource).toContain('class="rounded-full bg-foreground/10 px-1.5 text-[11px]"');
+    expect(updateDialogSource).toContain('class="rounded-full bg-foreground/10 px-1.5 text-xs"');
     expect(globalsCss).toContain("html.dbx-legacy-webview .bg-foreground\\/10");
     expect(globalsCss).toContain("background-color: rgba(var(--dbx-foreground-rgb), 0.06) !important;");
     expect(globalsCss).toContain("background-color: rgba(var(--dbx-foreground-rgb), 0.1) !important;");

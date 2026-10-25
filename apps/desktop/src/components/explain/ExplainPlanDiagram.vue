@@ -204,7 +204,7 @@ watch(
         <Button variant="ghost" size="xs" class="h-6 px-1.5" :aria-label="t('explain.zoomIn')" :title="t('explain.zoomIn')" @click="zoomIn">
           <ZoomIn class="h-3.5 w-3.5" aria-hidden="true" />
         </Button>
-        <span class="ml-1 w-10 text-right font-mono text-[11px] tabular-nums text-muted-foreground">{{ Math.round(zoom * 100) }}%</span>
+        <span class="ml-1 w-10 text-right font-mono text-xs tabular-nums text-muted-foreground">{{ Math.round(zoom * 100) }}%</span>
       </div>
 
       <div
@@ -220,7 +220,7 @@ watch(
           <div class="relative origin-top-left" :style="{ width: `${layout.width}px`, height: `${layout.height}px`, transform: `scale(${zoom})` }">
             <svg data-plan-edges class="pointer-events-none absolute inset-0 overflow-visible text-muted-foreground/70" :width="layout.width" :height="layout.height" aria-hidden="true">
               <path v-for="edge in edges" :key="edge.key" :d="edge.path" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round" :stroke-width="edge.width" />
-              <text v-for="edge in edges" :key="`${edge.key}-label`" :x="edge.labelX" :y="edge.labelY" text-anchor="end" class="fill-muted-foreground font-mono text-[10px]">{{ edge.label }}</text>
+              <text v-for="edge in edges" :key="`${edge.key}-label`" :x="edge.labelX" :y="edge.labelY" text-anchor="end" class="fill-muted-foreground font-mono text-xs">{{ edge.label }}</text>
             </svg>
 
             <button
@@ -241,17 +241,17 @@ watch(
                   <component :is="CATEGORY_ICONS[item.category]" class="h-3 w-3" aria-hidden="true" />
                 </span>
                 <span class="min-w-0 flex-1 truncate text-xs font-semibold">{{ item.node.nodeType || item.node.title }}</span>
-                <span v-if="item.costShare !== undefined" class="shrink-0 rounded px-1 font-mono text-[10px] font-semibold tabular-nums" :class="HEAT_BADGE_CLASSES[heatLevel(item.costShare)]">
+                <span v-if="item.costShare !== undefined" class="shrink-0 rounded px-1 font-mono text-xs font-semibold tabular-nums" :class="HEAT_BADGE_CLASSES[heatLevel(item.costShare)]">
                   {{ costPercent(item.costShare) }}
                 </span>
               </span>
 
-              <span class="mt-1 truncate font-mono text-[10px] text-muted-foreground">
+              <span class="mt-1 truncate font-mono text-xs text-muted-foreground">
                 {{ item.node.relation || " " }}
                 <span v-if="item.node.index" :style="{ color: CATEGORY_COLORS.iscan }">[{{ item.node.index }}]</span>
               </span>
 
-              <span class="mt-1 flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+              <span class="mt-1 flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
                 <span class="truncate">{{ t("explain.estRows") }} {{ formatPlanRows(item.rows) }}</span>
                 <span v-if="rowMismatch(item)" class="ml-auto shrink-0 font-semibold text-amber-600 dark:text-amber-400">{{ rowMismatch(item) }}</span>
               </span>
@@ -260,7 +260,7 @@ watch(
         </div>
       </div>
 
-      <div class="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-t px-3 py-1 text-[11px] text-muted-foreground">
+      <div class="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-t px-3 py-1 text-xs text-muted-foreground">
         <template v-if="hasKnownCostModel">
           <span>{{ t("explain.legendHeat") }}</span>
           <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-[2px]" :style="{ background: HEAT_COLORS.cool }" />&lt; 5%</span>
@@ -280,38 +280,38 @@ watch(
             </span>
             <div class="min-w-0">
               <div class="truncate text-sm font-semibold">{{ selected.node.nodeType || selected.node.title }}</div>
-              <div class="text-[11px] font-medium" :style="{ color: categoryColor(selected.category) }">{{ t(CATEGORY_LABEL_KEYS[selected.category]) }}</div>
+              <div class="text-xs font-medium" :style="{ color: categoryColor(selected.category) }">{{ t(CATEGORY_LABEL_KEYS[selected.category]) }}</div>
             </div>
           </div>
-          <div v-if="selected.node.relation || selected.node.index" class="mt-2 truncate font-mono text-[11px] text-muted-foreground">
+          <div v-if="selected.node.relation || selected.node.index" class="mt-2 truncate font-mono text-xs text-muted-foreground">
             {{ selected.node.relation }}<template v-if="selected.node.index"> [{{ selected.node.index }}]</template>
           </div>
         </div>
 
         <div class="grid grid-cols-2 border-b text-xs">
           <div v-if="selected.node.costModel !== 'unknown'" class="border-r border-b p-2">
-            <div class="text-[10px] uppercase tracking-wide text-muted-foreground">{{ t("explain.costShare") }}</div>
+            <div class="text-xs uppercase tracking-wide text-muted-foreground">{{ t("explain.costShare") }}</div>
             <div class="font-mono font-semibold tabular-nums" :style="{ color: HEAT_COLORS[heatLevel(selected.costShare)] }">{{ costPercent(selected.costShare) || "—" }}</div>
           </div>
           <div class="border-b p-2">
-            <div class="text-[10px] uppercase tracking-wide text-muted-foreground">{{ t("explain.cost") }}</div>
+            <div class="text-xs uppercase tracking-wide text-muted-foreground">{{ t("explain.cost") }}</div>
             <div class="truncate font-mono font-semibold tabular-nums">{{ selected.node.cost || "—" }}</div>
           </div>
           <div class="border-r p-2">
-            <div class="text-[10px] uppercase tracking-wide text-muted-foreground">{{ t("explain.estRows") }}</div>
+            <div class="text-xs uppercase tracking-wide text-muted-foreground">{{ t("explain.estRows") }}</div>
             <div class="font-mono font-semibold tabular-nums">{{ formatPlanRows(selected.rows) }}</div>
           </div>
           <div class="p-2">
-            <div class="text-[10px] uppercase tracking-wide text-muted-foreground">{{ t("explain.actualRows") }}</div>
+            <div class="text-xs uppercase tracking-wide text-muted-foreground">{{ t("explain.actualRows") }}</div>
             <div class="font-mono font-semibold tabular-nums" :class="rowMismatch(selected) ? 'text-amber-600 dark:text-amber-400' : ''">{{ formatPlanRows(selected.actualRows) }}</div>
           </div>
         </div>
 
         <div v-if="selectedDetails.length" class="min-h-0 flex-1 overflow-auto p-3">
-          <div class="mb-2 text-[10px] uppercase tracking-wide text-muted-foreground">{{ t("explain.details") }}</div>
+          <div class="mb-2 text-xs uppercase tracking-wide text-muted-foreground">{{ t("explain.details") }}</div>
           <div v-for="(detail, index) in selectedDetails" :key="index" class="space-y-1 border-b py-2 first:pt-0 last:border-b-0 last:pb-0">
-            <div v-if="detail.label" class="text-[11px] font-medium">{{ detail.label }}</div>
-            <div class="select-text whitespace-pre-wrap break-words font-mono text-[11px] leading-5 text-muted-foreground">{{ detail.value }}</div>
+            <div v-if="detail.label" class="text-xs font-medium">{{ detail.label }}</div>
+            <div class="select-text whitespace-pre-wrap break-words font-mono text-xs leading-5 text-muted-foreground">{{ detail.value }}</div>
           </div>
         </div>
       </template>

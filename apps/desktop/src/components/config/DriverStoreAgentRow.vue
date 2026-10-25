@@ -67,16 +67,16 @@ const uninstallBusy = computed(() => props.installing || props.preparingUpgradeA
     <div class="driver-store-agent-name min-w-0 flex-1">
       <div class="flex min-w-0 items-center gap-1.5">
         <div class="truncate text-sm font-medium">{{ driver.label }}</div>
-        <span v-if="driver.installed" class="driver-store-installed-badge shrink-0 rounded-full bg-green-500/15 px-2 py-0.5 text-[11px] font-medium text-green-700 dark:text-green-400">{{ t("driverStore.installedBadge") }}</span>
+        <span v-if="driver.installed" class="driver-store-installed-badge shrink-0 rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">{{ t("driverStore.installedBadge") }}</span>
       </div>
     </div>
-    <span v-if="showCategoryBadge && categoryLabel" class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">{{ categoryLabel }}</span>
+    <span v-if="showCategoryBadge && categoryLabel" class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{{ categoryLabel }}</span>
     <div class="driver-store-agent-meta flex shrink-0 items-center gap-1.5">
-      <span v-if="requiresJavaRuntime && driver.jre" class="rounded-full px-2 py-0.5 text-[11px]" :class="driver.jre !== '21' ? 'bg-blue-500/10 text-blue-600' : 'bg-muted text-muted-foreground'">JRE {{ driver.jre }}</span>
-      <span v-if="driver.installed" class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">v{{ driver.installed_version }}</span>
-      <span v-if="driver.installed && driver.update_available" class="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-600">→ v{{ driver.version }}</span>
-      <span v-if="!driver.installed && driver.version" class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">v{{ driver.version }}</span>
-      <span v-if="sizeLabel" class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">{{ sizeLabel }}</span>
+      <span v-if="requiresJavaRuntime && driver.jre" class="rounded-full px-2 py-0.5 text-xs" :class="driver.jre !== '21' ? 'bg-blue-500/10 text-blue-600' : 'bg-muted text-muted-foreground'">JRE {{ driver.jre }}</span>
+      <span v-if="driver.installed" class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">v{{ driver.installed_version }}</span>
+      <span v-if="driver.installed && driver.update_available" class="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs text-amber-600">→ v{{ driver.version }}</span>
+      <span v-if="!driver.installed && driver.version" class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">v{{ driver.version }}</span>
+      <span v-if="sizeLabel" class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{{ sizeLabel }}</span>
     </div>
     <div class="driver-store-agent-actions flex shrink-0 items-center gap-2">
       <Button v-if="!driver.installed && queued" size="sm" variant="outline" class="h-7 rounded-md border-green-500/30 bg-green-500/10 text-xs text-green-700 hover:bg-green-500/15" :disabled="queueOrUpgradeBusy" @click="emit('removeQueue')">

@@ -683,7 +683,7 @@ defineExpose({
         <!-- “更多操作”菜单的文字统一灰色、字号比默认(14px)小两号(11px)；图标保持原尺寸。 -->
         <DropdownMenuContent
           align="start"
-          class="w-max min-w-56 max-w-[calc(100vw-1rem)] text-[11px] text-muted-foreground [&_[data-slot=dropdown-menu-checkbox-item]]:text-[11px] [&_[data-slot=dropdown-menu-checkbox-item]]:text-muted-foreground [&_[data-slot=dropdown-menu-item]]:text-[11px] [&_[data-slot=dropdown-menu-item]]:text-muted-foreground"
+          class="w-max min-w-56 max-w-[calc(100vw-1rem)] text-xs text-muted-foreground [&_[data-slot=dropdown-menu-checkbox-item]]:text-xs [&_[data-slot=dropdown-menu-checkbox-item]]:text-muted-foreground [&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-item]]:text-muted-foreground"
         >
           <DropdownMenuItem :disabled="activeTab.isExecuting || activeTab.isExplaining || !activeTab.sql.trim()" @select="emit('compressSql')">
             <Minimize2 class="h-3.5 w-3.5" />
@@ -721,7 +721,7 @@ defineExpose({
           </DropdownMenuItem>
           <DropdownMenuCheckboxItem v-if="supportsTransaction" :model-value="isManualTransactionMode" :disabled="activeTab.isExecuting || activeTab.isExplaining" @select.prevent="emit('update:autoCommit', autoCommit === false)">
             <span class="inline-flex items-center gap-px leading-none" aria-hidden="true">
-              <span class="text-[11px] font-bold">Tx:</span>
+              <span class="text-xs font-bold">Tx:</span>
               <span class="inline-flex h-3 min-w-3 items-center justify-center rounded-[3px] border border-current px-px text-[8px] font-extrabold leading-none">{{ transactionModeBadge }}</span>
             </span>
             {{ transactionTooltip }}
@@ -891,7 +891,7 @@ defineExpose({
           </TooltipTrigger>
           <TooltipContent>{{ t("editor.clearDatabase") }}</TooltipContent>
         </Tooltip>
-        <Button v-if="showDatabaseHelperButtons && activeDatabaseValue && !activeTab.catalog" variant="ghost" size="sm" class="h-6 px-2 text-[11px]" @click="isActiveDatabaseDefault ? emit('clearDefaultDatabase') : emit('setDefaultDatabase')">
+        <Button v-if="showDatabaseHelperButtons && activeDatabaseValue && !activeTab.catalog" variant="ghost" size="sm" class="h-6 px-2 text-xs" @click="isActiveDatabaseDefault ? emit('clearDefaultDatabase') : emit('setDefaultDatabase')">
           <Check v-if="isActiveDatabaseDefault" class="h-3 w-3" />
           {{ isActiveDatabaseDefault ? t("editor.defaultDatabase") : t("editor.setDefaultDatabase") }}
         </Button>

@@ -673,7 +673,7 @@ onBeforeUnmount(() => {
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-background);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .exchange-search:focus {
@@ -685,14 +685,14 @@ onBeforeUnmount(() => {
 .exchange-count {
   flex: 0 0 auto;
   color: var(--color-text-tertiary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .queue-suggestion-count {
   display: block;
   margin-top: 4px;
   color: var(--color-text-tertiary);
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .panel-placeholder,
@@ -724,7 +724,7 @@ th {
   padding: 10px 12px;
   text-align: left;
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
   background: var(--color-background-secondary);
   border-bottom: 1px solid var(--color-border);
@@ -733,7 +733,7 @@ th {
 td {
   padding: 10px 12px;
   border-bottom: 1px solid var(--color-border);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .exchanges-table tbody tr {
@@ -763,7 +763,7 @@ td {
   display: inline-block;
   padding: 2px 8px;
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
 }
 
@@ -788,7 +788,7 @@ td {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
 }
 
@@ -818,7 +818,7 @@ td {
 
 .bindings-header h4 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
 }
 
@@ -883,7 +883,7 @@ button:disabled {
   display: block;
   margin-bottom: 6px;
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .form-group input[type="text"],
@@ -893,7 +893,7 @@ button:disabled {
   padding: 8px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   box-sizing: border-box;
   background: var(--color-background);
   color: var(--color-text);
@@ -901,7 +901,7 @@ button:disabled {
 
 .arguments-textarea {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   resize: vertical;
 }
 
@@ -914,12 +914,12 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   cursor: pointer;
 }
 
 .form-error {
   color: var(--color-error);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 </style>

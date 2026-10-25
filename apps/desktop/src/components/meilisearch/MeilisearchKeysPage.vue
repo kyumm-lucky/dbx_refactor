@@ -372,25 +372,25 @@ onMounted(() => {
         ><ErrorBanner v-if="formError" :message="formError" />
         <div class="grid max-h-[68vh] gap-4 overflow-y-auto pr-1 text-xs">
           <label class="grid gap-1"
-            ><span class="font-medium">UID</span><Input v-model="form.uid" :disabled="Boolean(editing)" :placeholder="t('meilisearch.uidPlaceholder')" /><span class="text-[11px] leading-4 text-muted-foreground">{{ t("meilisearch.uidHelp") }}</span></label
+            ><span class="font-medium">UID</span><Input v-model="form.uid" :disabled="Boolean(editing)" :placeholder="t('meilisearch.uidPlaceholder')" /><span class="text-xs leading-4 text-muted-foreground">{{ t("meilisearch.uidHelp") }}</span></label
           >
           <label class="grid gap-1"
             ><span class="font-medium">{{ t("meilisearch.name") }}</span
-            ><Input v-model="form.name" :placeholder="t('meilisearch.namePlaceholder')" /><span class="text-[11px] leading-4 text-muted-foreground">{{ t("meilisearch.nameHelp") }}</span></label
+            ><Input v-model="form.name" :placeholder="t('meilisearch.namePlaceholder')" /><span class="text-xs leading-4 text-muted-foreground">{{ t("meilisearch.nameHelp") }}</span></label
           >
           <label class="grid gap-1"
             ><span class="font-medium">{{ t("meilisearch.description") }}</span
-            ><Input v-model="form.description" :placeholder="t('meilisearch.descriptionPlaceholder')" /><span class="text-[11px] leading-4 text-muted-foreground">{{ t("meilisearch.descriptionHelp") }}</span></label
+            ><Input v-model="form.description" :placeholder="t('meilisearch.descriptionPlaceholder')" /><span class="text-xs leading-4 text-muted-foreground">{{ t("meilisearch.descriptionHelp") }}</span></label
           >
           <div class="grid min-w-0 gap-1">
             <span class="font-medium">{{ t("meilisearch.indexes") }}</span
-            ><MeilisearchMultiSelect v-model="form.indexes" :options="indexOptions" :disabled="Boolean(editing)" :loading="indexesLoading" :error="indexLoadError" :placeholder="t('meilisearch.indexesPlaceholder')" /><span class="text-[11px] leading-4 text-muted-foreground">{{
+            ><MeilisearchMultiSelect v-model="form.indexes" :options="indexOptions" :disabled="Boolean(editing)" :loading="indexesLoading" :error="indexLoadError" :placeholder="t('meilisearch.indexesPlaceholder')" /><span class="text-xs leading-4 text-muted-foreground">{{
               t("meilisearch.indexesHelp")
             }}</span>
           </div>
           <div class="grid min-w-0 gap-1">
             <span class="font-medium">{{ t("meilisearch.actions") }}</span
-            ><MeilisearchMultiSelect v-model="form.actions" :options="[...KEY_ACTION_OPTIONS]" :disabled="Boolean(editing)" :placeholder="t('meilisearch.actionsPlaceholder')" /><span class="text-[11px] leading-4 text-muted-foreground">{{ t("meilisearch.actionsHelp") }}</span>
+            ><MeilisearchMultiSelect v-model="form.actions" :options="[...KEY_ACTION_OPTIONS]" :disabled="Boolean(editing)" :placeholder="t('meilisearch.actionsPlaceholder')" /><span class="text-xs leading-4 text-muted-foreground">{{ t("meilisearch.actionsHelp") }}</span>
           </div>
           <label class="grid gap-1"
             ><span class="font-medium">{{ t("meilisearch.expiresAt") }}</span>
@@ -410,7 +410,7 @@ onMounted(() => {
                     <CalendarClock class="h-4 w-4" /></button></template
               ></DateTimePicker>
             </div>
-            <span class="text-[11px] leading-4 text-muted-foreground">{{ t("meilisearch.expiresAtHelp") }}</span></label
+            <span class="text-xs leading-4 text-muted-foreground">{{ t("meilisearch.expiresAtHelp") }}</span></label
           >
           <p v-if="editing" class="rounded-md border bg-muted/30 px-3 py-2 text-muted-foreground">{{ t("meilisearch.immutableKeyFields") }}</p>
         </div>

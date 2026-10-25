@@ -405,7 +405,7 @@ onBeforeUnmount(() => {
           <div class="flex items-start justify-between gap-2 border-b px-3 py-2">
             <div class="min-w-0">
               <div class="truncate text-sm font-semibold">{{ selectedKind === "node" ? nodeLabel(selected as GraphNode) : (selected as GraphEdge).type }}</div>
-              <div class="truncate text-[11px] text-muted-foreground">{{ selectedKind === "node" ? (selected as GraphNode).labels.join(", ") || (selected as GraphNode).vid?.value || (selected as GraphNode).id : `${(selected as GraphEdge).source} → ${(selected as GraphEdge).target}` }}</div>
+              <div class="truncate text-xs text-muted-foreground">{{ selectedKind === "node" ? (selected as GraphNode).labels.join(", ") || (selected as GraphNode).vid?.value || (selected as GraphNode).id : `${(selected as GraphEdge).source} → ${(selected as GraphEdge).target}` }}</div>
             </div>
             <Button size="icon" variant="ghost" class="h-6 w-6 shrink-0" :title="t('graph.clearSelection')" :aria-label="t('graph.clearSelection')" @click="selectedId = ''"><X class="h-3.5 w-3.5" /></Button>
           </div>
@@ -414,11 +414,11 @@ onBeforeUnmount(() => {
             <Button v-if="selectedKind === 'node'" size="icon" variant="ghost" class="h-7 w-7" :title="t('graph.pin')" :aria-label="t('graph.pin')" @click="togglePin"><Pin class="h-3.5 w-3.5" /></Button>
             <Button size="icon" variant="ghost" class="h-7 w-7" :title="t('graph.hide')" :aria-label="t('graph.hide')" @click="hideSelected"><EyeOff class="h-3.5 w-3.5" /></Button>
           </div>
-          <div class="px-3 py-2 text-[11px] font-medium text-muted-foreground">{{ t("graph.properties") }}</div>
+          <div class="px-3 py-2 text-xs font-medium text-muted-foreground">{{ t("graph.properties") }}</div>
           <div v-for="property in selected.properties" :key="`${property.owner}:${property.name}`" class="border-b px-3 py-2 text-xs">
             <div class="flex min-w-0 items-center justify-between gap-2">
               <span class="min-w-0 truncate font-medium" :title="property.owner ? `${property.owner}.${property.name}` : property.name">{{ property.owner ? `${property.owner}.${property.name}` : property.name }}</span>
-              <span class="shrink-0 text-[10px] text-muted-foreground">{{ property.type }}</span>
+              <span class="shrink-0 text-xs text-muted-foreground">{{ property.type }}</span>
             </div>
             <template v-if="editing === `${property.owner}\u0000${property.name}`">
               <label v-if="property.type === 'bool'" class="mt-1 flex items-center gap-2"><input v-model="draft" type="checkbox" :disabled="busy" class="h-4 w-4" />{{ draft ? "true" : "false" }}</label>
@@ -432,7 +432,7 @@ onBeforeUnmount(() => {
               {{ property.value === null ? "NULL" : String(property.value) }}
             </button>
           </div>
-          <div v-if="relatedCells.length" class="px-3 py-2 text-[11px] text-muted-foreground">{{ t("graph.records") }}: {{ relatedCells.map((cell) => cell.row + 1).join(", ") }}</div>
+          <div v-if="relatedCells.length" class="px-3 py-2 text-xs text-muted-foreground">{{ t("graph.records") }}: {{ relatedCells.map((cell) => cell.row + 1).join(", ") }}</div>
         </template>
         <div v-else class="flex h-24 items-center justify-center text-xs text-muted-foreground">
           {{ visibleNodes.length }}<template v-if="graph.nodes.length > visibleNodes.length">/{{ graph.nodes.length }}</template> {{ t("graph.nodes") }} · {{ visibleEdges.length }}<template v-if="graph.edges.length > visibleEdges.length">/{{ graph.edges.length }}</template> {{ t("graph.edges") }}

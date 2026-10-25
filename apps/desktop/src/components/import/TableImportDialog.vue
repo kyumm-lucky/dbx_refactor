@@ -1501,7 +1501,7 @@ watch(rawProgressPercent, (percent) => {
                 :aria-current="isWizardStepActive(step.value) ? 'step' : undefined"
                 @click="wizardStep = step.value"
               >
-                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold" :class="wizardStepCircleClass(step.value)">
+                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold" :class="wizardStepCircleClass(step.value)">
                   <Check v-if="isWizardStepComplete(step.value)" class="h-3.5 w-3.5" />
                   <span v-else>{{ index + 1 }}</span>
                 </span>
@@ -1531,7 +1531,7 @@ watch(rawProgressPercent, (percent) => {
             <button v-for="format in availableFormatOptions" :key="format.value" type="button" class="min-h-20 rounded-md border px-3 py-2 text-left" :class="sourceFormat === format.value ? 'border-primary bg-primary/5' : 'hover:bg-muted/30'" @click="sourceFormat = format.value">
               <component :is="format.icon" class="mb-2 h-4 w-4 text-muted-foreground" />
               <div class="text-xs font-medium">{{ t(format.labelKey) }}</div>
-              <div class="mt-1 text-[11px] leading-snug text-muted-foreground">{{ t(format.descriptionKey) }}</div>
+              <div class="mt-1 text-xs leading-snug text-muted-foreground">{{ t(format.descriptionKey) }}</div>
             </button>
           </div>
         </div>
@@ -1569,11 +1569,11 @@ watch(rawProgressPercent, (percent) => {
               <div class="grid grid-cols-2 gap-2">
                 <button type="button" class="rounded-md border px-3 py-2 text-left text-xs" :class="targetMode === 'existing' ? 'border-primary bg-primary/5' : 'hover:bg-muted/30'" :disabled="!hasExistingTarget" @click="targetMode = 'existing'">
                   <div class="font-medium">{{ t("tableImport.existingTable") }}</div>
-                  <div class="mt-1 truncate text-[11px] text-muted-foreground">{{ selectedExistingTable || t("tableImport.noExistingTarget") }}</div>
+                  <div class="mt-1 truncate text-xs text-muted-foreground">{{ selectedExistingTable || t("tableImport.noExistingTarget") }}</div>
                 </button>
                 <button type="button" class="rounded-md border px-3 py-2 text-left text-xs" :class="targetMode === 'create' ? 'border-primary bg-primary/5' : 'hover:bg-muted/30'" @click="targetMode = 'create'">
                   <div class="font-medium">{{ t("tableImport.createTable") }}</div>
-                  <div class="mt-1 text-[11px] text-muted-foreground">{{ t("tableImport.createTableHint") }}</div>
+                  <div class="mt-1 text-xs text-muted-foreground">{{ t("tableImport.createTableHint") }}</div>
                 </button>
               </div>
             </div>
@@ -1638,7 +1638,7 @@ watch(rawProgressPercent, (percent) => {
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <div v-if="textEncoding === 'auto' && preview?.effectiveEncoding" class="truncate text-[11px] text-muted-foreground" :title="t('tableImport.encodingDetected', { encoding: encodingLabel(preview.effectiveEncoding) })">
+              <div v-if="textEncoding === 'auto' && preview?.effectiveEncoding" class="truncate text-xs text-muted-foreground" :title="t('tableImport.encodingDetected', { encoding: encodingLabel(preview.effectiveEncoding) })">
                 {{ t("tableImport.encodingDetected", { encoding: encodingLabel(preview.effectiveEncoding) }) }}
               </div>
             </div>
@@ -1679,7 +1679,7 @@ watch(rawProgressPercent, (percent) => {
                 <input v-model="emptyStringAsNull" type="checkbox" class="h-3.5 w-3.5 accent-primary" />
                 {{ t("tableImport.emptyStringAsNull") }}
               </label>
-              <p class="text-[11px] text-muted-foreground">{{ t("tableImport.emptyStringAsNullHint") }}</p>
+              <p class="text-xs text-muted-foreground">{{ t("tableImport.emptyStringAsNullHint") }}</p>
             </div>
           </div>
 
@@ -1696,7 +1696,7 @@ watch(rawProgressPercent, (percent) => {
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <div v-if="textEncoding === 'auto' && preview?.effectiveEncoding" class="truncate text-[11px] text-muted-foreground" :title="t('tableImport.encodingDetected', { encoding: encodingLabel(preview.effectiveEncoding) })">
+              <div v-if="textEncoding === 'auto' && preview?.effectiveEncoding" class="truncate text-xs text-muted-foreground" :title="t('tableImport.encodingDetected', { encoding: encodingLabel(preview.effectiveEncoding) })">
                 {{ t("tableImport.encodingDetected", { encoding: encodingLabel(preview.effectiveEncoding) }) }}
               </div>
             </div>
@@ -1748,7 +1748,7 @@ watch(rawProgressPercent, (percent) => {
                 <input v-model="emptyStringAsNull" type="checkbox" class="h-3.5 w-3.5 accent-primary" />
                 {{ t("tableImport.emptyStringAsNull") }}
               </label>
-              <p class="text-[11px] text-muted-foreground">{{ t("tableImport.emptyStringAsNullExcelHint") }}</p>
+              <p class="text-xs text-muted-foreground">{{ t("tableImport.emptyStringAsNullExcelHint") }}</p>
             </div>
           </div>
 
@@ -1761,7 +1761,7 @@ watch(rawProgressPercent, (percent) => {
                 {{ t("tableImport.updateExistingRows") }}
               </option>
             </select>
-            <p v-if="targetMode === 'existing' && !canSelectUpdateExisting" class="text-[11px] text-muted-foreground">
+            <p v-if="targetMode === 'existing' && !canSelectUpdateExisting" class="text-xs text-muted-foreground">
               {{ updateExistingDisabledReason }}
             </p>
           </div>
@@ -1813,7 +1813,7 @@ watch(rawProgressPercent, (percent) => {
                 </div>
               </div>
               <div class="max-h-[320px] overflow-auto p-2">
-                <div class="grid items-center gap-2 border-b px-1 pb-1 text-[11px] font-medium text-muted-foreground" :class="targetMode === 'create' ? 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(92px,120px)]' : 'grid-cols-[1fr_1fr]'">
+                <div class="grid items-center gap-2 border-b px-1 pb-1 text-xs font-medium text-muted-foreground" :class="targetMode === 'create' ? 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(92px,120px)]' : 'grid-cols-[1fr_1fr]'">
                   <span>{{ t("tableImport.sourceColumn") }}</span>
                   <span>{{ t("tableImport.targetColumn") }}</span>
                   <span v-if="targetMode === 'create'">{{ t("tableImport.targetDataType") }}</span>

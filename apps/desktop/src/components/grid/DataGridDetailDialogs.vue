@@ -93,14 +93,14 @@ function onColumnDetailKeydown(event: KeyboardEvent) {
             <tr v-for="field in filteredRowFields" :key="`${field.colIndex}:${field.column}`" class="border-b align-top last:border-b-0">
               <td class="px-3 py-2">
                 <div class="break-words font-medium">{{ field.column }}</div>
-                <div v-if="field.comment" class="mt-0.5 text-[11px] text-muted-foreground whitespace-pre-wrap">{{ field.comment }}</div>
+                <div v-if="field.comment" class="mt-0.5 text-xs text-muted-foreground whitespace-pre-wrap">{{ field.comment }}</div>
               </td>
               <td class="w-full max-w-0 px-3 py-2">
                 <a v-if="field.imagePreviewUrl" :href="field.imagePreviewUrl" role="button" class="mb-2 block max-h-48 overflow-hidden rounded border bg-muted/20" @click.prevent="openImagePreview(field.imagePreviewUrl, field.column)"
                   ><img :src="field.imagePreviewUrl" :alt="field.column" loading="lazy" decoding="async" referrerpolicy="no-referrer" class="max-h-48 w-full object-contain"
                 /></a>
                 <pre class="dbx-data-grid-value-font max-h-[120px] overflow-auto text-xs whitespace-pre-wrap break-words" :class="{ 'italic text-muted-foreground': field.isNull ?? field.value === null }">{{ cellDetailPreviewText(field, databaseType) }}</pre>
-                <div v-if="field.isValuePreviewTruncated" class="mt-1 text-[11px] text-muted-foreground">{{ t("grid.largeValuePreviewHint", { count: field.rawValuePreview.length }) }}</div>
+                <div v-if="field.isValuePreviewTruncated" class="mt-1 text-xs text-muted-foreground">{{ t("grid.largeValuePreviewHint", { count: field.rawValuePreview.length }) }}</div>
                 <div v-if="field.formattedJson" class="mt-2 space-y-1">
                   <div class="text-muted-foreground">{{ t("grid.formattedJson") }}</div>
                   <pre class="dbx-data-grid-value-font max-h-36 overflow-auto text-xs whitespace-pre-wrap break-words">{{ field.formattedJson }}</pre>
@@ -162,12 +162,12 @@ function onColumnDetailKeydown(event: KeyboardEvent) {
             <tr v-for="field in filteredColumnFields" :key="`${field.rowId}:${field.colIndex}`" class="border-b align-top last:border-b-0">
               <td class="px-3 py-2 tabular-nums">{{ field.rowNumber }}</td>
               <td class="w-full max-w-0 px-3 py-2">
-                <div class="mb-1 text-[11px] text-muted-foreground">{{ (field.isNull ?? field.value === null) ? t("grid.nullValue") : t("grid.valueLength") }}: {{ (field.isNull ?? field.value === null) ? "true" : field.length }}</div>
+                <div class="mb-1 text-xs text-muted-foreground">{{ (field.isNull ?? field.value === null) ? t("grid.nullValue") : t("grid.valueLength") }}: {{ (field.isNull ?? field.value === null) ? "true" : field.length }}</div>
                 <a v-if="field.imagePreviewUrl" :href="field.imagePreviewUrl" role="button" class="mb-2 block max-h-40 overflow-hidden rounded border bg-muted/20" @click.prevent="openImagePreview(field.imagePreviewUrl, field.column)"
                   ><img :src="field.imagePreviewUrl" :alt="field.column" loading="lazy" decoding="async" referrerpolicy="no-referrer" class="max-h-40 w-full object-contain"
                 /></a>
                 <pre class="dbx-data-grid-value-font max-h-36 overflow-auto rounded border bg-muted/20 p-2 text-xs whitespace-pre-wrap break-words" :class="{ 'italic text-muted-foreground': field.isNull ?? field.value === null }">{{ cellDetailPreviewText(field, databaseType) }}</pre>
-                <div v-if="field.isValuePreviewTruncated" class="mt-1 text-[11px] text-muted-foreground">{{ t("grid.largeValuePreviewHint", { count: field.rawValuePreview.length }) }}</div>
+                <div v-if="field.isValuePreviewTruncated" class="mt-1 text-xs text-muted-foreground">{{ t("grid.largeValuePreviewHint", { count: field.rawValuePreview.length }) }}</div>
                 <div v-if="field.formattedJson" class="mt-2 space-y-1">
                   <div class="text-muted-foreground">{{ t("grid.formattedJson") }}</div>
                   <pre class="dbx-data-grid-value-font max-h-36 overflow-auto rounded border bg-muted/20 p-2 text-xs whitespace-pre-wrap break-words">{{ field.formattedJson }}</pre>

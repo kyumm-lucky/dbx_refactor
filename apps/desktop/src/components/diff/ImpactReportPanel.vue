@@ -70,13 +70,13 @@ const strategyLabel = computed(() => (props.report ? strategyLabels[props.report
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
           <span class="text-xs text-muted-foreground">{{ t("impact.overallRisk") }}:</span>
-          <span class="px-2 py-0.5 rounded text-[11px] font-semibold text-white" :style="{ backgroundColor: riskColors[report.overallRisk] }">
+          <span class="px-2 py-0.5 rounded text-xs font-semibold text-white" :style="{ backgroundColor: riskColors[report.overallRisk] }">
             {{ riskLabels[report.overallRisk] }}
           </span>
         </div>
         <div class="flex items-center gap-2">
           <span class="text-xs text-muted-foreground">{{ t("impact.ddlRisk") }}:</span>
-          <span class="px-2 py-0.5 rounded text-[11px] font-semibold text-white" :style="{ backgroundColor: riskColors[report.ddlRiskLevel] }">
+          <span class="px-2 py-0.5 rounded text-xs font-semibold text-white" :style="{ backgroundColor: riskColors[report.ddlRiskLevel] }">
             {{ riskLabels[report.ddlRiskLevel] }}
           </span>
         </div>
@@ -87,22 +87,22 @@ const strategyLabel = computed(() => (props.report ? strategyLabels[props.report
         <div class="flex items-center gap-2 p-2 rounded border bg-muted/20">
           <component :is="strategyIcon" class="w-4 h-4 text-primary shrink-0" />
           <div class="min-w-0">
-            <div class="text-[10px] text-muted-foreground">{{ t("impact.recommendedStrategy") }}</div>
+            <div class="text-xs text-muted-foreground">{{ t("impact.recommendedStrategy") }}</div>
             <div class="text-xs font-medium truncate">{{ strategyLabel }}</div>
           </div>
         </div>
         <div class="flex items-center gap-2 p-2 rounded border bg-muted/20">
           <Clock class="w-4 h-4 text-muted-foreground shrink-0" />
           <div class="min-w-0">
-            <div class="text-[10px] text-muted-foreground">{{ t("impact.estimatedDuration") }}</div>
+            <div class="text-xs text-muted-foreground">{{ t("impact.estimatedDuration") }}</div>
             <div class="text-xs font-medium truncate">{{ report.estimatedTotalDuration }}</div>
           </div>
         </div>
         <div class="flex items-center gap-2 p-2 rounded border bg-muted/20">
           <component :is="report.requiresMaintenanceWindow ? AlertTriangle : CheckCircle2" class="w-4 h-4 shrink-0" :class="report.requiresMaintenanceWindow ? 'text-amber-500' : 'text-green-500'" />
           <div class="min-w-0">
-            <div class="text-[10px] text-muted-foreground">{{ t("impact.maintenanceWindow") }}</div>
-            <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium" :class="report.requiresMaintenanceWindow ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'">
+            <div class="text-xs text-muted-foreground">{{ t("impact.maintenanceWindow") }}</div>
+            <span class="inline-block px-1.5 py-0.5 rounded text-xs font-medium" :class="report.requiresMaintenanceWindow ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'">
               {{ report.requiresMaintenanceWindow ? t("impact.yes") : t("impact.no") }}
             </span>
           </div>
@@ -110,8 +110,8 @@ const strategyLabel = computed(() => (props.report ? strategyLabels[props.report
         <div class="flex items-center gap-2 p-2 rounded border bg-muted/20">
           <component :is="report.isReversible ? CheckCircle2 : XCircle" class="w-4 h-4 shrink-0" :class="report.isReversible ? 'text-green-500' : 'text-red-500'" />
           <div class="min-w-0">
-            <div class="text-[10px] text-muted-foreground">{{ t("impact.reversible") }}</div>
-            <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium" :class="report.isReversible ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'">
+            <div class="text-xs text-muted-foreground">{{ t("impact.reversible") }}</div>
+            <span class="inline-block px-1.5 py-0.5 rounded text-xs font-medium" :class="report.isReversible ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'">
               {{ report.isReversible ? t("impact.yes") : t("impact.no") }}
             </span>
           </div>
@@ -134,7 +134,7 @@ const strategyLabel = computed(() => (props.report ? strategyLabels[props.report
               <tr v-for="(lock, i) in report.estimatedLocks" :key="i" class="border-t">
                 <td class="px-2 py-1.5 font-mono">{{ lock.lockType }}</td>
                 <td class="px-2 py-1.5">
-                  <span v-for="(obj, j) in lock.objects" :key="j" class="inline-block mr-1 mb-0.5 px-1.5 py-0.5 rounded bg-muted/40 text-[10px] font-mono">
+                  <span v-for="(obj, j) in lock.objects" :key="j" class="inline-block mr-1 mb-0.5 px-1.5 py-0.5 rounded bg-muted/40 text-xs font-mono">
                     {{ obj }}
                   </span>
                 </td>

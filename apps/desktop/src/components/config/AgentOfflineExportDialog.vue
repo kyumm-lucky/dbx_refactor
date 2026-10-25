@@ -153,10 +153,10 @@ function unavailableReason(reason: AgentOfflineExportUnavailableReason | null) {
               <span class="min-w-0 flex-1">
                 <span class="flex min-w-0 flex-wrap items-center gap-1.5">
                   <span class="truncate text-sm font-medium">{{ candidate.label }}</span>
-                  <Badge variant="outline" class="h-5 rounded-full px-2 text-[10px]">v{{ candidate.version }}</Badge>
-                  <Badge v-if="candidate.artifactKind" variant="secondary" class="h-5 rounded-full px-2 text-[10px]">{{ artifactLabel(candidate) }}</Badge>
-                  <Badge v-if="candidate.requiredJre" variant="secondary" class="h-5 rounded-full px-2 text-[10px]">JRE {{ candidate.requiredJre }}</Badge>
-                  <span v-if="candidate.size" class="text-[11px] text-muted-foreground">{{ formatSize(candidate.size) }}</span>
+                  <Badge variant="outline" class="h-5 rounded-full px-2 text-xs">v{{ candidate.version }}</Badge>
+                  <Badge v-if="candidate.artifactKind" variant="secondary" class="h-5 rounded-full px-2 text-xs">{{ artifactLabel(candidate) }}</Badge>
+                  <Badge v-if="candidate.requiredJre" variant="secondary" class="h-5 rounded-full px-2 text-xs">JRE {{ candidate.requiredJre }}</Badge>
+                  <span v-if="candidate.size" class="text-xs text-muted-foreground">{{ formatSize(candidate.size) }}</span>
                 </span>
                 <span v-if="!candidate.eligible" :id="`offline-export-reason-${candidate.dbType}`" class="mt-0.5 block text-xs text-muted-foreground">
                   {{ unavailableReason(candidate.unavailableReason) }}

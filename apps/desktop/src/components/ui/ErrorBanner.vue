@@ -49,7 +49,7 @@ async function copy() {
         <span>{{ displayTitle }}</span>
       </div>
       <div class="flex items-center gap-0.5 shrink-0">
-        <Button variant="ghost" size="sm" class="h-6 gap-1 px-1.5 text-[11px] text-destructive/80 hover:text-destructive hover:bg-destructive/15" :aria-label="t('grid.copy')" @click.stop="copy">
+        <Button variant="ghost" size="sm" class="h-6 gap-1 px-1.5 text-xs text-destructive/80 hover:text-destructive hover:bg-destructive/15" :aria-label="t('grid.copy')" @click.stop="copy">
           <Copy class="h-3 w-3" />
           {{ t("grid.copy") }}
         </Button>

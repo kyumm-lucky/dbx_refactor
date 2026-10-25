@@ -72,14 +72,14 @@ watch(
 
       <div class="flex h-9 shrink-0 items-center gap-3 border-b px-3">
         <div class="inline-flex h-7 items-center rounded border bg-muted/20 p-0.5" role="group" :aria-label="t('doltVersionControl.cellDiffFormat')">
-          <Button v-for="option in formatOptions" :key="option.value" type="button" size="sm" :variant="formatMode === option.value ? 'secondary' : 'ghost'" class="h-6 rounded-sm px-2 text-[11px] shadow-none" @click="formatMode = option.value">
+          <Button v-for="option in formatOptions" :key="option.value" type="button" size="sm" :variant="formatMode === option.value ? 'secondary' : 'ghost'" class="h-6 rounded-sm px-2 text-xs shadow-none" @click="formatMode = option.value">
             {{ option.label }}
           </Button>
         </div>
-        <span v-if="formatMode === 'auto'" class="truncate text-[11px] text-muted-foreground">{{ t("doltVersionControl.cellDiffDetectedFormat", { format: effectiveFormat.toUpperCase() }) }}</span>
+        <span v-if="formatMode === 'auto'" class="truncate text-xs text-muted-foreground">{{ t("doltVersionControl.cellDiffDetectedFormat", { format: effectiveFormat.toUpperCase() }) }}</span>
       </div>
 
-      <div v-if="beforeFormatted.error || afterFormatted.error" class="grid shrink-0 grid-cols-2 border-b bg-amber-500/10 text-[11px] text-amber-700 dark:text-amber-300">
+      <div v-if="beforeFormatted.error || afterFormatted.error" class="grid shrink-0 grid-cols-2 border-b bg-amber-500/10 text-xs text-amber-700 dark:text-amber-300">
         <div class="flex min-w-0 items-start gap-1.5 border-r px-2 py-1">
           <template v-if="beforeFormatted.error"
             ><AlertCircle class="mt-0.5 h-3 w-3 shrink-0" /><span class="min-w-0 break-words">{{ t("doltVersionControl.cellDiffFormatFailed", { message: beforeFormatted.error }) }}</span></template

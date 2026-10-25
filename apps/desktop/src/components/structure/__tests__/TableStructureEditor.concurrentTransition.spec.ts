@@ -46,6 +46,7 @@ vi.mock("@lucide/vue", async () => {
     ListChevronsUpDown: Icon,
     Loader2: Icon,
     Maximize2: Icon,
+    Pencil: Icon,
     Plus: Icon,
     RefreshCw: Icon,
     Rows3: Icon,

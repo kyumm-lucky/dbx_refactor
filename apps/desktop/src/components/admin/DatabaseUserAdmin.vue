@@ -1196,7 +1196,7 @@ onBeforeUnmount(() => {
       <div class="flex min-w-0 items-center gap-2">
         <ShieldCheck class="h-4 w-4 text-primary" />
         <div class="truncate text-sm font-semibold">{{ t("userAdmin.title") }}</div>
-        <Badge variant="outline" class="h-5 rounded-md px-1.5 text-[11px]">{{ connection.name }}</Badge>
+        <Badge variant="outline" class="h-5 rounded-md px-1.5 text-xs">{{ connection.name }}</Badge>
       </div>
       <div class="ml-auto flex items-center gap-1.5">
         <Button variant="outline" size="sm" class="h-7 gap-1.5 px-2 text-xs" :disabled="passwordReconnectRequired" @click="loadUsers">
@@ -1244,7 +1244,7 @@ onBeforeUnmount(() => {
             <UserRound class="h-4 w-4" />
             <span class="min-w-0">
               <span class="block truncate font-medium">{{ userLabel(user) || t("userAdmin.anonymous") }}</span>
-              <span v-if="userDetail(user)" class="mt-1 inline-flex max-w-full rounded-full border bg-muted/40 px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">
+              <span v-if="userDetail(user)" class="mt-1 inline-flex max-w-full rounded-full border bg-muted/40 px-1.5 py-0.5 text-xs leading-none text-muted-foreground">
                 <span class="truncate">{{ userDetail(user) }}</span>
               </span>
             </span>
@@ -1262,7 +1262,7 @@ onBeforeUnmount(() => {
           </div>
           <div class="flex min-w-0 items-center gap-2">
             <div class="truncate text-sm font-semibold">{{ userLabel(selectedUser) }}</div>
-            <Badge v-if="selectedDetail" variant="outline" class="h-5 max-w-[180px] rounded-full px-2 py-0 text-[10px] font-normal">
+            <Badge v-if="selectedDetail" variant="outline" class="h-5 max-w-[180px] rounded-full px-2 py-0 text-xs font-normal">
               <span class="truncate">{{ selectedDetail }}</span>
             </Badge>
           </div>
@@ -1310,7 +1310,7 @@ onBeforeUnmount(() => {
           <aside v-if="canEditPrivileges" class="flex min-h-0 flex-col bg-muted/10">
             <div class="border-b p-3">
               <div class="text-xs font-semibold">{{ t("userAdmin.privilegeEditor") }}</div>
-              <div class="mt-1 text-[11px] leading-4 text-muted-foreground">{{ t(isOracle ? "oracleSecurity.managementHint" : usePrivilegeScopeEditor && provider?.authorizationModel === "mysql" ? "userAdmin.privilegeAppendHint" : "userAdmin.privilegeHint") }}</div>
+              <div class="mt-1 text-xs leading-4 text-muted-foreground">{{ t(isOracle ? "oracleSecurity.managementHint" : usePrivilegeScopeEditor && provider?.authorizationModel === "mysql" ? "userAdmin.privilegeAppendHint" : "userAdmin.privilegeHint") }}</div>
             </div>
             <div class="min-h-0 flex-1 overflow-auto p-3" :class="{ 'flex flex-col': isOracle }">
               <template v-if="isPostgres || isOracle">
@@ -1334,15 +1334,15 @@ onBeforeUnmount(() => {
                 <Input v-model="privilegeRole" class="mb-3 h-8 text-xs" :placeholder="t('userAdmin.memberRole')" />
               </template>
               <div v-else-if="usePrivilegeScopeEditor" class="flex min-h-0 flex-col gap-2" :class="isOracle ? 'flex-1' : 'h-full'">
-                <p v-if="isOracle" class="text-[11px] text-muted-foreground">{{ t("oracleSecurity.limited") }}</p>
-                <p v-if="createDatabasesLoadError" class="text-[11px] text-destructive">{{ createDatabasesLoadError }}</p>
-                <p v-if="isOracle && privilegeAuthorizations.length && !privilegeAuthorizationsValid" class="text-[11px] text-destructive">{{ t("oracleSecurity.invalidObjectSelection") }}</p>
+                <p v-if="isOracle" class="text-xs text-muted-foreground">{{ t("oracleSecurity.limited") }}</p>
+                <p v-if="createDatabasesLoadError" class="text-xs text-destructive">{{ createDatabasesLoadError }}</p>
+                <p v-if="isOracle && privilegeAuthorizations.length && !privilegeAuthorizationsValid" class="text-xs text-destructive">{{ t("oracleSecurity.invalidObjectSelection") }}</p>
                 <AuthorizationScopeEditor :key="connectionIdentity" v-model="privilegeAuthorizations" compact :provider="provider" :object-scope="oracleObjectScope" :databases="createDatabases" :databases-loading="createDatabasesLoading" :connection-id="connection.id" />
-                <div v-if="currentTableGrantsLoading" class="flex items-center gap-2 text-[11px] text-muted-foreground">
+                <div v-if="currentTableGrantsLoading" class="flex items-center gap-2 text-xs text-muted-foreground">
                   <Loader2 class="h-3.5 w-3.5 animate-spin" />
                   {{ t("userAdmin.loadingGrants") }}
                 </div>
-                <p v-else-if="tableGrantLoadError" class="text-[11px] text-destructive">{{ tableGrantLoadError }}</p>
+                <p v-else-if="tableGrantLoadError" class="text-xs text-destructive">{{ tableGrantLoadError }}</p>
               </div>
               <template v-else-if="!isOracle">
                 <label class="mb-2 block text-xs font-medium">
@@ -1361,7 +1361,7 @@ onBeforeUnmount(() => {
                   v-for="privilege in availablePrivileges"
                   :key="privilege"
                   type="button"
-                  class="flex h-7 items-center gap-1.5 rounded-md border px-2 text-left text-[11px] hover:bg-accent"
+                  class="flex h-7 items-center gap-1.5 rounded-md border px-2 text-left text-xs hover:bg-accent"
                   :class="selectedPrivilegeSet.has(privilege) ? 'border-primary bg-primary/10 text-primary' : 'bg-background'"
                   @click="togglePrivilege(privilege)"
                 >
@@ -1377,7 +1377,7 @@ onBeforeUnmount(() => {
               <span class="min-w-0 flex-1">
                 {{ isOracle && privilegeScope !== "table" ? `${t("oracleSecurity.grantOption")} (WITH ADMIN OPTION)` : privilegeScope === "role" ? t("userAdmin.adminOption") : t("userAdmin.grantOption") }}
                 <!-- 撤权语句本身不带 GRANT OPTION，明确说明避免误解 -->
-                <span v-if="privilegeScope !== 'role'" class="mt-0.5 block text-[10px] text-muted-foreground">{{ t("userAdmin.grantOptionHint") }}</span>
+                <span v-if="privilegeScope !== 'role'" class="mt-0.5 block text-xs text-muted-foreground">{{ t("userAdmin.grantOptionHint") }}</span>
               </span>
             </label>
             <div class="flex shrink-0 items-center justify-end gap-2 border-t p-3">

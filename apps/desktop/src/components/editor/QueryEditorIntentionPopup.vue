@@ -64,7 +64,7 @@ function getIntentionActionLabel(kind: string): string {
   padding: 6px 12px;
   cursor: pointer;
   color: var(--foreground);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1.5;
   transition: background 0.1s;
 }

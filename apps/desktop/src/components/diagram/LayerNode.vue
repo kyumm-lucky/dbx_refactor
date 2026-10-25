@@ -29,7 +29,7 @@ function isLocked(layer: DiagramLayer): boolean {
       <span class="text-sm font-semibold truncate" :style="{ color: data.layer.color }">
         {{ data.layer.name }}
       </span>
-      <span class="ml-auto shrink-0 flex items-center gap-1 text-[10px] font-normal opacity-70" :title="isLocked(data.layer) ? t('diagram.layerLocked') : t('diagram.layerUnlocked')">
+      <span class="ml-auto shrink-0 flex items-center gap-1 text-xs font-normal opacity-70" :title="isLocked(data.layer) ? t('diagram.layerLocked') : t('diagram.layerUnlocked')">
         <Lock v-if="isLocked(data.layer)" class="h-3 w-3" :style="{ color: data.layer.color }" />
         <Unlock v-else class="h-3 w-3" :style="{ color: data.layer.color }" />
       </span>

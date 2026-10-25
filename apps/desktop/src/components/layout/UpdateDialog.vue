@@ -348,7 +348,7 @@ watch(
               @click="selectTab(tab.id)"
             >
               <span>{{ tab.label }}</span>
-              <span v-if="tab.count > 0" class="rounded-full bg-foreground/10 px-1.5 text-[11px]">{{ tab.count }}</span>
+              <span v-if="tab.count > 0" class="rounded-full bg-foreground/10 px-1.5 text-xs">{{ tab.count }}</span>
             </button>
           </div>
         </div>
@@ -369,7 +369,7 @@ watch(
               </p>
               <div
                 v-if="updateInfo?.update_available && updateInfo.release_notes"
-                class="max-h-64 overflow-auto rounded-md border bg-muted/30 p-3 text-xs [&_h1]:mb-1 [&_h1]:text-sm [&_h1]:font-semibold [&_h2]:mb-1 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mb-1 [&_h3]:text-xs [&_h3]:font-semibold [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-0.5 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[11px] [&_a]:text-primary [&_a]:underline"
+                class="max-h-64 overflow-auto rounded-md border bg-muted/30 p-3 text-xs [&_h1]:mb-1 [&_h1]:text-sm [&_h1]:font-semibold [&_h2]:mb-1 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mb-1 [&_h3]:text-xs [&_h3]:font-semibold [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-0.5 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs [&_a]:text-primary [&_a]:underline"
                 v-html="renderedNotes"
                 @click="handleReleaseNotesClick"
               />

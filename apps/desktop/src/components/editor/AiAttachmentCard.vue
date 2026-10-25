@@ -51,13 +51,13 @@ function onEncodingChange(event: Event) {
     </div>
 
     <div class="min-w-0 flex-1">
-      <div class="truncate text-[11px] font-medium text-foreground" :title="name">{{ name }}</div>
-      <div class="mt-0.5 flex min-w-0 items-center gap-1 text-[10px] text-muted-foreground">
+      <div class="truncate text-xs font-medium text-foreground" :title="name">{{ name }}</div>
+      <div class="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
         <span v-if="detail" class="min-w-0 flex-1 truncate" :title="detail">{{ detail }}</span>
         <select
           v-if="encodingOptions.length"
           :value="encoding"
-          class="h-4 max-w-24 shrink-0 rounded border border-border/70 bg-background px-0.5 text-[9px] text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          class="h-5 max-w-24 shrink-0 rounded border border-border/70 bg-background px-0.5 text-xs text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring"
           :aria-label="`${encodingLabel}: ${name}`"
           :title="encodingLabel"
           @change="onEncodingChange"

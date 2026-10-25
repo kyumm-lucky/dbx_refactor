@@ -756,7 +756,7 @@ defineExpose({ refresh: () => (void load(), true) });
                   </td>
                   <td class="px-3 py-3">
                     <div v-if="item.ServiceTags.length" class="flex flex-wrap gap-1">
-                      <Badge v-for="tag in item.ServiceTags" :key="tag" variant="outline" class="h-5 px-1.5 text-[10px]">{{ tag }}</Badge>
+                      <Badge v-for="tag in item.ServiceTags" :key="tag" variant="outline" class="h-5 px-1.5 text-xs">{{ tag }}</Badge>
                     </div>
                     <span v-else class="text-muted-foreground">-</span>
                   </td>
@@ -870,7 +870,7 @@ defineExpose({ refresh: () => (void load(), true) });
                 <div class="border-b px-3 py-2">
                   <div class="text-muted-foreground">{{ t("consul.ui.tags") }}</div>
                   <div class="mt-1 flex flex-wrap gap-1">
-                    <Badge v-for="tag in service.Tags" :key="tag" variant="outline" class="h-5 px-1.5 text-[10px]">{{ tag }}</Badge
+                    <Badge v-for="tag in service.Tags" :key="tag" variant="outline" class="h-5 px-1.5 text-xs">{{ tag }}</Badge
                     ><span v-if="!service.Tags.length">-</span>
                   </div>
                 </div>
@@ -926,10 +926,10 @@ defineExpose({ refresh: () => (void load(), true) });
                 ><span class="flex min-w-0 flex-wrap items-center gap-2"
                   ><span class="truncate font-medium">{{ service.Service }}</span
                   ><code class="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">{{ service.ID }}</code
-                  ><Badge v-if="isServiceInMaintenance(service.ID)" variant="outline" class="h-5 border-amber-500/50 px-1.5 text-[10px] text-amber-700 dark:text-amber-300"><Wrench class="mr-1 h-3 w-3" />{{ t("consul.ui.maintenance") }}</Badge></span
+                  ><Badge v-if="isServiceInMaintenance(service.ID)" variant="outline" class="h-5 border-amber-500/50 px-1.5 leading-none text-xs text-amber-700 dark:text-amber-300"><Wrench class="mr-1 h-3 w-3" />{{ t("consul.ui.maintenance") }}</Badge></span
                 ><span class="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
                   ><span class="font-mono">{{ service.Address || identity?.address }}:{{ service.Port }}</span
-                  ><Badge v-for="tag in service.Tags" :key="tag" variant="outline" class="h-5 px-1.5 text-[10px]">{{ tag }}</Badge></span
+                  ><Badge v-for="tag in service.Tags" :key="tag" variant="outline" class="h-5 px-1.5 text-xs">{{ tag }}</Badge></span
                 ></span
               >
             </button>

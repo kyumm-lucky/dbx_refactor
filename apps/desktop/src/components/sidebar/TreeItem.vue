@@ -1682,7 +1682,7 @@ function onKeydown(event: KeyboardEvent) {
             >
             <span
               v-if="node.type === 'column' && node.meta"
-              class="shrink-0 rounded px-1 text-[10px] leading-4"
+              class="shrink-0 rounded px-1 text-xs leading-4"
               :class="(node.meta as ColumnInfo).is_nullable ? 'text-muted-foreground bg-muted/50' : 'text-amber-700 bg-amber-500/10 dark:text-amber-300'"
               :title="t((node.meta as ColumnInfo).is_nullable ? 'structureEditor.nullable' : 'structureEditor.notNull')"
             >
@@ -1738,12 +1738,12 @@ function onKeydown(event: KeyboardEvent) {
                   node.type === 'type-methods') &&
                 node.objectCount != null
               "
-              class="text-muted-foreground text-[10px] shrink-0"
+              class="text-muted-foreground text-xs shrink-0"
               >{{ node.objectCount }}<span v-if="hasActiveObjectNameFilter(node)"> · {{ t("tree.tableNameFilterActive") }}</span></span
             >
             <!-- 「默认库 / 默认 Schema」是静态信息，降级为普通灰字，不再用带底色的徽章抢占注意力。 -->
-            <span v-if="isNodeDefaultDatabase" class="shrink-0 text-[10px] text-muted-foreground">{{ t("editor.defaultDatabase") }}</span>
-            <span v-if="isNodeDefaultSchema()" class="shrink-0 text-[10px] text-muted-foreground">{{ t("editor.defaultSchema") }}</span>
+            <span v-if="isNodeDefaultDatabase" class="shrink-0 text-xs text-muted-foreground">{{ t("editor.defaultDatabase") }}</span>
+            <span v-if="isNodeDefaultSchema()" class="shrink-0 text-xs text-muted-foreground">{{ t("editor.defaultSchema") }}</span>
           </div>
           <span v-if="trailingComment && !isRightAlignedComment()" class="sidebar-object-comment ml-4 min-w-0 flex-1 truncate text-left" :class="{ 'sidebar-object-comment--windows': useWindowsSidebarCommentFont, 'sidebar-object-comment--horizontal': usesFullWidthLabel }">{{ trailingComment }}</span>
           <span v-if="isRightAlignedComment() && trailingCommentMaxWidth > 0" class="min-w-0 flex-1" aria-hidden="true" />

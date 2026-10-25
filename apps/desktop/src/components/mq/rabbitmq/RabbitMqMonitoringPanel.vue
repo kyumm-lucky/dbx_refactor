@@ -275,14 +275,14 @@ onUnmounted(() => {
 
 .section-title {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
   color: var(--color-text);
 }
 
 .section-subtitle {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
   color: var(--color-text);
 }
@@ -310,7 +310,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
   cursor: pointer;
 }
@@ -321,7 +321,7 @@ onUnmounted(() => {
   border-radius: var(--dbx-radius-fixed-4);
   background: var(--color-background);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .panel-placeholder,
@@ -353,7 +353,7 @@ onUnmounted(() => {
 }
 
 .stat-label {
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
 }
 
@@ -379,7 +379,7 @@ th {
   padding: 10px 12px;
   text-align: left;
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
   background: var(--color-background-secondary);
   border-bottom: 1px solid var(--color-border);
@@ -388,7 +388,7 @@ th {
 td {
   padding: 10px 12px;
   border-bottom: 1px solid var(--color-border);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .data-table tbody tr {
@@ -401,7 +401,7 @@ td {
 
 .node-name {
   font-family: var(--font-mono, monospace);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   max-width: 280px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -412,7 +412,7 @@ td {
   display: inline-block;
   padding: 2px 8px;
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
 }
 

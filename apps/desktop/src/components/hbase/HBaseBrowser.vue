@@ -452,7 +452,7 @@ function errorMessage(value: unknown): string {
       </Button>
     </div>
 
-    <div v-if="hasTable" class="flex h-7 shrink-0 items-center gap-2 border-b px-3 text-[11px] text-muted-foreground">
+    <div v-if="hasTable" class="flex h-7 shrink-0 items-center gap-2 border-b px-3 text-xs text-muted-foreground">
       <span>{{ t("hbase.loadedRows", { count: rows.length }) }}</span>
       <span>{{ formatQueryDuration(elapsedMs) }}</span>
       <span v-if="truncated" class="text-amber-600 dark:text-amber-400">{{ t("hbase.resultTruncated") }}</span>
@@ -498,7 +498,7 @@ function errorMessage(value: unknown): string {
           <div v-else-if="schema" class="space-y-4 text-xs">
             <section v-for="family in schema.columnFamilies" :key="family.name" class="border-b pb-3 last:border-b-0">
               <div class="mb-2 font-medium">{{ family.name }}</div>
-              <dl class="grid grid-cols-[minmax(8rem,auto)_1fr] gap-x-4 gap-y-1 font-mono text-[11px]">
+              <dl class="grid grid-cols-[minmax(8rem,auto)_1fr] gap-x-4 gap-y-1 font-mono text-xs">
                 <template v-for="(value, key) in family.properties" :key="key">
                   <dt class="text-muted-foreground">{{ key }}</dt>
                   <dd class="break-all">{{ value }}</dd>

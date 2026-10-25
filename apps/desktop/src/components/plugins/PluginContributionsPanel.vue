@@ -1451,7 +1451,7 @@ onBeforeUnmount(() => {
               </Button>
               <span
                 v-if="marketplaceQuery || marketplacePublisher || marketplaceRepositoryId !== 'all'"
-                class="shrink-0 text-[10px] tabular-nums text-muted-foreground"
+                class="shrink-0 text-xs tabular-nums text-muted-foreground"
                 aria-live="polite"
                 :aria-label="
                   t('pluginPlatform.marketplaceFiltered', { count: marketplaceLoading || marketplaceUnavailable ? '—' : sortedMarketplaceListings.length }) + ' · ' + t('pluginPlatform.marketplaceTotal', { count: marketplaceLoading || marketplaceUnavailable ? '—' : marketplaceListings.length })
@@ -1590,17 +1590,17 @@ onBeforeUnmount(() => {
                      tooltip lists the overflow (sensitive permissions highlighted in the tooltip). -->
                 <Tooltip v-for="badge in marketplaceCardBadges(listing).visible" :key="badge.value" :delay-duration="500">
                   <TooltipTrigger as-child>
-                    <Badge :variant="badge.sensitive ? 'destructive' : 'outline'" class="h-5 min-w-0 max-w-full truncate px-1.5 text-[10px]" :class="badge.kind === 'permission' ? 'font-mono' : ''" :title="badge.value" :data-sensitive-permission="badge.sensitive ? badge.value : undefined">{{
+                    <Badge :variant="badge.sensitive ? 'destructive' : 'outline'" class="h-5 min-w-0 max-w-full truncate px-1.5 text-xs" :class="badge.kind === 'permission' ? 'font-mono' : ''" :title="badge.value" :data-sensitive-permission="badge.sensitive ? badge.value : undefined">{{
                       badge.value
                     }}</Badge>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" class="max-w-md break-all text-[11px]" :class="badge.kind === 'permission' ? 'font-mono' : ''">{{ badge.value }}</TooltipContent>
+                  <TooltipContent side="bottom" class="max-w-md break-all text-xs" :class="badge.kind === 'permission' ? 'font-mono' : ''">{{ badge.value }}</TooltipContent>
                 </Tooltip>
                 <Tooltip v-if="marketplaceCardBadges(listing).hidden.length" :delay-duration="500">
                   <TooltipTrigger as-child>
-                    <Badge :variant="marketplaceCardBadges(listing).hiddenSensitive ? 'destructive' : 'outline'" class="h-5 shrink-0 px-1.5 text-[10px]">+{{ marketplaceCardBadges(listing).hidden.length }}</Badge>
+                    <Badge :variant="marketplaceCardBadges(listing).hiddenSensitive ? 'destructive' : 'outline'" class="h-5 shrink-0 px-1.5 text-xs">+{{ marketplaceCardBadges(listing).hidden.length }}</Badge>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" class="max-w-md break-all text-[11px]">
+                  <TooltipContent side="bottom" class="max-w-md break-all text-xs">
                     <div class="flex flex-col gap-0.5 font-mono">
                       <span v-for="badge in marketplaceCardBadges(listing).hidden" :key="badge.value" :class="badge.sensitive ? 'text-destructive' : ''">{{ badge.value }}</span>
                     </div>
@@ -1615,7 +1615,7 @@ onBeforeUnmount(() => {
               </Tooltip>
               <div class="marketplace-footer mt-auto flex items-center justify-between gap-3 pt-4">
                 <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <div class="flex min-w-0 items-baseline gap-1.5 text-[11px] text-muted-foreground">
+                  <div class="flex min-w-0 items-baseline gap-1.5 text-xs text-muted-foreground">
                     <span v-if="listing.status === 'unsupported'" class="min-w-0 truncate">{{ t("pluginPlatform.unsupportedTarget", { target: listing.target }) }}</span>
                     <!-- Versions are stated only in this footer (no separate badge above): the update case
                          keeps installed and catalog latest in one sentence so neither reads as the other,
@@ -1630,7 +1630,7 @@ onBeforeUnmount(() => {
                       >
                     </template>
                   </div>
-                  <div v-if="listingInstallCount(listing.plugin.id)" class="text-[11px] tabular-nums text-muted-foreground">{{ t("pluginPlatform.installCount", { count: formatInstallCount(listingInstallCount(listing.plugin.id)) }) }}</div>
+                  <div v-if="listingInstallCount(listing.plugin.id)" class="text-xs tabular-nums text-muted-foreground">{{ t("pluginPlatform.installCount", { count: formatInstallCount(listingInstallCount(listing.plugin.id)) }) }}</div>
                 </div>
                 <button
                   type="button"
@@ -1714,11 +1714,11 @@ onBeforeUnmount(() => {
               <div class="hidden min-w-0 max-w-52 shrink-0 flex-wrap items-center gap-1.5 @min-[64rem]:flex">
                 <Tooltip v-for="tag in listing.plugin.tags.slice(0, 3)" :key="tag" :delay-duration="500">
                   <TooltipTrigger as-child>
-                    <Badge variant="outline" class="h-5 min-w-0 max-w-full truncate px-1.5 text-[10px]" :title="tag">{{ tag }}</Badge>
+                    <Badge variant="outline" class="h-5 min-w-0 max-w-full truncate px-1.5 text-xs" :title="tag">{{ tag }}</Badge>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" class="max-w-md break-all text-[11px]">{{ tag }}</TooltipContent>
+                  <TooltipContent side="bottom" class="max-w-md break-all text-xs">{{ tag }}</TooltipContent>
                 </Tooltip>
-                <Badge v-if="listing.plugin.tags.length > 3" variant="outline" class="h-5 shrink-0 px-1.5 text-[10px] text-muted-foreground" :title="listing.plugin.tags.slice(3).join(' · ')">+{{ listing.plugin.tags.length - 3 }}</Badge>
+                <Badge v-if="listing.plugin.tags.length > 3" variant="outline" class="h-5 shrink-0 px-1.5 text-xs text-muted-foreground" :title="listing.plugin.tags.slice(3).join(' · ')">+{{ listing.plugin.tags.length - 3 }}</Badge>
               </div>
               <button
                 type="button"
@@ -1825,22 +1825,22 @@ onBeforeUnmount(() => {
                   <span class="min-w-0 flex-1">
                     <span class="block truncate text-sm font-medium">{{ definition.plugin.manifest.name }}</span>
                     <span class="mt-1 flex flex-wrap gap-1">
-                      <Badge variant="outline" class="h-4 px-1.5 text-[10px]">v{{ definition.plugin.manifest.version || "-" }}</Badge>
+                      <Badge variant="outline" class="h-5 px-1.5 text-xs">v{{ definition.plugin.manifest.version || "-" }}</Badge>
                       <span
                         v-if="installedUpdateEntryFor(definition.plugin.manifest.id)"
-                        class="inline-flex h-4 items-center gap-0.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 text-[10px] font-medium text-amber-700 dark:text-amber-300"
+                        class="inline-flex h-5 items-center gap-0.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 text-xs font-medium text-amber-700 dark:text-amber-300"
                         :title="t('pluginPlatform.installedVersionUpdatable', { installed: definition.plugin.manifest.version || '0.0.0', latest: installedUpdateEntryFor(definition.plugin.manifest.id)?.listing.plugin.latestVersion })"
                       >
                         <ArrowUp class="size-2.5" />v{{ installedUpdateEntryFor(definition.plugin.manifest.id)?.listing.plugin.latestVersion }}
                       </span>
-                      <Badge :variant="definition.plugin.compatibility.compatible ? 'secondary' : 'destructive'" class="h-4 px-1.5 text-[10px]">{{ definition.plugin.compatibility.compatible ? t("pluginPlatform.compatible") : t("pluginPlatform.blocked") }}</Badge>
-                      <Badge v-if="catalogChecked && !catalogPartialFailure && !pluginInCatalog(definition.plugin.manifest.id)" variant="outline" class="h-4 border-dashed px-1.5 text-[10px] text-muted-foreground" :title="t('pluginPlatform.notInRepositoriesHint')">{{
+                      <Badge :variant="definition.plugin.compatibility.compatible ? 'secondary' : 'destructive'" class="h-5 px-1.5 text-xs">{{ definition.plugin.compatibility.compatible ? t("pluginPlatform.compatible") : t("pluginPlatform.blocked") }}</Badge>
+                      <Badge v-if="catalogChecked && !catalogPartialFailure && !pluginInCatalog(definition.plugin.manifest.id)" variant="outline" class="h-5 border-dashed px-1.5 text-xs text-muted-foreground" :title="t('pluginPlatform.notInRepositoriesHint')">{{
                         t("pluginPlatform.notInRepositories")
                       }}</Badge>
                       <Badge
                         v-else-if="installedUnsupportedListingFor(definition.plugin.manifest.id)"
                         variant="outline"
-                        class="h-4 border-dashed px-1.5 text-[10px] text-muted-foreground"
+                        class="h-5 border-dashed px-1.5 text-xs text-muted-foreground"
                         :title="t('pluginPlatform.unsupportedTarget', { target: installedUnsupportedListingFor(definition.plugin.manifest.id)?.target })"
                         >{{ t("pluginPlatform.marketplaceStatus.unsupported") }}</Badge
                       >
@@ -1875,7 +1875,7 @@ onBeforeUnmount(() => {
                       <div class="text-sm font-medium">{{ selectedDefinition.plugin.manifest.name }}</div>
                       <div class="mt-1 text-xs leading-5 text-muted-foreground">{{ selectedDefinition.plugin.manifest.description }}</div>
                       <div class="mt-1 flex flex-wrap items-center gap-1.5">
-                        <span class="font-mono text-[10px] text-muted-foreground">{{ selectedDefinition.plugin.manifest.id }}</span>
+                        <span class="font-mono text-xs text-muted-foreground">{{ selectedDefinition.plugin.manifest.id }}</span>
                         <button
                           v-if="selectedDefinition.plugin.manifest.source"
                           type="button"
@@ -1908,7 +1908,7 @@ onBeforeUnmount(() => {
                       <Button size="sm" variant="outline" class="gap-1.5" :disabled="mutationRunning" @click="rollbackSelectedPlugin"><RotateCcw class="size-3.5" />{{ t("pluginPlatform.rollback") }}</Button>
                       <Button size="sm" variant="outline" class="gap-1.5 text-destructive" :disabled="mutationRunning" @click="uninstallSelectedPlugin"><Trash2 class="size-3.5" />{{ t("pluginPlatform.uninstall") }}</Button>
                     </div>
-                    <span v-if="selectedUpdateEntry" class="text-[11px] text-muted-foreground"
+                    <span v-if="selectedUpdateEntry" class="text-xs text-muted-foreground"
                       >{{ t("pluginPlatform.installedVersionUpdatable", { installed: selectedDefinition?.plugin.manifest.version || "0.0.0", latest: selectedUpdateEntry.listing.plugin.latestVersion }) }} · {{ selectedUpdateEntry.repositoryName }}</span
                     >
                   </div>
@@ -1988,8 +1988,8 @@ onBeforeUnmount(() => {
             </div>
             <div class="flex flex-wrap items-center gap-3">
               <Button variant="outline" size="sm" class="h-8 gap-1.5" :disabled="mutationRunning" @click="choosePluginPackage"><Loader2 v-if="installing" class="size-3.5 animate-spin" /><FileUp v-else class="size-3.5" />{{ t("pluginPlatform.installPackage") }}</Button>
-              <div class="flex items-center gap-1.5 text-[11px] text-muted-foreground"><ShieldCheck class="size-3.5 text-emerald-600 dark:text-emerald-400" />{{ t("pluginPlatform.signedPackagesVerifiedAutomatically") }}</div>
-              <div class="flex items-center gap-1.5 text-[11px] text-muted-foreground"><FileUp class="size-3.5" />{{ t("pluginPlatform.dropInstallHint") }}</div>
+              <div class="flex items-center gap-1.5 text-xs text-muted-foreground"><ShieldCheck class="size-3.5 text-emerald-600 dark:text-emerald-400" />{{ t("pluginPlatform.signedPackagesVerifiedAutomatically") }}</div>
+              <div class="flex items-center gap-1.5 text-xs text-muted-foreground"><FileUp class="size-3.5" />{{ t("pluginPlatform.dropInstallHint") }}</div>
             </div>
             <div class="flex flex-wrap items-center gap-2">
               <div class="relative min-w-0 flex-1 sm:max-w-md">
@@ -2002,7 +2002,7 @@ onBeforeUnmount(() => {
               <div class="h-1.5 overflow-hidden rounded-full bg-muted">
                 <div class="h-full rounded-full bg-primary transition-[width]" :class="urlProgressPercent === null ? 'w-1/3 animate-pulse' : ''" :style="{ width: urlProgressPercent === null ? undefined : `${urlProgressPercent}%` }" />
               </div>
-              <div class="text-[10px] text-muted-foreground">{{ urlProgressLabel }}</div>
+              <div class="text-xs text-muted-foreground">{{ urlProgressLabel }}</div>
             </div>
           </section>
 
@@ -2019,11 +2019,11 @@ onBeforeUnmount(() => {
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2 text-xs font-medium">
                     <span>{{ repository.name }}</span
-                    ><Badge variant="outline" class="h-4 px-1.5 text-[9px]">{{ t(`pluginPlatform.repositoryKind.${repository.kind}`) }}</Badge>
+                    ><Badge variant="outline" class="h-5 px-1.5 text-xs">{{ t(`pluginPlatform.repositoryKind.${repository.kind}`) }}</Badge>
                   </div>
-                  <div class="mt-1 truncate font-mono text-[10px] text-muted-foreground">{{ repository.catalogUrl || t("pluginPlatform.repositoryNotConfigured") }}</div>
+                  <div class="mt-1 truncate font-mono text-xs text-muted-foreground">{{ repository.catalogUrl || t("pluginPlatform.repositoryNotConfigured") }}</div>
                 </div>
-                <Badge :variant="repository.enabled ? 'secondary' : 'outline'" class="h-5 px-1.5 text-[10px]">{{ repository.enabled ? t("pluginPlatform.enabled") : t("pluginPlatform.disabled") }}</Badge>
+                <Badge :variant="repository.enabled ? 'secondary' : 'outline'" class="h-5 px-1.5 text-xs">{{ repository.enabled ? t("pluginPlatform.enabled") : t("pluginPlatform.disabled") }}</Badge>
                 <Button v-if="!repository.managed" size="sm" variant="ghost" class="h-7" :disabled="mutationRunning" @click="toggleRepository(repository)">{{ repository.enabled ? t("pluginPlatform.disable") : t("pluginPlatform.enable") }}</Button>
                 <Button v-if="!repository.managed" size="icon" variant="ghost" class="size-7 text-destructive" :disabled="mutationRunning" @click="removeRepository(repository)"><Trash2 class="size-3.5" /></Button>
               </div>
@@ -2056,7 +2056,7 @@ onBeforeUnmount(() => {
               <div class="flex items-center justify-between gap-4 rounded-lg border bg-background p-3">
                 <div class="min-w-0">
                   <div class="text-xs font-medium">{{ t("pluginPlatform.pluginDevelopmentDocsTitle") }}</div>
-                  <div class="mt-1 text-[11px] leading-5 text-muted-foreground">{{ t("pluginPlatform.pluginDevelopmentDocsDescription") }}</div>
+                  <div class="mt-1 text-xs leading-5 text-muted-foreground">{{ t("pluginPlatform.pluginDevelopmentDocsDescription") }}</div>
                 </div>
                 <Button size="sm" variant="outline" class="shrink-0 gap-1.5" @click="openExternal(pluginDevelopmentDocsUrl)"><ExternalLink class="size-3.5" />{{ t("pluginPlatform.pluginDevelopmentDocsOpen") }}</Button>
               </div>
@@ -2064,7 +2064,7 @@ onBeforeUnmount(() => {
               <div class="flex items-start justify-between gap-4 rounded-lg border bg-background p-3">
                 <div class="min-w-0">
                   <Label for="allow-unsigned-plugin-package" class="text-xs font-medium">{{ t("pluginPlatform.allowUnsignedDevelopmentPackage") }}</Label>
-                  <div class="mt-1 text-[11px] leading-5 text-muted-foreground">{{ t("pluginPlatform.allowUnsignedDevelopmentPackageDescription") }}</div>
+                  <div class="mt-1 text-xs leading-5 text-muted-foreground">{{ t("pluginPlatform.allowUnsignedDevelopmentPackageDescription") }}</div>
                 </div>
                 <Switch id="allow-unsigned-plugin-package" v-model="allowUnsigned" size="sm" class="mt-0.5 shrink-0" />
               </div>
@@ -2078,7 +2078,7 @@ onBeforeUnmount(() => {
                   <div v-for="key in trustedKeys" :key="key.keyId" class="flex items-center gap-3 px-3 py-2">
                     <div class="min-w-0 flex-1">
                       <div class="text-xs font-medium">{{ key.keyId }}</div>
-                      <div class="truncate font-mono text-[10px] text-muted-foreground" :title="key.publicKey">{{ abbreviatedPublicKey(key.publicKey) }}</div>
+                      <div class="truncate font-mono text-xs text-muted-foreground" :title="key.publicKey">{{ abbreviatedPublicKey(key.publicKey) }}</div>
                     </div>
                     <Button size="icon" variant="ghost" class="size-7 text-destructive" :disabled="mutationRunning" @click="removeTrustedKey(key.keyId)"><Trash2 class="size-3.5" /></Button>
                   </div>
@@ -2113,7 +2113,7 @@ onBeforeUnmount(() => {
                   </button>
                   <span aria-hidden="true">·</span>
                   <span>{{ selectedMarketplaceListing.repository.name }}</span>
-                  <span class="font-mono text-[10px]">{{ selectedMarketplaceListing.plugin.id }}</span>
+                  <span class="font-mono text-xs">{{ selectedMarketplaceListing.plugin.id }}</span>
                 </DialogDescription>
               </div>
               <div class="col-span-2 flex flex-wrap items-center gap-2 @min-[34rem]:col-span-1 @min-[34rem]:justify-end">
@@ -2181,7 +2181,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div v-if="selectedMarketplaceListing.plugin.tags.length" class="flex flex-wrap gap-1.5">
-                  <Badge v-for="tag in selectedMarketplaceListing.plugin.tags" :key="tag" variant="outline" class="text-[11px]">{{ tag }}</Badge>
+                  <Badge v-for="tag in selectedMarketplaceListing.plugin.tags" :key="tag" variant="outline" class="text-xs">{{ tag }}</Badge>
                 </div>
                 <div class="flex flex-wrap gap-2">
                   <Button v-if="selectedMarketplaceListing.plugin.source" variant="outline" size="sm" class="h-8 gap-1.5 text-xs" @click.stop="openExternal(selectedMarketplaceListing.plugin.source)"><GithubIcon />{{ t("pluginPlatform.sourceRepository") }}</Button>
@@ -2212,7 +2212,7 @@ onBeforeUnmount(() => {
                   <div v-if="isMarketplaceVersionExpanded(version.version)" class="border-t px-3 py-2.5">
                     <p class="whitespace-pre-wrap text-xs leading-5 text-muted-foreground">{{ version.releaseNotes || t("pluginPlatform.noReleaseNotes") }}</p>
                     <div v-if="version.artifacts.length" class="mt-2 flex flex-wrap gap-1.5">
-                      <Badge v-for="artifact in version.artifacts" :key="artifact.target" variant="secondary" class="font-mono text-[10px]">{{ artifact.target }}</Badge>
+                      <Badge v-for="artifact in version.artifacts" :key="artifact.target" variant="secondary" class="font-mono text-xs">{{ artifact.target }}</Badge>
                     </div>
                     <Button v-if="marketplaceVersionReleaseUrl(version)" type="button" variant="ghost" size="sm" class="mt-3 h-7 gap-1.5 px-2 text-xs" @click.stop="openExternal(marketplaceVersionReleaseUrl(version))">
                       <ExternalLink class="size-3" />
@@ -2226,7 +2226,7 @@ onBeforeUnmount(() => {
                 <section class="space-y-2">
                   <h3 class="text-sm font-semibold">{{ t("pluginPlatform.pluginDetailsPermissions") }}</h3>
                   <div v-if="selectedMarketplaceListing.plugin.permissions.length" class="flex flex-wrap gap-1.5">
-                    <Badge v-for="permission in selectedMarketplaceListing.plugin.permissions" :key="permission" :variant="isSensitivePluginPermission(permission) ? 'destructive' : 'outline'" class="font-mono text-[10px]">{{ permission }}</Badge>
+                    <Badge v-for="permission in selectedMarketplaceListing.plugin.permissions" :key="permission" :variant="isSensitivePluginPermission(permission) ? 'destructive' : 'outline'" class="font-mono text-xs">{{ permission }}</Badge>
                   </div>
                   <p v-else class="text-xs text-muted-foreground">{{ t("pluginPlatform.noPermissions") }}</p>
                 </section>
@@ -2283,7 +2283,7 @@ onBeforeUnmount(() => {
         </DialogHeader>
         <div v-if="pendingSourceChange" class="grid grid-cols-2 gap-2 text-xs">
           <div class="rounded-lg border p-3">
-            <div class="mb-2 text-[11px] font-semibold text-muted-foreground">{{ t("pluginPlatform.provenanceCurrentInstall") }}</div>
+            <div class="mb-2 text-xs font-semibold text-muted-foreground">{{ t("pluginPlatform.provenanceCurrentInstall") }}</div>
             <dl class="space-y-1">
               <div class="flex justify-between gap-2">
                 <dt class="shrink-0 text-muted-foreground">{{ t("pluginPlatform.provenanceRepository") }}</dt>
@@ -2295,12 +2295,12 @@ onBeforeUnmount(() => {
               </div>
               <div class="flex justify-between gap-2">
                 <dt class="shrink-0 text-muted-foreground">{{ t("pluginPlatform.provenanceSigningKey") }}</dt>
-                <dd class="truncate font-mono text-[10px]">{{ pendingSourceChange.listing.installed?.provenance?.signingKeyId || "-" }}</dd>
+                <dd class="truncate font-mono text-xs">{{ pendingSourceChange.listing.installed?.provenance?.signingKeyId || "-" }}</dd>
               </div>
             </dl>
           </div>
           <div class="rounded-lg border border-amber-500/40 p-3">
-            <div class="mb-2 text-[11px] font-semibold text-amber-700 dark:text-amber-300">{{ t("pluginPlatform.provenanceCandidate") }}</div>
+            <div class="mb-2 text-xs font-semibold text-amber-700 dark:text-amber-300">{{ t("pluginPlatform.provenanceCandidate") }}</div>
             <dl class="space-y-1">
               <div class="flex justify-between gap-2">
                 <dt class="shrink-0 text-muted-foreground">{{ t("pluginPlatform.provenanceRepository") }}</dt>
@@ -2312,7 +2312,7 @@ onBeforeUnmount(() => {
               </div>
               <div class="flex justify-between gap-2">
                 <dt class="shrink-0 text-muted-foreground">{{ t("pluginPlatform.provenanceSigningKey") }}</dt>
-                <dd class="truncate font-mono text-[10px]">{{ pendingSourceChange.listing.artifact?.signingKeyId || "-" }}</dd>
+                <dd class="truncate font-mono text-xs">{{ pendingSourceChange.listing.artifact?.signingKeyId || "-" }}</dd>
               </div>
             </dl>
           </div>

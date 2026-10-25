@@ -1600,7 +1600,7 @@ watch(driverStoreTab, (tab) => {
                     <div class="text-sm font-medium">{{ t("driverStore.jreRuntimeTitle", { jre: jre.key }) }}</div>
                   </div>
                   <div class="flex shrink-0 items-center gap-3">
-                    <span v-if="jreUsageLabel(jre.key)" class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                    <span v-if="jreUsageLabel(jre.key)" class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                       {{ jreUsageLabel(jre.key) }}
                     </span>
                     <Check v-if="jre.installed" class="h-4 w-4 text-green-600" />
@@ -1786,7 +1786,7 @@ watch(driverStoreTab, (tab) => {
                         : t("settings.jdbcPluginIncompatible")
                     }}
                   </span>
-                  <span v-if="jdbcPluginStatus?.installed && jdbcPluginStatus.update_available" class="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-600">→ v{{ jdbcPluginStatus.latest_version }}</span>
+                  <span v-if="jdbcPluginStatus?.installed && jdbcPluginStatus.update_available" class="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs text-amber-600">→ v{{ jdbcPluginStatus.latest_version }}</span>
                   <Button v-if="jdbcPluginStatus?.installed && jdbcPluginStatus.update_available" type="button" variant="outline" class="rounded-md" :disabled="isInstallingJdbcPlugin" @click="installJdbcPlugin">
                     {{ isInstallingJdbcPlugin ? t("common.loading") : t("settings.jdbcPluginUpdate") }}
                   </Button>
@@ -1866,7 +1866,7 @@ watch(driverStoreTab, (tab) => {
                   <div class="driver-store-jdbc-name min-w-0 flex-1">
                     <div class="flex min-w-0 items-center gap-2">
                       <div class="truncate text-sm font-medium">{{ item.title }}</div>
-                      <Badge variant="outline" class="h-5 shrink-0 rounded-full px-2 text-[10px] font-medium">
+                      <Badge variant="outline" class="h-5 shrink-0 rounded-full px-2 text-xs font-medium">
                         {{ item.source }}
                       </Badge>
                     </div>
@@ -1900,7 +1900,7 @@ watch(driverStoreTab, (tab) => {
               </div>
               <div v-if="usageSummary.length" class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
                 <div v-for="item in usageSummary" :key="item.key" class="rounded-lg border bg-background/50 px-2.5 py-2 text-center">
-                  <div class="text-[11px] text-muted-foreground">{{ item.label }}</div>
+                  <div class="text-xs text-muted-foreground">{{ item.label }}</div>
                   <div class="mt-0.5 text-xs font-medium">{{ formatBytes(item.bytes) }}</div>
                 </div>
               </div>
@@ -1915,7 +1915,7 @@ watch(driverStoreTab, (tab) => {
                   <div class="mb-2 flex items-start justify-between gap-3">
                     <div class="min-w-0 text-xs leading-5">
                       <span class="font-medium">{{ row.label }}</span>
-                      <span class="ml-2 text-[11px] text-muted-foreground">{{ row.description }}</span>
+                      <span class="ml-2 text-xs text-muted-foreground">{{ row.description }}</span>
                     </div>
                     <Loader2 v-if="driverStoreDirMigrating === row.kind" class="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
                   </div>
@@ -1998,7 +1998,7 @@ watch(driverStoreTab, (tab) => {
                 {{ t("driverStore.runtimeEmpty") }}
               </div>
               <div v-else>
-                <div class="hidden grid-cols-[minmax(0,1.6fr)_72px_56px_76px_58px_76px_72px] gap-2 border-b bg-muted/30 px-4 py-2 text-[11px] font-medium text-muted-foreground lg:grid">
+                <div class="hidden grid-cols-[minmax(0,1.6fr)_72px_56px_76px_58px_76px_72px] gap-2 border-b bg-muted/30 px-4 py-2 text-xs font-medium text-muted-foreground lg:grid">
                   <div>{{ t("driverStore.runtimeDrivers") }}</div>
                   <div>{{ t("driverStore.runtimeHealth") }}</div>
                   <div>{{ t("driverStore.runtimePid") }}</div>
@@ -2013,9 +2013,9 @@ watch(driverStoreTab, (tab) => {
                       <div class="flex min-w-0 items-center gap-2">
                         <span class="h-2 w-2 shrink-0 rounded-full" :class="runtimeStatusDotClass(runtime.status)" />
                         <span class="truncate text-sm font-medium">{{ runtime.label }}</span>
-                        <span v-if="runtime.version" class="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"> v{{ runtime.version }} </span>
+                        <span v-if="runtime.version" class="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"> v{{ runtime.version }} </span>
                       </div>
-                      <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                         <span>{{ runtimeKindLabel(runtime) }}</span>
                         <span class="text-muted-foreground/50">/</span>
                         <span>{{ runtimeSourceLabel(runtime) }}</span>
@@ -2027,8 +2027,8 @@ watch(driverStoreTab, (tab) => {
                     </div>
 
                     <div class="flex items-center gap-2 lg:block">
-                      <span class="lg:hidden text-[11px] text-muted-foreground">{{ t("driverStore.runtimeHealth") }}</span>
-                      <span class="rounded-full px-2 py-0.5 text-[11px]" :class="runtimeStatusClass(runtime.status)">
+                      <span class="lg:hidden text-xs text-muted-foreground">{{ t("driverStore.runtimeHealth") }}</span>
+                      <span class="rounded-full px-2 py-0.5 text-xs" :class="runtimeStatusClass(runtime.status)">
                         {{ runtimeStatusLabel(runtime.status) }}
                       </span>
                     </div>
@@ -2054,7 +2054,7 @@ watch(driverStoreTab, (tab) => {
                       <Button v-if="runtime.can_restart" variant="ghost" size="icon" class="h-7 w-7 rounded-md text-muted-foreground" :title="t('driverStore.runtimeRestart')" :disabled="runtimeBusy === runtime.id" @click="restartRuntime(runtime)">
                         <RotateCcw class="h-3.5 w-3.5" :class="{ 'animate-spin': runtimeBusy === runtime.id }" />
                       </Button>
-                      <span v-if="!runtime.can_stop && !runtime.can_restart" class="min-w-0 truncate text-[11px] text-muted-foreground lg:text-right" :title="runtimeControlUnavailableReasonLabel(runtime.control_unavailable_reason)">
+                      <span v-if="!runtime.can_stop && !runtime.can_restart" class="min-w-0 truncate text-xs text-muted-foreground lg:text-right" :title="runtimeControlUnavailableReasonLabel(runtime.control_unavailable_reason)">
                         {{ runtimeControlUnavailableReasonLabel(runtime.control_unavailable_reason) }}
                       </span>
                     </div>

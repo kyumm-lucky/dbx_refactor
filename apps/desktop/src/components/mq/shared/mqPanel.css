@@ -39,7 +39,7 @@
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-background);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .mq-search-input:focus {
@@ -51,7 +51,7 @@
 .mq-result-count {
   flex: 0 0 auto;
   color: var(--color-text-tertiary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 /* ---- Buttons (canonical + legacy aliases) ---- */
@@ -74,7 +74,7 @@
   background: var(--color-background);
   color: var(--color-text);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
   line-height: 1.2;
   white-space: nowrap;
@@ -121,7 +121,7 @@
 .mq-btn-sm,
 .btn-sm {
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .mq-btn-primary:disabled,
@@ -198,7 +198,7 @@ button.btn-icon:disabled {
   border-bottom: 2px solid transparent;
   background: none;
   color: var(--color-text-secondary);
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
   cursor: pointer;
 }
@@ -238,7 +238,7 @@ button.btn-icon:disabled {
   border-radius: 999px;
   background: var(--color-background);
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   cursor: pointer;
 }
 

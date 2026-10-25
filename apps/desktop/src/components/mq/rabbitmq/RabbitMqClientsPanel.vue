@@ -319,7 +319,7 @@ watch(
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-background);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .connection-search:focus {
@@ -331,7 +331,7 @@ watch(
 .connection-count {
   flex: 0 0 auto;
   color: var(--color-text-tertiary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .panel-placeholder,
@@ -362,7 +362,7 @@ th {
   padding: 10px 12px;
   text-align: left;
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
   background: var(--color-background-secondary);
   border-bottom: 1px solid var(--color-border);
@@ -371,7 +371,7 @@ th {
 td {
   padding: 10px 12px;
   border-bottom: 1px solid var(--color-border);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .connections-table tbody tr {
@@ -394,7 +394,7 @@ td {
 
 .expand-icon {
   color: var(--color-text-tertiary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .connection-name {
@@ -429,7 +429,7 @@ td {
   display: inline-block;
   padding: 2px 8px;
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
 }
 

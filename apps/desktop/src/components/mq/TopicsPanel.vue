@@ -917,7 +917,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   color: var(--color-text-secondary);
   border-bottom: 2px solid transparent;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
   transition: all 0.2s;
 }
@@ -953,14 +953,14 @@ onBeforeUnmount(() => {
 }
 
 .topic-type-filters-label {
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
   color: var(--color-text-secondary, #6b7280);
   margin-right: 4px;
 }
 
 .checkbox-label.compact {
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   gap: 6px;
 }
 
@@ -992,7 +992,7 @@ onBeforeUnmount(() => {
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-background);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .topic-search:focus {
@@ -1004,14 +1004,14 @@ onBeforeUnmount(() => {
 .topic-count {
   flex: 0 0 auto;
   color: var(--color-text-tertiary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   cursor: pointer;
 }
 
@@ -1076,7 +1076,7 @@ onBeforeUnmount(() => {
 
 .topics-table-header .topics-col {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
 }
 
@@ -1157,7 +1157,7 @@ onBeforeUnmount(() => {
 
 .topics-col {
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .topic-name-cell {
@@ -1182,7 +1182,7 @@ onBeforeUnmount(() => {
   display: inline-block;
   padding: 2px 8px;
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
 }
 
@@ -1209,7 +1209,7 @@ onBeforeUnmount(() => {
 /* RabbitMQ queue feature badges (compact, tooltip-bearing). */
 .queue-state {
   margin-left: 4px;
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-tertiary);
   white-space: nowrap;
 }
@@ -1225,7 +1225,7 @@ onBeforeUnmount(() => {
   display: inline-block;
   padding: 1px 5px;
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 10px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
   line-height: 1.5;
   background: var(--color-background-secondary);
@@ -1243,7 +1243,7 @@ onBeforeUnmount(() => {
 
 .topics-rates {
   font-family: var(--font-mono, monospace);
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   white-space: nowrap;
   cursor: help;
 }
@@ -1274,7 +1274,7 @@ onBeforeUnmount(() => {
   padding: 8px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   box-sizing: border-box;
   background: var(--color-background);
   color: var(--color-text);
@@ -1334,7 +1334,7 @@ button:disabled {
   display: block;
   margin-bottom: 6px;
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .form-group input[type="text"],
@@ -1343,7 +1343,7 @@ button:disabled {
   padding: 8px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   box-sizing: border-box;
 }
 
@@ -1359,7 +1359,7 @@ button:disabled {
 
 .form-hint {
   margin-top: 4px;
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-tertiary);
 }
 
@@ -1369,7 +1369,7 @@ button:disabled {
   background: var(--color-error-bg);
   color: var(--color-error);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .dialog-footer {

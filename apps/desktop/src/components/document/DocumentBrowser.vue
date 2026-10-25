@@ -2768,10 +2768,10 @@ defineExpose({ focusSearch });
             </SelectItem>
           </SelectContent>
         </Select>
-        <span v-if="dynamodbSelectedKey" class="max-w-64 truncate font-mono text-[11px] text-muted-foreground" :title="t('dynamodb.keySummary', { partitionKey: dynamodbSelectedKey.partitionKey.name, sortKey: dynamodbSelectedKey.sortKey?.name || t('dynamodb.none') })">
+        <span v-if="dynamodbSelectedKey" class="max-w-64 truncate font-mono text-xs text-muted-foreground" :title="t('dynamodb.keySummary', { partitionKey: dynamodbSelectedKey.partitionKey.name, sortKey: dynamodbSelectedKey.sortKey?.name || t('dynamodb.none') })">
           PK: {{ dynamodbSelectedKey.partitionKey.name }}<template v-if="dynamodbSelectedKey.sortKey"> · SK: {{ dynamodbSelectedKey.sortKey.name }}</template>
         </span>
-        <Badge v-if="dynamodbPartialProjectionReadOnly" variant="outline" class="h-5 rounded border-amber-500/50 px-1.5 text-[10px] text-amber-600 dark:text-amber-400" :title="documentStoreEditDisabledReason">
+        <Badge v-if="dynamodbPartialProjectionReadOnly" variant="outline" class="h-5 rounded border-amber-500/50 px-1.5 text-xs text-amber-600 dark:text-amber-400" :title="documentStoreEditDisabledReason">
           {{ dynamodbSelectedIndex?.projectionType }}
         </Badge>
       </div>
@@ -3004,7 +3004,7 @@ defineExpose({ focusSearch });
               <PopoverTrigger as-child>
                 <button
                   type="button"
-                  class="relative flex h-5 w-5 shrink-0 items-center justify-center rounded border text-[11px] font-medium transition-colors"
+                  class="relative flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs font-medium transition-colors"
                   :class="hasLocalColumnFilters || appliedDocumentFilter ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15' : 'border-border/70 text-muted-foreground hover:bg-accent hover:text-foreground'"
                   @click="ensureDocumentFilterRule"
                 >
@@ -3060,7 +3060,7 @@ defineExpose({ focusSearch });
                       <Button
                         variant="ghost"
                         size="sm"
-                        class="h-5 px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                        class="h-5 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
                         @click="
                           updateDocumentFilterRule(rule.id, {
                             conjunction: rule.conjunction === 'AND' ? 'OR' : 'AND',
@@ -3117,8 +3117,8 @@ defineExpose({ focusSearch });
                                 <span class="min-w-0 flex-1 truncate font-mono" :title="documentStoreProvider.kind === 'elasticsearch' ? field.path : field.displayPath">
                                   {{ documentFilterFieldSearchActive(rule.id) ? (documentStoreProvider.kind === "elasticsearch" ? field.path : field.displayPath) : field.label }}
                                 </span>
-                                <span v-if="documentStoreProvider.kind === 'elasticsearch' && field.selectable && elasticsearchFieldTypes.get(field.path)" class="shrink-0 text-[10px] text-muted-foreground"> ({{ elasticsearchFieldTypes.get(field.path) }}) </span>
-                                <span v-else-if="documentStoreProvider.kind !== 'elasticsearch' && field.kind !== 'scalar'" class="shrink-0 rounded border px-1 py-0 text-[10px] leading-4 text-muted-foreground">
+                                <span v-if="documentStoreProvider.kind === 'elasticsearch' && field.selectable && elasticsearchFieldTypes.get(field.path)" class="shrink-0 text-xs text-muted-foreground"> ({{ elasticsearchFieldTypes.get(field.path) }}) </span>
+                                <span v-else-if="documentStoreProvider.kind !== 'elasticsearch' && field.kind !== 'scalar'" class="shrink-0 rounded border px-1 py-0 text-xs leading-4 text-muted-foreground">
                                   {{ documentFilterFieldKindLabel(field.kind) }}
                                 </span>
                               </button>
@@ -3173,7 +3173,7 @@ defineExpose({ focusSearch });
                           @compositionstart="startDocumentFilterImeComposition(`value-start:${rule.id}`)"
                           @keydown="handleDocumentFilterValueKeydown($event, rule.id)"
                         />
-                        <span class="shrink-0 text-[10px] text-muted-foreground">—</span>
+                        <span class="shrink-0 text-xs text-muted-foreground">—</span>
                         <Input
                           :model-value="rule.rawEndValue"
                           class="h-8 min-w-0 flex-1 text-xs"
@@ -3383,7 +3383,7 @@ defineExpose({ focusSearch });
               </template>
             </div>
 
-            <div v-if="isEditing && documentEditMode === 'json' && !isNew" class="px-4 py-1.5 text-[11px] text-muted-foreground border-b bg-muted/20 shrink-0">
+            <div v-if="isEditing && documentEditMode === 'json' && !isNew" class="px-4 py-1.5 text-xs text-muted-foreground border-b bg-muted/20 shrink-0">
               {{ t("mongo.jsonReplaceHint") }}
             </div>
 

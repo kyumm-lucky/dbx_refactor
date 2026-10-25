@@ -4879,6 +4879,7 @@ export default {
     renameObject: "Rename",
     renameObjectTitle: "Rename Object",
     renameObjectNamePlaceholder: "New name",
+    renameObjectPreviewHint: "Enter a new table name to preview the SQL.",
     renameObjectSuccess: '"{oldName}" renamed to "{newName}"',
     renameDatabase: "Rename Database",
     renameDatabaseTitle: "Rename Database",

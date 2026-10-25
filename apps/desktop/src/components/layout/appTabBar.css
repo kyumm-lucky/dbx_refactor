@@ -568,7 +568,7 @@
   margin-inline: 0.15rem 0.05rem;
   padding: 0;
   color: var(--tab-group-color);
-  font-size: 0.6875rem;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 650;
   line-height: 1;
 }
@@ -1168,7 +1168,7 @@ html.dbx-legacy-webview .vertical-tab-layout .app-tab-pill:not(.tab-group-tab)[d
   margin: 0.35rem var(--tab-group-header-inset) var(--tab-group-header-gap);
   padding: 0;
   color: var(--foreground);
-  font-size: 0.75rem;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 650;
   line-height: 1rem;
 }

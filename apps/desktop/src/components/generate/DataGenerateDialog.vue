@@ -983,7 +983,7 @@ async function onFileSelected(event: Event) {
                     <span class="text-xs text-muted-foreground font-mono">{{ activeCol.dataType }}</span>
                   </div>
                   <GeneratorParamsPanel :config="activeCol" :connection-id="props.prefillConnectionId" :database="props.prefillDatabase" />
-                  <div class="rounded border border-dashed border-amber-300 bg-amber-50 dark:bg-amber-950/20 px-2 py-1 text-[10px] font-mono text-amber-700 dark:text-amber-400 leading-relaxed break-all">
+                  <div class="rounded border border-dashed border-amber-300 bg-amber-50 dark:bg-amber-950/20 px-2 py-1 text-xs font-mono text-amber-700 dark:text-amber-400 leading-relaxed break-all">
                     <div>generatorKey: {{ activeCol.generatorKey ?? "(none)" }}</div>
                     <div>generatorParams: {{ JSON.stringify(activeCol.generatorParams) }}</div>
                   </div>
@@ -999,7 +999,7 @@ async function onFileSelected(event: Event) {
                     <Label class="text-xs shrink-0">{{ t("dataGenerate.rowCount") }}:</Label>
                     <Input v-model.number="activeCfg.rowCount" type="number" min="0" :max="MAX_ROW_COUNT" class="h-7 w-28 text-xs" @blur="activeCfg.rowCount = normalizeRowCount(activeCfg.rowCount)" />
                   </div>
-                  <p v-if="activeCfg.rowCount > LARGE_ROW_COUNT_HINT" class="px-1 text-[11px] leading-relaxed text-muted-foreground">
+                  <p v-if="activeCfg.rowCount > LARGE_ROW_COUNT_HINT" class="px-1 text-xs leading-relaxed text-muted-foreground">
                     {{ t("dataGenerate.largeRowCountHint", { count: activeCfg.rowCount.toLocaleString() }) }}
                   </p>
                 </div>
@@ -1046,7 +1046,7 @@ async function onFileSelected(event: Event) {
               <div class="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                 <div class="h-full bg-primary transition-[width] duration-150" :style="{ width: insertPercent + '%' }" />
               </div>
-              <div class="flex items-center justify-between text-[11px] text-muted-foreground">
+              <div class="flex items-center justify-between text-xs text-muted-foreground">
                 <span>{{ insertPercent }}%</span>
                 <span>{{ t("dataGenerate.elapsed", { seconds: Math.round(insertProgress.elapsedMs / 1000) }) }}</span>
               </div>
@@ -1186,12 +1186,12 @@ async function onFileSelected(event: Event) {
             <Label class="text-xs shrink-0">{{ t("dataGenerate.timeoutSecs") }}:</Label>
             <Input v-model.number="generateOptions.timeoutSecs" type="number" min="0" max="86400" class="h-7 w-24 text-xs" @blur="generateOptions.timeoutSecs = normalizeTimeoutSecs(generateOptions.timeoutSecs)" />
           </div>
-          <p class="text-[11px] leading-relaxed text-muted-foreground">{{ t("dataGenerate.timeoutHint") }}</p>
+          <p class="text-xs leading-relaxed text-muted-foreground">{{ t("dataGenerate.timeoutHint") }}</p>
           <div class="flex items-center gap-3">
             <Label class="text-xs shrink-0">{{ t("dataGenerate.batchRows") }}:</Label>
             <Input v-model.number="generateOptions.batchRows" type="number" min="1" max="100000" class="h-7 w-24 text-xs" />
           </div>
-          <p class="text-[11px] leading-relaxed text-muted-foreground">{{ t("dataGenerate.batchRowsHint") }}</p>
+          <p class="text-xs leading-relaxed text-muted-foreground">{{ t("dataGenerate.batchRowsHint") }}</p>
         </div>
         <DialogFooter>
           <Button size="sm" class="h-7 text-xs" @click="optionsDialogOpen = false">{{ t("dataGenerate.ok") }}</Button>
@@ -1206,7 +1206,7 @@ async function onFileSelected(event: Event) {
         </DialogHeader>
         <div class="space-y-1 max-h-80 overflow-y-auto">
           <div v-for="(key, i) in tableOrder" :key="key" class="flex items-center gap-2 rounded border bg-background px-3 py-2 text-xs">
-            <span class="flex h-5 w-5 items-center justify-center rounded bg-muted text-muted-foreground text-[10px] font-medium">{{ i + 1 }}</span>
+            <span class="flex h-5 w-5 items-center justify-center rounded bg-muted text-muted-foreground text-xs font-medium">{{ i + 1 }}</span>
             <span class="flex-1 truncate font-medium">{{ configs[key]?.tableName ?? key }}</span>
             <span class="text-muted-foreground truncate max-w-[120px]">{{ configs[key]?.schema }}</span>
             <button type="button" class="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-20" :disabled="i === 0" @click="moveOrderItem(i, -1)">

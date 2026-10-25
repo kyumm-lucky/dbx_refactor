@@ -154,7 +154,7 @@ async function exportSnapshot(kind: "clipboard" | "file") {
       <div v-if="open && props.source" class="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
         <div class="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
           <div ref="previewWrapRef" class="min-h-0 flex-1 overflow-auto rounded-md border bg-muted/30 p-3"><div v-html="snapshotHtml" class="flex w-max min-w-[320px] flex-none" /></div>
-          <div class="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+          <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span>{{ t("gridSnapshot.rows", { count: props.source.rows.length }) }}</span
             ><span>{{ t("gridSnapshot.columns", { count: props.source.columns.length }) }}</span
             ><span>{{ t("gridSnapshot.cells", { count: cellCount }) }}</span>
@@ -162,12 +162,12 @@ async function exportSnapshot(kind: "clipboard" | "file") {
         </div>
         <div class="w-full shrink-0 space-y-3 md:w-56">
           <div class="space-y-2">
-            <Label class="block text-[11px] font-medium text-muted-foreground">{{ t("gridSnapshot.appearance") }}</Label>
+            <Label class="block text-xs font-medium text-muted-foreground">{{ t("gridSnapshot.appearance") }}</Label>
             <div class="grid gap-1.5">
               <Label class="text-xs">{{ t("gridSnapshot.theme") }}</Label>
               <div class="flex gap-1.5">
-                <Button size="sm" variant="outline" class="h-7 flex-1 gap-1 text-[11px]" :class="{ 'border-primary text-primary': appearance === 'light' }" @click="appearance = 'light'"><Sun class="h-3 w-3" />{{ t("codeSnapshot.themeLight") }}</Button
-                ><Button size="sm" variant="outline" class="h-7 flex-1 gap-1 text-[11px]" :class="{ 'border-primary text-primary': appearance === 'dark' }" @click="appearance = 'dark'"><Moon class="h-3 w-3" />{{ t("codeSnapshot.themeDark") }}</Button>
+                <Button size="sm" variant="outline" class="h-7 flex-1 gap-1 text-xs" :class="{ 'border-primary text-primary': appearance === 'light' }" @click="appearance = 'light'"><Sun class="h-3 w-3" />{{ t("codeSnapshot.themeLight") }}</Button
+                ><Button size="sm" variant="outline" class="h-7 flex-1 gap-1 text-xs" :class="{ 'border-primary text-primary': appearance === 'dark' }" @click="appearance = 'dark'"><Moon class="h-3 w-3" />{{ t("codeSnapshot.themeDark") }}</Button>
               </div>
             </div>
             <div class="flex items-center justify-between gap-2">
@@ -177,7 +177,7 @@ async function exportSnapshot(kind: "clipboard" | "file") {
           </div>
 
           <div class="space-y-2 border-t pt-3">
-            <Label class="block text-[11px] font-medium text-muted-foreground">{{ t("gridSnapshot.layout") }}</Label>
+            <Label class="block text-xs font-medium text-muted-foreground">{{ t("gridSnapshot.layout") }}</Label>
             <div class="flex items-center justify-between gap-2">
               <Label class="text-xs">{{ t("gridSnapshot.transpose") }}</Label
               ><Switch v-model="transpose" />
@@ -201,7 +201,7 @@ async function exportSnapshot(kind: "clipboard" | "file") {
           </div>
 
           <div class="space-y-2 border-t pt-3">
-            <Label class="block text-[11px] font-medium text-muted-foreground">{{ t("gridSnapshot.fieldMetadata") }}</Label>
+            <Label class="block text-xs font-medium text-muted-foreground">{{ t("gridSnapshot.fieldMetadata") }}</Label>
             <div class="flex items-center justify-between gap-2">
               <Label class="text-xs">{{ t("gridSnapshot.columnTypes") }}</Label
               ><Switch v-model="showColumnTypes" :disabled="metadataControls.columnTypesDisabled" />

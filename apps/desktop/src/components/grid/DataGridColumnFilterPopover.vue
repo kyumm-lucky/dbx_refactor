@@ -82,7 +82,7 @@ const { t } = useI18n();
           <div class="flex items-center gap-1 shrink-0">
             <button
               type="button"
-              class="h-5 px-1.5 rounded text-[10px] font-mono border transition-colors"
+              class="h-5 px-1.5 rounded text-xs font-mono border transition-colors"
               :class="props.search === '>1' ? 'border-primary bg-primary text-primary-foreground font-semibold shadow-xs' : 'border-border/60 bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground'"
               :title="t('grid.filterDuplicates')"
               :aria-label="t('grid.filterDuplicates')"
@@ -93,7 +93,7 @@ const { t } = useI18n();
             </button>
             <button
               type="button"
-              class="h-5 px-1.5 rounded text-[10px] font-mono border transition-colors"
+              class="h-5 px-1.5 rounded text-xs font-mono border transition-colors"
               :class="props.search === '=1' ? 'border-primary bg-primary text-primary-foreground font-semibold shadow-xs' : 'border-border/60 bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground'"
               :title="t('grid.filterUniques')"
               :aria-label="t('grid.filterUniques')"
@@ -136,7 +136,7 @@ const { t } = useI18n();
           <span class="text-right">{{ t("grid.count") }}</span>
         </template>
       </div>
-      <div v-if="props.draftMode === 'server' && (props.serverLoading || props.serverError || props.serverLimited)" class="flex items-center gap-1.5 border-b px-2 py-1 text-[11px] text-muted-foreground">
+      <div v-if="props.draftMode === 'server' && (props.serverLoading || props.serverError || props.serverLimited)" class="flex items-center gap-1.5 border-b px-2 py-1 text-xs text-muted-foreground">
         <Loader2 v-if="props.serverLoading" class="h-3 w-3 animate-spin" />
         <span class="min-w-0 truncate">
           <template v-if="props.serverLoading">{{ t("grid.loadingValues") }}</template>
@@ -159,7 +159,7 @@ const { t } = useI18n();
             <div class="max-h-72 overflow-auto whitespace-pre-wrap break-all px-3 py-2 font-mono">{{ option.label }}</div>
           </template>
         </LightTooltip>
-        <div v-if="props.draftMode === 'local' && props.allOptionsCount > props.options.length" class="px-2 py-0.5 text-center text-[10px] text-muted-foreground">
+        <div v-if="props.draftMode === 'local' && props.allOptionsCount > props.options.length" class="px-2 py-0.5 text-center text-xs text-muted-foreground">
           {{ t("grid.moreValues", { count: props.allOptionsCount - props.options.length }) }}
         </div>
         <button v-if="props.canApplyTypedValue" type="button" class="grid w-full grid-cols-[1.75rem_minmax(0,1fr)] items-center px-2 py-1 text-left text-xs text-primary hover:bg-accent" @click="emit('applyTypedValue')">

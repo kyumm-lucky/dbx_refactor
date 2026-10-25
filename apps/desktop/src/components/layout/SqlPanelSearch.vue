@@ -92,7 +92,7 @@ defineExpose({ text, clear });
         autocapitalize="off"
         autocorrect="off"
         spellcheck="false"
-        class="w-full h-6 pl-7 pr-6 text-[13px] rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+        class="w-full h-6 pl-7 pr-6 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
         :placeholder="t(mode === 'name' ? 'sqlFileTree.searchPlaceholder' : 'sqlFileTree.searchContentPlaceholder')"
         @keydown.enter="submit"
         @compositionstart="composing = true"

@@ -1143,7 +1143,7 @@ onBeforeUnmount(() => {
           </DropdownMenu>
           <Button variant="ghost" size="sm" class="h-8 px-2 text-xs" :disabled="compiling || !hasFilters" @click="clearFilters">{{ t("processList.oracleInvalidObjects.clearFilters") }}</Button>
         </div>
-        <p class="shrink-0 border-b px-3 py-1.5 text-[11px] text-muted-foreground">{{ t("processList.oracleInvalidObjects.ddlWarning") }}</p>
+        <p class="shrink-0 border-b px-3 py-1.5 text-xs text-muted-foreground">{{ t("processList.oracleInvalidObjects.ddlWarning") }}</p>
         <div v-if="batchRun" class="flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2 text-xs" role="status" aria-live="polite">
           <span v-if="batchRun.state === 'running'" class="min-w-0 flex-1 break-words">{{
             batchRun.stopRequested ? t("processList.oracleInvalidObjects.batchStopping") : t("processList.oracleInvalidObjects.batchProgress", { handled: batchHandledCount, total: batchSupportedCount, current: batchRun.currentName || t("processList.oracleInvalidObjects.batchRunning") })

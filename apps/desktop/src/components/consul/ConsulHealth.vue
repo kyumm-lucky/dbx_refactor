@@ -554,18 +554,18 @@ defineExpose({ refresh: () => (void load(), true) });
           <span class="min-w-0">
             <span class="flex min-w-0 flex-wrap items-center gap-2"
               ><span class="truncate font-medium">{{ check.Name }}</span
-              ><Badge variant="outline" class="h-5 px-1.5 text-[10px]" :class="statusClass(check)">{{ statusLabel(check) }}</Badge
-              ><Badge variant="secondary" class="h-5 px-1.5 text-[10px]">{{ checkTypeLabel(checkType(check)) }}</Badge></span
+              ><Badge variant="outline" class="h-5 px-1.5 text-xs" :class="statusClass(check)">{{ statusLabel(check) }}</Badge
+              ><Badge variant="secondary" class="h-5 px-1.5 text-xs">{{ checkTypeLabel(checkType(check)) }}</Badge></span
             >
-            <span class="mt-1 block truncate font-mono text-[11px] text-muted-foreground" :title="check.CheckID">{{ check.CheckID }}</span>
+            <span class="mt-1 block truncate font-mono text-xs text-muted-foreground" :title="check.CheckID">{{ check.CheckID }}</span>
           </span>
           <span class="min-w-0">
-            <span class="block text-[10px] uppercase tracking-wide text-muted-foreground">{{ check.ServiceID ? t("consul.ui.service") : t("consul.ui.node") }}</span>
+            <span class="block text-xs uppercase tracking-wide text-muted-foreground">{{ check.ServiceID ? t("consul.ui.service") : t("consul.ui.node") }}</span>
             <span class="mt-1 block truncate font-medium" :title="check.ServiceName || check.Node">{{ check.ServiceName || check.Node }}</span>
             <span v-if="check.ServiceID" class="mt-0.5 block truncate text-muted-foreground" :title="check.Node">{{ check.Node }}</span>
           </span>
           <span class="min-w-0 md:col-span-2 xl:col-span-1">
-            <span class="block text-[10px] uppercase tracking-wide text-muted-foreground">{{ t("consul.ui.output") }}</span>
+            <span class="block text-xs uppercase tracking-wide text-muted-foreground">{{ t("consul.ui.output") }}</span>
             <span class="mt-1 block truncate text-muted-foreground" :title="check.Output || check.Notes">{{ check.Output || check.Notes || "-" }}</span>
           </span>
         </span>
@@ -636,18 +636,18 @@ defineExpose({ refresh: () => (void load(), true) });
           <div class="min-w-0">
             <div class="flex min-w-0 flex-wrap items-center gap-2">
               <span class="truncate font-medium">{{ check.Name }}</span
-              ><Badge variant="outline" class="h-5 px-1.5 text-[10px]" :class="statusClass(check)">{{ statusLabel(check) }}</Badge
-              ><Badge variant="secondary" class="h-5 px-1.5 text-[10px]">{{ checkTypeLabel(checkType(check)) }}</Badge>
+              ><Badge variant="outline" class="h-5 px-1.5 text-xs" :class="statusClass(check)">{{ statusLabel(check) }}</Badge
+              ><Badge variant="secondary" class="h-5 px-1.5 text-xs">{{ checkTypeLabel(checkType(check)) }}</Badge>
             </div>
-            <div class="mt-1 truncate font-mono text-[11px] text-muted-foreground" :title="check.CheckID">{{ check.CheckID }}</div>
+            <div class="mt-1 truncate font-mono text-xs text-muted-foreground" :title="check.CheckID">{{ check.CheckID }}</div>
           </div>
           <div class="col-start-2 min-w-0 sm:col-start-auto">
-            <div class="text-[10px] uppercase tracking-wide text-muted-foreground">{{ check.ServiceID ? t("consul.ui.service") : t("consul.ui.node") }}</div>
+            <div class="text-xs uppercase tracking-wide text-muted-foreground">{{ check.ServiceID ? t("consul.ui.service") : t("consul.ui.node") }}</div>
             <div class="mt-1 truncate font-medium" :title="check.ServiceName || check.Node">{{ check.ServiceName || check.Node }}</div>
             <div v-if="check.ServiceID" class="mt-0.5 truncate text-muted-foreground" :title="check.Node">{{ check.Node }}</div>
           </div>
           <div class="col-start-2 min-w-0 sm:col-span-2 xl:col-span-1 xl:col-start-auto">
-            <div class="text-[10px] uppercase tracking-wide text-muted-foreground">{{ t("consul.ui.output") }}</div>
+            <div class="text-xs uppercase tracking-wide text-muted-foreground">{{ t("consul.ui.output") }}</div>
             <div class="mt-1 truncate text-muted-foreground" :title="check.Output || check.Notes">{{ check.Output || check.Notes || "-" }}</div>
           </div>
         </div>

@@ -523,7 +523,7 @@ watch(topicName, () => {
   padding: 40px 24px;
   text-align: center;
   color: var(--color-text-secondary);
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .query-content {
@@ -547,7 +547,7 @@ watch(topicName, () => {
   border-bottom: 2px solid transparent;
   background: none;
   color: var(--color-text-secondary);
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
   cursor: pointer;
 }
@@ -572,7 +572,7 @@ watch(topicName, () => {
   min-width: 0;
   max-width: 320px;
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
 }
 
@@ -619,7 +619,7 @@ watch(topicName, () => {
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-background);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   box-sizing: border-box;
 }
 
@@ -638,7 +638,7 @@ watch(topicName, () => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text);
 }
 
@@ -647,7 +647,7 @@ watch(topicName, () => {
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-error-bg);
   color: var(--color-error);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .results-section {
@@ -664,7 +664,7 @@ watch(topicName, () => {
 .results-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .results-table th,
@@ -754,7 +754,7 @@ watch(topicName, () => {
 .detail-section h4,
 .section-heading h4 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
 }
 
@@ -770,7 +770,7 @@ watch(topicName, () => {
   display: grid;
   grid-template-columns: 140px 1fr;
   gap: 8px 12px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .detail-grid > span:nth-child(odd) {
@@ -783,7 +783,7 @@ watch(topicName, () => {
   border-radius: var(--dbx-radius-fixed-6);
   background: color-mix(in srgb, var(--color-primary) 12%, transparent);
   color: var(--color-primary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .detail-payload {

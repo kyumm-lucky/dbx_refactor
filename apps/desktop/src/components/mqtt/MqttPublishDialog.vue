@@ -424,7 +424,7 @@ function clearForm() {
 }
 
 .panel-title {
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
   text-transform: uppercase;
   color: var(--color-text-secondary);
@@ -452,7 +452,7 @@ function clearForm() {
 }
 
 .form-label {
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
   color: var(--color-text-secondary);
 }
@@ -498,7 +498,7 @@ function clearForm() {
   border-radius: 4px;
   background: var(--color-background);
   color: var(--color-text);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   outline: none;
   cursor: pointer;
 }
@@ -523,7 +523,7 @@ function clearForm() {
 }
 
 .form-hint {
-  font-size: 10px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-tertiary);
   margin-top: 2px;
 }
@@ -537,7 +537,7 @@ function clearForm() {
 
 .segment-item {
   padding: 2px 10px;
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
   border: none;
   background: transparent;
@@ -562,7 +562,7 @@ function clearForm() {
 }
 
 .publish-error {
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-error);
   padding: 4px 8px;
   background: var(--color-error-bg);
@@ -570,7 +570,7 @@ function clearForm() {
 }
 
 .publish-success {
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-success);
   padding: 4px 8px;
   background: color-mix(in srgb, var(--color-success) 12%, transparent);
@@ -586,7 +586,7 @@ function clearForm() {
 .publish-btn {
   flex: 1;
   height: 30px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
 }
 </style>

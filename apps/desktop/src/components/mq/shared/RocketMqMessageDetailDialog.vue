@@ -123,7 +123,7 @@ const { t } = useI18n();
 
 .detail-section h4 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
 }
 
@@ -138,7 +138,7 @@ const { t } = useI18n();
   display: grid;
   grid-template-columns: minmax(120px, 160px) 1fr;
   gap: 8px 16px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .detail-grid > span:nth-child(odd) {
@@ -168,7 +168,7 @@ const { t } = useI18n();
   border-radius: var(--dbx-radius-fixed-6);
   background: color-mix(in srgb, var(--color-error) 12%, transparent);
   color: var(--color-error);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .panel-success {
@@ -176,7 +176,7 @@ const { t } = useI18n();
   border-radius: var(--dbx-radius-fixed-6);
   background: color-mix(in srgb, var(--color-success, #22c55e) 12%, transparent);
   color: var(--color-success, #16a34a);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .dialog-overlay {

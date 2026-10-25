@@ -179,7 +179,7 @@ function targetObjectName(object: SchemaDiffObject): string {
               <input type="checkbox" class="accent-primary shrink-0" :checked="schemaDiffObjectSelectionState(object).checked" :indeterminate="schemaDiffObjectSelectionState(object).indeterminate" @click.stop @change="onObjectCheckboxChange(object, $event)" />
               <component :is="getObjectIcon(object.objectKind)" class="w-3.5 h-3.5 shrink-0" :class="getObjectIconColor(object.objectKind)" />
               <span class="text-xs truncate" :class="object.operationType === 'create' ? 'text-green-500' : ''">{{ sourceObjectName(object) }}</span>
-              <span v-if="object.children?.length" class="text-[10px] text-muted-foreground shrink-0">{{ schemaDiffSelectionTargets(object).filter((child) => child.selected).length }}/{{ schemaDiffSelectionTargets(object).length }}</span>
+              <span v-if="object.children?.length" class="text-xs text-muted-foreground shrink-0">{{ schemaDiffSelectionTargets(object).filter((child) => child.selected).length }}/{{ schemaDiffSelectionTargets(object).length }}</span>
             </div>
             <div v-else />
 
@@ -204,7 +204,7 @@ function targetObjectName(object: SchemaDiffObject): string {
               />
               <component :is="getObjectIcon(object.objectKind)" class="w-3.5 h-3.5 shrink-0" :class="getObjectIconColor(object.objectKind)" />
               <span class="text-xs truncate" :class="object.operationType === 'delete' ? 'text-red-500 line-through' : ''">{{ targetObjectName(object) }}</span>
-              <span v-if="object.children?.length" class="text-[10px] text-muted-foreground shrink-0">{{ schemaDiffSelectionTargets(object).filter((child) => child.selected).length }}/{{ schemaDiffSelectionTargets(object).length }}</span>
+              <span v-if="object.children?.length" class="text-xs text-muted-foreground shrink-0">{{ schemaDiffSelectionTargets(object).filter((child) => child.selected).length }}/{{ schemaDiffSelectionTargets(object).length }}</span>
             </div>
             <div v-else />
           </div>

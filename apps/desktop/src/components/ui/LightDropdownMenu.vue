@@ -67,7 +67,7 @@ const props = withDefaults(
     sideOffset: 4,
     matchTriggerWidth: true,
     closeOnSelect: true,
-    triggerClass: "flex h-6 items-center gap-1 rounded-md border border-border bg-background px-2 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 aria-expanded:bg-muted aria-expanded:text-foreground",
+    triggerClass: "flex h-6 items-center gap-1 rounded-md border border-border bg-background px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 aria-expanded:bg-muted aria-expanded:text-foreground",
     triggerIconClass: "h-3 w-3",
     contentClass: "",
     labelClass: "",

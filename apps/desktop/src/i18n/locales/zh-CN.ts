@@ -4792,6 +4792,7 @@ export default withEnglishFallback({
     renameObject: "重命名",
     renameObjectTitle: "重命名对象",
     renameObjectNamePlaceholder: "新名称",
+    renameObjectPreviewHint: "输入新表名后在此预览 SQL。",
     renameObjectSuccess: "已将「{oldName}」重命名为「{newName}」",
     renameDatabase: "重命名数据库",
     renameDatabaseTitle: "重命名数据库",

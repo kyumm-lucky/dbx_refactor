@@ -182,9 +182,9 @@ onMounted(() => {
     <div class="flex items-center gap-2 px-3 py-2 border-b">
       <span class="text-xs font-medium">{{ t("diff.fieldMapping.title") }}</span>
       <span v-if="!sameType" class="flex items-center gap-1 ml-1">
-        <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">{{ sourceDbType }}</span>
+        <span class="px-1.5 py-0.5 rounded text-xs font-mono bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">{{ sourceDbType }}</span>
         <ArrowRight class="w-3 h-3 text-muted-foreground" />
-        <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">{{ targetDbType }}</span>
+        <span class="px-1.5 py-0.5 rounded text-xs font-mono bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">{{ targetDbType }}</span>
       </span>
     </div>
 
@@ -194,7 +194,7 @@ onMounted(() => {
 
     <div v-else class="p-3 max-h-[42vh] overflow-auto">
       <div v-if="availablePresets.length > 0" class="mb-3">
-        <label class="text-[10px] font-medium text-muted-foreground mb-1 block">
+        <label class="text-xs font-medium text-muted-foreground mb-1 block">
           {{ t("diff.fieldMapping.preset") }}
         </label>
         <Select :model-value="selectedPresetId" @update:model-value="(v: any) => applyPreset(v)">
@@ -217,10 +217,10 @@ onMounted(() => {
 
       <div v-else class="space-y-3">
         <div class="grid grid-cols-[1fr_auto_1fr_100px_auto] gap-2 items-center px-1">
-          <span class="text-[10px] font-medium text-muted-foreground">{{ t("diff.fieldMapping.sourceType") }}</span>
+          <span class="text-xs font-medium text-muted-foreground">{{ t("diff.fieldMapping.sourceType") }}</span>
           <div />
-          <span class="text-[10px] font-medium text-muted-foreground">{{ t("diff.fieldMapping.targetType") }}</span>
-          <span class="text-[10px] font-medium text-muted-foreground">{{ t("diff.fieldMapping.paramStrategy") }}</span>
+          <span class="text-xs font-medium text-muted-foreground">{{ t("diff.fieldMapping.targetType") }}</span>
+          <span class="text-xs font-medium text-muted-foreground">{{ t("diff.fieldMapping.paramStrategy") }}</span>
           <div />
         </div>
         <div v-for="(mapping, i) in mappings" :key="i" class="space-y-1">

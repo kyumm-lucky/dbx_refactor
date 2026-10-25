@@ -72,13 +72,13 @@ const rows = computed(() => {
     <div v-else class="divide-y">
       <div class="p-3 text-xs">
         <div class="flex flex-wrap items-center gap-1.5">
-          <span v-if="props.partitioning.isPartitioned" class="rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground">{{ partitionStrategyLabel(props.partitioning.strategy) }}</span>
-          <span v-else class="rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground">{{ t("structureEditor.partitionMemberBadge") }}</span>
-          <span v-if="props.partitioning.keyDefinition" class="min-w-0 truncate font-mono text-[11px]">{{ props.partitioning.keyDefinition }}</span>
+          <span v-if="props.partitioning.isPartitioned" class="rounded border px-1.5 py-0.5 text-xs text-muted-foreground">{{ partitionStrategyLabel(props.partitioning.strategy) }}</span>
+          <span v-else class="rounded border px-1.5 py-0.5 text-xs text-muted-foreground">{{ t("structureEditor.partitionMemberBadge") }}</span>
+          <span v-if="props.partitioning.keyDefinition" class="min-w-0 truncate font-mono text-xs">{{ props.partitioning.keyDefinition }}</span>
         </div>
-        <div v-if="props.partitioning.parent" class="mt-1 truncate font-mono text-[11px] text-muted-foreground">{{ t("structureEditor.partitionsParent") }}: {{ props.partitioning.parent }}</div>
-        <div v-if="props.partitioning.ownBound" class="mt-1 truncate font-mono text-[11px] text-muted-foreground">{{ t("structureEditor.partitionsOwnBound") }}: {{ pgPartitionBoundText(props.partitioning.ownBound) }}</div>
-        <div v-if="props.partitioning.defaultPartition" class="mt-1 truncate font-mono text-[11px] text-muted-foreground">{{ t("structureEditor.partitionsDefault") }}: {{ props.partitioning.defaultPartition }}</div>
+        <div v-if="props.partitioning.parent" class="mt-1 truncate font-mono text-xs text-muted-foreground">{{ t("structureEditor.partitionsParent") }}: {{ props.partitioning.parent }}</div>
+        <div v-if="props.partitioning.ownBound" class="mt-1 truncate font-mono text-xs text-muted-foreground">{{ t("structureEditor.partitionsOwnBound") }}: {{ pgPartitionBoundText(props.partitioning.ownBound) }}</div>
+        <div v-if="props.partitioning.defaultPartition" class="mt-1 truncate font-mono text-xs text-muted-foreground">{{ t("structureEditor.partitionsDefault") }}: {{ props.partitioning.defaultPartition }}</div>
       </div>
       <div v-if="rows.length === 0" class="p-6 text-center text-xs text-muted-foreground">
         {{ props.searchQuery ? t("grid.tableInfoNoResults") : t("structureEditor.partitionsEmptyChildren") }}
@@ -100,12 +100,12 @@ const rows = computed(() => {
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-1.5">
             <span class="font-medium truncate">{{ row.node.name }}</span>
-            <span v-if="row.node.children.length" class="rounded bg-muted px-1 py-px text-[10px] text-muted-foreground">{{ t("structureEditor.partitionChildCount", { count: row.node.children.length }) }}</span>
-            <span v-if="row.depth > 0" class="rounded border border-dashed px-1 py-px text-[10px] text-muted-foreground">{{ t("structureEditor.partitionSubPartitionBadge") }}</span>
-            <span v-if="row.node.strategy" class="rounded border px-1 py-px text-[10px] text-muted-foreground">{{ partitionStrategyLabel(row.node.strategy) }}</span>
-            <span v-if="row.node.bound?.kind === 'default'" class="rounded border px-1 py-px text-[10px] text-muted-foreground">{{ t("structureEditor.partitionBoundDefault") }}</span>
+            <span v-if="row.node.children.length" class="rounded bg-muted px-1 py-px text-xs text-muted-foreground">{{ t("structureEditor.partitionChildCount", { count: row.node.children.length }) }}</span>
+            <span v-if="row.depth > 0" class="rounded border border-dashed px-1 py-px text-xs text-muted-foreground">{{ t("structureEditor.partitionSubPartitionBadge") }}</span>
+            <span v-if="row.node.strategy" class="rounded border px-1 py-px text-xs text-muted-foreground">{{ partitionStrategyLabel(row.node.strategy) }}</span>
+            <span v-if="row.node.bound?.kind === 'default'" class="rounded border px-1 py-px text-xs text-muted-foreground">{{ t("structureEditor.partitionBoundDefault") }}</span>
           </div>
-          <div v-if="pgPartitionNodeBoundText(row.node)" class="mt-0.5 font-mono text-[11px] text-muted-foreground break-all">
+          <div v-if="pgPartitionNodeBoundText(row.node)" class="mt-0.5 font-mono text-xs text-muted-foreground break-all">
             {{ pgPartitionNodeBoundText(row.node) }}
           </div>
         </div>

@@ -87,7 +87,7 @@ const allOptionsSelected = computed(() => props.options.length > 0 && props.opti
         <span>{{ t("grid.value") }}</span>
         <span class="text-right">{{ t("grid.count") }}</span>
       </div>
-      <div v-if="props.loading || props.error || props.limited" class="flex items-center gap-1.5 border-b px-2 py-1 text-[11px] text-muted-foreground">
+      <div v-if="props.loading || props.error || props.limited" class="flex items-center gap-1.5 border-b px-2 py-1 text-xs text-muted-foreground">
         <Loader2 v-if="props.loading" class="h-3 w-3 animate-spin" />
         <span class="min-w-0 truncate">
           <template v-if="props.loading">{{ t("grid.loadingValues") }}</template>

@@ -322,7 +322,7 @@ function connectionAllowsSalesforceDml(connectionId: string): boolean {
 
     <section v-if="hiddenPolicyExceptions.length" class="space-y-2 border-t p-3" :aria-label="t('settings.mcpPolicyExceptionsTitle')">
       <p class="text-xs font-medium">{{ t("settings.mcpPolicyExceptionsTitle") }}</p>
-      <p class="text-[11px] text-muted-foreground">{{ t("settings.mcpPolicyExceptionsDescription") }}</p>
+      <p class="text-xs text-muted-foreground">{{ t("settings.mcpPolicyExceptionsDescription") }}</p>
       <div class="max-h-80 space-y-2 overflow-auto">
         <div v-for="node in hiddenPolicyExceptions" :key="`${node.type}:${node.id}`" class="flex flex-wrap items-center gap-2 rounded-md border p-2 text-xs">
           <Folder v-if="node.type === 'group'" class="size-4 shrink-0 text-muted-foreground" />
@@ -334,7 +334,7 @@ function connectionAllowsSalesforceDml(connectionId: string): boolean {
             :disabled="disabled || busy"
             @update:model-value="(value) => (node.type === 'group' ? emit('set:group-policy', node.id, value as ExecutionMode | 'inherit') : emit('set:connection-policy', node.id, value as ExecutionMode | 'inherit'))"
           >
-            <SelectTrigger size="sm" class="h-7 w-44 text-[11px]" :aria-label="node.type === 'group' ? node.pathNames.join(' / ') : node.connection.name"><SelectValue /></SelectTrigger>
+            <SelectTrigger size="sm" class="h-7 w-44 text-xs" :aria-label="node.type === 'group' ? node.pathNames.join(' / ') : node.connection.name"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="inherit">{{ t("settings.mcpPolicyExceptionInherit") }}</SelectItem>
               <SelectItem value="read_only">{{ t("settings.mcpConnectionPolicyReadOnly") }}</SelectItem>
@@ -342,7 +342,7 @@ function connectionAllowsSalesforceDml(connectionId: string): boolean {
               <SelectItem value="high_risk_write">{{ t("settings.mcpConnectionPolicyHighRiskWrite") }}</SelectItem>
             </SelectContent>
           </Select>
-          <label v-if="isSalesforceConnection(node)" class="flex h-7 items-center gap-1 rounded border px-1.5 text-[11px]" :title="t('settings.mcpConnectionPolicyAllowSalesforceDmlHint')">
+          <label v-if="isSalesforceConnection(node)" class="flex h-7 items-center gap-1 rounded border px-1.5 text-xs" :title="t('settings.mcpConnectionPolicyAllowSalesforceDmlHint')">
             <input type="checkbox" class="size-3" :checked="connectionAllowsSalesforceDml(node.id)" :disabled="disabled || busy" :aria-label="t('settings.mcpConnectionPolicyAllowSalesforceDml')" @change="emit('set:connection-salesforce-dml', node.id, ($event.target as HTMLInputElement).checked)" />
             {{ t("settings.mcpConnectionPolicyAllowSalesforceDml") }}
           </label>
@@ -389,10 +389,10 @@ function connectionAllowsSalesforceDml(connectionId: string): boolean {
           <Database v-else class="size-4 shrink-0 text-muted-foreground" />
           <div class="min-w-0 flex-1">
             <p class="truncate font-medium">{{ node.type === "group" ? node.name : node.connection.name }}</p>
-            <p v-if="node.type === 'connection'" class="truncate font-mono text-[10px] text-muted-foreground">{{ node.connection.db_type }} · {{ node.connection.host || node.connection.database || node.id }}</p>
+            <p v-if="node.type === 'connection'" class="truncate font-mono text-xs text-muted-foreground">{{ node.connection.db_type }} · {{ node.connection.host || node.connection.database || node.id }}</p>
           </div>
           <Select v-if="node.type === 'group' && selectedGroupIds.has(node.id)" :model-value="groupPolicyMode(node.id)" :disabled="disabled || busy" @update:model-value="(value) => emit('set:group-policy', node.id, value as ExecutionMode | 'inherit')">
-            <SelectTrigger size="sm" class="h-7 w-44 shrink-0 text-[11px]" @click.stop><SelectValue /></SelectTrigger>
+            <SelectTrigger size="sm" class="h-7 w-44 shrink-0 text-xs" @click.stop><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="inherit">{{ t("settings.mcpConnectionPolicyInherit") }}</SelectItem>
               <SelectItem value="read_only">{{ t("settings.mcpConnectionPolicyReadOnly") }}</SelectItem>
@@ -406,7 +406,7 @@ function connectionAllowsSalesforceDml(connectionId: string): boolean {
             :disabled="disabled || busy"
             @update:model-value="(value) => emit('set:connection-policy', node.id, value as ExecutionMode | 'inherit')"
           >
-            <SelectTrigger size="sm" class="h-7 w-44 shrink-0 text-[11px]" @click.stop><SelectValue /></SelectTrigger>
+            <SelectTrigger size="sm" class="h-7 w-44 shrink-0 text-xs" @click.stop><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="inherit">{{ selectedAncestor(node) ? t("settings.mcpGroupPolicyInherit") : t("settings.mcpConnectionPolicyInherit") }}</SelectItem>
               <SelectItem value="read_only">{{ t("settings.mcpConnectionPolicyReadOnly") }}</SelectItem>
@@ -416,7 +416,7 @@ function connectionAllowsSalesforceDml(connectionId: string): boolean {
           </Select>
           <label
             v-if="isSalesforceConnection(node) && (explicitConnectionIds.has(node.id) || Boolean(selectedAncestor(node)))"
-            class="flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded border bg-background px-1.5 text-[11px]"
+            class="flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded border bg-background px-1.5 text-xs"
             :class="connectionAllowsSalesforceDml(node.id) ? 'border-primary/50 text-foreground' : 'text-muted-foreground'"
             :title="t('settings.mcpConnectionPolicyAllowSalesforceDmlHint')"
           >
@@ -438,7 +438,7 @@ function connectionAllowsSalesforceDml(connectionId: string): boolean {
         </div>
       </div>
       <p v-else class="border-t px-3 py-8 text-center text-xs text-muted-foreground">{{ t("settings.mcpResourceScopeEmpty") }}</p>
-      <p class="border-t px-3 py-2 text-[11px] text-muted-foreground">{{ t("settings.mcpResourceScopeHint") }}</p>
+      <p class="border-t px-3 py-2 text-xs text-muted-foreground">{{ t("settings.mcpResourceScopeHint") }}</p>
     </template>
   </section>
 </template>

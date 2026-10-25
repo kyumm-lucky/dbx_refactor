@@ -74,7 +74,7 @@ watch(
                 {{ connectionDisplayName(tab.connectionId) }}<template v-if="tab.database"> · {{ tab.database }}</template>
               </div>
             </div>
-            <span class="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{{ tabModeLabel(tab, t) }}</span>
+            <span class="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{{ tabModeLabel(tab, t) }}</span>
           </div>
         </div>
         <div class="flex items-center justify-between border-t px-3 py-1.5 text-xs text-muted-foreground">

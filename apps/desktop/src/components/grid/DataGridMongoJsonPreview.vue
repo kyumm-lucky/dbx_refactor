@@ -69,7 +69,7 @@ watch(
       <div v-if="usesCodeEditor" ref="previewContainer" data-cell-detail-editor-root class="min-h-0 flex-1 overflow-hidden" />
       <template v-else>
         <pre class="dbx-data-grid-value-font min-h-0 flex-1 overflow-auto rounded border bg-muted/20 p-3 text-xs whitespace-pre-wrap break-words">{{ text }}</pre>
-        <div class="mt-1 text-[11px] text-muted-foreground">{{ t("grid.largeValuePreviewHint", { count: text.length }) }}</div>
+        <div class="mt-1 text-xs text-muted-foreground">{{ t("grid.largeValuePreviewHint", { count: text.length }) }}</div>
       </template>
     </div>
     <div v-else class="flex min-h-0 flex-1 items-center justify-center px-6 text-center text-xs text-muted-foreground">{{ t("grid.mongoJsonPreviewEmpty") }}</div>

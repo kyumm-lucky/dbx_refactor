@@ -163,7 +163,7 @@ const badgeClass = computed(() => (isHovered.value ? "border-blue-500 text-blue-
   />
   <EdgeLabelRenderer>
     <div
-      class="nopan nodrag pointer-events-none absolute z-10 min-w-[1.1rem] rounded border bg-background/95 px-1 py-0.5 text-center font-mono text-[10px] font-semibold leading-none shadow-sm"
+      class="nopan nodrag pointer-events-none absolute z-10 min-w-[1.1rem] rounded border bg-background/95 px-1 py-0.5 text-center font-mono text-xs font-semibold leading-none shadow-sm"
       :class="badgeClass"
       :style="{
         transform: `translate(-50%, -50%) translate(${sourceBadgePos.x}px, ${sourceBadgePos.y}px)`,
@@ -172,7 +172,7 @@ const badgeClass = computed(() => (isHovered.value ? "border-blue-500 text-blue-
       {{ sourceCardinality }}
     </div>
     <div
-      class="nopan nodrag pointer-events-none absolute z-10 min-w-[1.1rem] rounded border bg-background/95 px-1 py-0.5 text-center font-mono text-[10px] font-semibold leading-none shadow-sm"
+      class="nopan nodrag pointer-events-none absolute z-10 min-w-[1.1rem] rounded border bg-background/95 px-1 py-0.5 text-center font-mono text-xs font-semibold leading-none shadow-sm"
       :class="badgeClass"
       :style="{
         transform: `translate(-50%, -50%) translate(${targetBadgePos.x}px, ${targetBadgePos.y}px)`,

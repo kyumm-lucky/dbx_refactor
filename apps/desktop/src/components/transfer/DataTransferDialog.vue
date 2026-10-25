@@ -1864,15 +1864,15 @@ async function saveConfigTask() {
                     {{ t("transfer.tableFilterSection") }}
                     <span v-if="activeTableFilterCount" class="text-primary">({{ activeTableFilterCount }})</span>
                   </span>
-                  <span class="text-[11px] text-muted-foreground/70">{{ t("transfer.tableFilterSectionHint") }}</span>
+                  <span class="text-xs text-muted-foreground/70">{{ t("transfer.tableFilterSectionHint") }}</span>
                 </div>
                 <div class="max-h-24 space-y-0.5 overflow-auto">
                   <div v-for="name in selectedTableList" :key="name" class="flex items-center gap-1.5 rounded px-1.5 py-1 text-xs hover:bg-muted/60">
                     <span class="min-w-0 flex-1 truncate" :title="name">{{ name }}</span>
-                    <span v-if="tableFilters[name]" class="max-w-[45%] truncate rounded bg-primary/10 px-1 text-[11px] text-primary" :title="tableFilters[name]">
+                    <span v-if="tableFilters[name]" class="max-w-[45%] truncate rounded bg-primary/10 px-1 text-xs text-primary" :title="tableFilters[name]">
                       {{ tableFilters[name] }}
                     </span>
-                    <Button variant="ghost" size="sm" class="h-6 shrink-0 px-1.5 text-[11px]" @click="openTableFilter(name)">
+                    <Button variant="ghost" size="sm" class="h-6 shrink-0 px-1.5 text-xs" @click="openTableFilter(name)">
                       {{ tableFilters[name] ? t("transfer.tableFilterEdit") : t("transfer.tableFilterSet") }}
                     </Button>
                     <Button v-if="tableFilters[name]" variant="ghost" size="icon" class="h-6 w-6 shrink-0" :title="t('transfer.tableFilterClear')" :aria-label="t('transfer.tableFilterClear')" @click="clearTableFilter(name)">

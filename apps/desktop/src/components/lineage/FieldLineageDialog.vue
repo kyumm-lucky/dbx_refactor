@@ -409,9 +409,9 @@ function openItemTarget(item: FieldLineageItem) {
                         <ArrowUpRight class="h-3.5 w-3.5 shrink-0 opacity-70 transition-opacity group-hover:opacity-100" />
                       </button>
                       <span v-else class="max-w-[560px] truncate font-medium">{{ itemPrimaryLabel(item) }}</span>
-                      <Badge v-if="item.schema" variant="outline" class="text-[10px]">{{ item.schema }}</Badge>
-                      <Badge variant="outline" class="text-[10px]">{{ itemKindLabel(item) }}</Badge>
-                      <Badge :variant="confidenceVariant(item.confidence)" class="text-[10px]">{{ t(`lineage.${item.confidence}`) }}</Badge>
+                      <Badge v-if="item.schema" variant="outline" class="text-xs">{{ item.schema }}</Badge>
+                      <Badge variant="outline" class="text-xs">{{ itemKindLabel(item) }}</Badge>
+                      <Badge :variant="confidenceVariant(item.confidence)" class="text-xs">{{ t(`lineage.${item.confidence}`) }}</Badge>
                     </div>
                     <p class="mt-1 text-xs leading-5 text-muted-foreground">
                       {{ itemDescription(item) }}

@@ -11407,7 +11407,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
               </div>
               <template v-if="hasLocalColumnFilters && !canShowWhereSearch && !hasSearchBarSlot">
                 <div class="flex items-center gap-1 px-2 py-0.5 min-w-0">
-                  <button type="button" class="flex shrink-0 items-center gap-1 rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/15" :title="t('grid.clearLocalFilters')" @click="clearLocalFilter()">
+                  <button type="button" class="flex shrink-0 items-center gap-1 rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary hover:bg-primary/15" :title="t('grid.clearLocalFilters')" @click="clearLocalFilter()">
                     <Filter class="h-3 w-3" />
                     {{ localFilterCount }}
                     <X class="h-3 w-3" />
@@ -11540,8 +11540,8 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                       @click="scrollToColumn(column.index)"
                     >
                       <span class="min-w-0 truncate">{{ column.name }}</span>
-                      <span class="shrink-0 font-mono text-[10px] text-muted-foreground">#{{ column.index + 1 }}</span>
-                      <span v-if="column.comment" class="col-span-2 min-w-0 truncate text-[11px] leading-4 text-muted-foreground" :title="column.comment">{{ column.comment }}</span>
+                      <span class="shrink-0 font-mono text-xs text-muted-foreground">#{{ column.index + 1 }}</span>
+                      <span v-if="column.comment" class="col-span-2 min-w-0 truncate text-xs leading-4 text-muted-foreground" :title="column.comment">{{ column.comment }}</span>
                     </button>
                     <div v-if="!filteredGoToColumns.length" class="px-2 py-3 text-center text-xs text-muted-foreground">
                       {{ t("grid.noColumnsFound") }}
@@ -11648,7 +11648,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                 <Rows3 class="w-3.5 h-3.5 text-muted-foreground" />
                 <span class="text-xs font-medium">{{ t("grid.transpose") }}</span>
                 <span class="text-xs text-muted-foreground"> {{ t("grid.rowNumber") }} {{ (transposeRowIndex ?? 0) + 1 }} </span>
-                <span class="rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                <span class="rounded border border-border bg-background px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
                   {{ multiRowTranspose ? t("grid.transposeMultiRow") : t("grid.transposeSingleRow") }}
                 </span>
                 <span class="flex-1" />
@@ -12067,7 +12067,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                                   })
                                 }}
                               </div>
-                              <div class="mt-0.5 text-[11px] text-muted-foreground">
+                              <div class="mt-0.5 text-xs text-muted-foreground">
                                 {{ t("grid.columnFormatterHint") }}
                               </div>
                             </div>
@@ -12168,7 +12168,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                               <div v-else-if="formatterKind === 'foreign-key-display'" class="space-y-3">
                                 <template v-if="!formatterForeignKeyManual">
                                   <div class="rounded border bg-muted/30 px-2.5 py-2 text-xs">
-                                    <div class="text-[11px] text-muted-foreground">{{ t("grid.formatterForeignKeyTarget") }}</div>
+                                    <div class="text-xs text-muted-foreground">{{ t("grid.formatterForeignKeyTarget") }}</div>
                                     <div class="mt-0.5 truncate font-mono" :title="`${formatterForeignKeyRefSchema ? `${formatterForeignKeyRefSchema}.` : ''}${formatterForeignKeyRefTable}.${formatterForeignKeyRefColumn}`">
                                       {{ formatterForeignKeyRefSchema ? `${formatterForeignKeyRefSchema}.` : "" }}{{ formatterForeignKeyRefTable }}.{{ formatterForeignKeyRefColumn }}
                                     </div>
@@ -12191,8 +12191,8 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                                 </template>
 
                                 <template v-else>
-                                  <div class="text-[11px] leading-4 text-muted-foreground">{{ t("grid.formatterForeignKeyManualHint") }}</div>
-                                  <div v-if="formatterForeignKeyTargetError" class="rounded border border-destructive/30 bg-destructive/5 px-2.5 py-2 text-[11px] text-destructive">{{ formatterForeignKeyTargetError }}</div>
+                                  <div class="text-xs leading-4 text-muted-foreground">{{ t("grid.formatterForeignKeyManualHint") }}</div>
+                                  <div v-if="formatterForeignKeyTargetError" class="rounded border border-destructive/30 bg-destructive/5 px-2.5 py-2 text-xs text-destructive">{{ formatterForeignKeyTargetError }}</div>
                                   <div class="grid grid-cols-2 gap-2">
                                     <div class="min-w-0 space-y-1.5">
                                       <div class="text-xs font-medium text-muted-foreground">{{ t("grid.formatterForeignKeySchema") }}</div>
@@ -12240,13 +12240,13 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                                         item-class="h-auto min-h-8 px-2 py-1.5 text-xs"
                                         @update:model-value="(value: any) => (formatterForeignKeyRefColumn = String(value))"
                                       />
-                                      <div v-if="formatterForeignKeyReferenceValidation === 'unavailable'" class="text-[11px] leading-4 text-destructive">
+                                      <div v-if="formatterForeignKeyReferenceValidation === 'unavailable'" class="text-xs leading-4 text-destructive">
                                         {{ t("grid.formatterForeignKeyReferenceMetadataUnavailable", { error: formatterForeignKeyReferenceMetadataError }) }}
                                       </div>
-                                      <div v-else-if="formatterForeignKeyReferenceValidation === 'invalid' && formatterForeignKeyRefColumn" class="text-[11px] leading-4 text-destructive">
+                                      <div v-else-if="formatterForeignKeyReferenceValidation === 'invalid' && formatterForeignKeyRefColumn" class="text-xs leading-4 text-destructive">
                                         {{ t("grid.formatterForeignKeyReferenceInvalid") }}
                                       </div>
-                                      <div v-else-if="formatterForeignKeyReferenceMetadataStatus === 'available' && formatterForeignKeyRefTable && !formatterForeignKeyReferenceColumns.length" class="text-[11px] leading-4 text-destructive">
+                                      <div v-else-if="formatterForeignKeyReferenceMetadataStatus === 'available' && formatterForeignKeyRefTable && !formatterForeignKeyReferenceColumns.length" class="text-xs leading-4 text-destructive">
                                         {{ t("grid.formatterForeignKeyReferenceUnavailable") }}
                                       </div>
                                     </div>
@@ -12302,7 +12302,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                                     </div>
                                   </div>
                                 </template>
-                                <div class="text-[11px] leading-4 text-muted-foreground">{{ t("grid.formatterForeignKeyHint") }}</div>
+                                <div class="text-xs leading-4 text-muted-foreground">{{ t("grid.formatterForeignKeyHint") }}</div>
                               </div>
 
                               <div v-else class="space-y-2">
@@ -12348,7 +12348,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                                   </span>
                                   <input v-model="formatterCustomTemplate" autocapitalize="off" autocorrect="off" spellcheck="false" class="h-8 w-full rounded border bg-background px-2 font-mono text-xs outline-none focus:border-primary" placeholder="ID-${value}" />
                                 </label>
-                                <div class="text-[11px] leading-4 text-muted-foreground">
+                                <div class="text-xs leading-4 text-muted-foreground">
                                   {{ t("grid.formatterCustomTemplateHint") }}
                                 </div>
                               </div>
@@ -12358,7 +12358,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                                   {{ t("grid.formatterPreview") }}
                                 </div>
                                 <div class="max-h-40 overflow-auto rounded border bg-muted/20">
-                                  <div v-for="row in formatterPreviewRows(col.actualColIdx)" :key="row.index" class="grid grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)] gap-2 border-b px-2 py-1.5 text-[11px] last:border-b-0">
+                                  <div v-for="row in formatterPreviewRows(col.actualColIdx)" :key="row.index" class="grid grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)] gap-2 border-b px-2 py-1.5 text-xs last:border-b-0">
                                     <span class="text-muted-foreground">{{ row.index }}</span>
                                     <span class="truncate font-mono text-muted-foreground">{{ row.raw }}</span>
                                     <span class="truncate font-mono">{{ row.formatted }}</span>
@@ -12838,7 +12838,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                     </div>
                     <div class="min-w-0 flex-1">
                       <div class="truncate text-sm font-medium text-foreground">{{ t("grid.pageJumpLoading", { page: pageJumpProgress.targetPage }) }}</div>
-                      <div class="mt-0.5 flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+                      <div class="mt-0.5 flex items-center justify-between gap-3 text-xs text-muted-foreground">
                         <span>{{ t("grid.pageJumpProgress", { current: pageJumpProgress.completedRequests, total: pageJumpProgress.totalRequests }) }}</span>
                         <span class="shrink-0 tabular-nums">{{ formatElapsedSeconds(loadingElapsed) }}s</span>
                       </div>
@@ -12906,7 +12906,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                 <X class="w-3 h-3" />
               </Button>
             </div>
-            <div v-if="canShowTableOwner" class="flex h-7 min-w-0 shrink-0 items-center gap-1.5 border-b bg-background px-3 text-[11px] text-muted-foreground">
+            <div v-if="canShowTableOwner" class="flex h-7 min-w-0 shrink-0 items-center gap-1.5 border-b bg-background px-3 text-xs text-muted-foreground">
               <Loader2 v-if="tableOwnerLoading" class="h-3 w-3 shrink-0 animate-spin" />
               <UserRound v-else class="h-3 w-3 shrink-0" />
               <span class="shrink-0">{{ t("grid.tableOwner") }}</span>
@@ -12918,7 +12918,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
               <button
                 v-for="tab in tableInfoTabs"
                 :key="tab.id"
-                class="h-9 min-w-0 px-1.5 text-[11px] border-b-2 transition-colors"
+                class="h-9 min-w-0 px-1.5 text-xs border-b-2 transition-colors"
                 :class="activeTableInfoTab === tab.id ? 'border-primary bg-gray-300/80 text-foreground dark:bg-gray-700/80' : 'border-transparent text-muted-foreground hover:bg-gray-200 hover:text-foreground dark:hover:bg-gray-800/50'"
                 :title="tab.label"
                 @click="selectTableInfoTab(tab.id)"
@@ -12941,7 +12941,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                   <RefreshCw class="h-3.5 w-3.5" :class="{ 'animate-spin': activeTableInfoLoading }" />
                 </Button>
                 <template v-if="activeTableInfoTab === 'ddl'">
-                  <span class="w-9 shrink-0 text-center text-[11px] tabular-nums text-muted-foreground">
+                  <span class="w-9 shrink-0 text-center text-xs tabular-nums text-muted-foreground">
                     {{ searchQuery ? (ddlSearchMatchCount > 0 ? `${ddlSearchMatchIndex + 1}/${ddlSearchMatchCount}` : "0") : "" }}
                   </span>
                   <Button variant="ghost" size="icon" class="h-7 w-7 shrink-0" :title="t('editor.search.prevMatch')" :aria-label="t('editor.search.prevMatch')" :disabled="ddlSearchMatchCount === 0" @click="navigateDdlSearch(-1)">
@@ -13481,7 +13481,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
   height: 24px;
   align-items: center;
   padding-block: 0;
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
 }
 

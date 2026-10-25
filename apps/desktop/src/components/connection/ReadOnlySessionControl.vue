@@ -64,8 +64,8 @@ onMounted(() => {
       >
         <Unlock v-if="unlocked" class="h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400" />
         <Lock v-else class="h-3 w-3 shrink-0" />
-        <span v-if="showLabel && !unlocked" class="text-[10px] leading-none">{{ t("connection.readOnlyBadge") }}</span>
-        <span v-if="unlocked" class="text-[10px] tabular-nums leading-none">{{ remainingLabel }}</span>
+        <span v-if="showLabel && !unlocked" class="text-xs leading-none">{{ t("connection.readOnlyBadge") }}</span>
+        <span v-if="unlocked" class="text-xs tabular-nums leading-none">{{ remainingLabel }}</span>
       </button>
     </TooltipTrigger>
     <TooltipContent>{{ tooltip }}</TooltipContent>

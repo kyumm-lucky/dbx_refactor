@@ -70,7 +70,7 @@ function welcomeConnectionSubtitle(connection: ConnectionConfig): string {
           <div class="relative max-w-2xl">
             <div class="flex flex-col items-start gap-2 @3xs:flex-row @3xs:items-center @3xs:gap-3">
               <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border bg-background/80 p-0.5 shadow-sm"><AppLogo class="h-full w-full object-contain" /></div>
-              <div class="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground @2xl:text-xs @2xl:tracking-[0.24em]">{{ t("welcome.introEyebrow") }}</div>
+              <div class="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground @2xl:text-xs @2xl:tracking-[0.24em]">{{ t("welcome.introEyebrow") }}</div>
             </div>
             <h1 class="mt-5 text-xl font-semibold tracking-tight @3xs:mt-6 @2xl:text-3xl @4xl:text-4xl">{{ t("welcome.introTitle") }}</h1>
             <p class="mt-3 max-w-xl text-xs leading-5 text-muted-foreground @2xl:text-sm @2xl:leading-6 @4xl:text-base">{{ t("welcome.introDescription") }}</p>
@@ -123,7 +123,7 @@ function welcomeConnectionSubtitle(connection: ConnectionConfig): string {
           </div>
         </div>
 
-        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/10 px-3 py-3 text-[11px] text-muted-foreground @2xl:mt-5 @2xl:px-4 @2xl:text-xs">
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/10 px-3 py-3 text-xs text-muted-foreground @2xl:mt-5 @2xl:px-4 @2xl:text-xs">
           <div class="flex items-center gap-2"><ShieldCheck class="h-4 w-4 text-primary" /> {{ t("welcome.introPrivacyHint") }}</div>
           <div class="flex flex-wrap items-center gap-3">
             <button type="button" class="inline-flex items-center gap-1.5 hover:text-foreground" @click="emit('show-history')"><History class="h-3.5 w-3.5" /> {{ t("history.title") }}</button>
@@ -131,7 +131,7 @@ function welcomeConnectionSubtitle(connection: ConnectionConfig): string {
           </div>
         </div>
 
-        <div class="mt-5 flex flex-wrap items-center justify-center gap-2 text-[10px] text-muted-foreground/60 @2xl:mt-6 @2xl:gap-3 @2xl:text-[11px]">
+        <div class="mt-5 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground/60 @2xl:mt-6 @2xl:gap-3 @2xl:text-xs">
           <span>DBX {{ appVersion ? "v" + appVersion : "" }}</span
           ><span>·</span>
           <a href="#" class="hover:text-foreground" @click.prevent="emit('open-github')">GitHub</a>
@@ -252,7 +252,7 @@ function welcomeConnectionSubtitle(connection: ConnectionConfig): string {
       </div>
 
       <!-- Project Info -->
-      <div class="mt-2 flex items-center justify-center gap-3 text-[11px] text-muted-foreground/60">
+      <div class="mt-2 flex items-center justify-center gap-3 text-xs text-muted-foreground/60">
         <span>DBX {{ appVersion ? "v" + appVersion : "" }}</span>
         <span>·</span>
         <a href="#" class="hover:text-foreground transition-colors" @click.prevent="emit('open-github')">GitHub</a>

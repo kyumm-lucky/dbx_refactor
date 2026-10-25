@@ -317,14 +317,14 @@ watch(
                   {{ column.name }}
                 </span>
               </td>
-              <td class="cursor-pointer px-3 py-2 font-mono text-[11px] text-muted-foreground" :title="t('editor.structurePeek.doubleClickInsert')" @dblclick.stop="onCellDblClick(formatColumnType(column), 'raw')">
+              <td class="cursor-pointer px-3 py-2 font-mono text-xs text-muted-foreground" :title="t('editor.structurePeek.doubleClickInsert')" @dblclick.stop="onCellDblClick(formatColumnType(column), 'raw')">
                 {{ formatColumnType(column) }}
               </td>
               <td class="cursor-pointer px-3 py-2" :title="t('editor.structurePeek.doubleClickInsert')" @dblclick.stop="onCellDblClick(column.is_nullable ? 'YES' : 'NO', 'raw')">
                 {{ column.is_nullable ? "YES" : "NO" }}
               </td>
               <td
-                class="max-w-48 px-3 py-2 font-mono text-[11px]"
+                class="max-w-48 px-3 py-2 font-mono text-xs"
                 :class="insertableValue(column.column_default) ? 'cursor-pointer' : 'text-muted-foreground/70'"
                 :title="insertableValue(column.column_default) ? t('editor.structurePeek.doubleClickInsert') : undefined"
                 @dblclick.stop="onCellDblClick(column.column_default, 'raw')"

@@ -53,11 +53,11 @@ function selectPageSize(value: unknown) {
 
 <template>
   <div class="flex min-h-[30px] shrink-0 items-center gap-2 border-t bg-muted/30 px-1.5 py-0.5 pl-2">
-    <span class="text-[11px] text-muted-foreground">{{ t("grid.totalRows", { count: totalRows }) }}</span>
+    <span class="text-xs text-muted-foreground">{{ t("grid.totalRows", { count: totalRows }) }}</span>
     <div class="ml-auto flex min-w-max items-center gap-1">
       <Loader2 v-if="loading" class="h-3 w-3 animate-spin text-muted-foreground" />
       <Select :model-value="String(pageSize)" :disabled="loading" @update:model-value="selectPageSize">
-        <SelectTrigger class="h-6 w-[82px] border-0 bg-transparent px-1.5 text-[11px] shadow-none focus:ring-0">
+        <SelectTrigger class="h-6 w-[82px] border-0 bg-transparent px-1.5 text-xs shadow-none focus:ring-0">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -74,11 +74,11 @@ function selectPageSize(value: unknown) {
         :max="maximumPage"
         :disabled="loading"
         :aria-label="t('grid.jumpToPage')"
-        class="h-6 w-14 px-1 text-center text-[11px] tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        class="h-6 w-14 px-1 text-center text-xs tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         @keydown.enter.prevent.stop="applyPageInput"
         @blur="applyPageInput"
       />
-      <span class="px-0.5 text-[11px] text-muted-foreground">/ {{ maximumPage }}</span>
+      <span class="px-0.5 text-xs text-muted-foreground">/ {{ maximumPage }}</span>
       <Button variant="ghost" size="icon" class="h-6 w-6" :disabled="loading || currentPage >= maximumPage" :title="t('grid.page', { page: Math.min(maximumPage, currentPage + 1) })" @click="requestPage(currentPage + 1)"><ChevronRight class="h-3.5 w-3.5" /></Button>
       <Button variant="ghost" size="icon" class="h-6 w-6" :disabled="loading || currentPage >= maximumPage" :title="t('grid.page', { page: maximumPage })" @click="requestPage(maximumPage)"><ChevronsRight class="h-3.5 w-3.5" /></Button>
     </div>

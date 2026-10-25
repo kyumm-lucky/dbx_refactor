@@ -170,15 +170,15 @@ function getAriaChecked(item: SchemaDiffOptionItem): boolean | "mixed" {
           </div>
           <div class="space-y-2.5">
             <div class="space-y-1">
-              <label class="text-[11px] font-medium text-muted-foreground" for="schema-diff-table-include">{{ t("schemaDiff.tableIncludePattern") }}</label>
+              <label class="text-xs font-medium text-muted-foreground" for="schema-diff-table-include">{{ t("schemaDiff.tableIncludePattern") }}</label>
               <input id="schema-diff-table-include" v-model="localOptions.tableIncludePattern" class="h-8 w-full rounded-md border border-input bg-background px-2 text-xs outline-none transition-shadow focus:ring-1 focus:ring-ring" :placeholder="t('schemaDiff.tableIncludePatternPlaceholder')" />
             </div>
             <div class="space-y-1">
-              <label class="text-[11px] font-medium text-muted-foreground" for="schema-diff-table-exclude">{{ t("schemaDiff.tableExcludePattern") }}</label>
+              <label class="text-xs font-medium text-muted-foreground" for="schema-diff-table-exclude">{{ t("schemaDiff.tableExcludePattern") }}</label>
               <input id="schema-diff-table-exclude" v-model="localOptions.tableExcludePattern" class="h-8 w-full rounded-md border border-input bg-background px-2 text-xs outline-none transition-shadow focus:ring-1 focus:ring-ring" :placeholder="t('schemaDiff.tableExcludePatternPlaceholder')" />
             </div>
             <div class="space-y-1">
-              <label class="text-[11px] font-medium text-muted-foreground" for="schema-diff-table-priority">{{ t("schemaDiff.tableFilterPriority") }}</label>
+              <label class="text-xs font-medium text-muted-foreground" for="schema-diff-table-priority">{{ t("schemaDiff.tableFilterPriority") }}</label>
               <Select v-model="localOptions.tableFilterPriority">
                 <SelectTrigger id="schema-diff-table-priority" class="h-8 w-full text-xs">
                   <SelectValue />
@@ -200,8 +200,8 @@ function getAriaChecked(item: SchemaDiffOptionItem): boolean | "mixed" {
           <div class="space-y-3">
             <div class="space-y-1.5">
               <div class="flex items-center justify-between gap-2">
-                <label class="text-[11px] font-medium text-muted-foreground" for="schema-diff-rename-threshold">{{ t("schemaDiff.options.renameThreshold") }}</label>
-                <span class="font-mono text-[11px]" :class="localOptions.detectRenames || localOptions.detectTableRenames ? 'text-foreground' : 'text-muted-foreground'">{{ localOptions.renameThreshold.toFixed(2) }}</span>
+                <label class="text-xs font-medium text-muted-foreground" for="schema-diff-rename-threshold">{{ t("schemaDiff.options.renameThreshold") }}</label>
+                <span class="font-mono text-xs" :class="localOptions.detectRenames || localOptions.detectTableRenames ? 'text-foreground' : 'text-muted-foreground'">{{ localOptions.renameThreshold.toFixed(2) }}</span>
               </div>
               <input
                 id="schema-diff-rename-threshold"
@@ -216,18 +216,18 @@ function getAriaChecked(item: SchemaDiffOptionItem): boolean | "mixed" {
             </div>
             <div class="space-y-1.5">
               <div class="flex items-center justify-between gap-2">
-                <label class="text-[11px] font-medium text-muted-foreground" for="schema-diff-compat-threshold">{{ t("schemaDiff.options.compatibilityThreshold") }}</label>
-                <span class="font-mono text-[11px] text-foreground">{{ localOptions.compatibilityThreshold.toFixed(2) }}</span>
+                <label class="text-xs font-medium text-muted-foreground" for="schema-diff-compat-threshold">{{ t("schemaDiff.options.compatibilityThreshold") }}</label>
+                <span class="font-mono text-xs text-foreground">{{ localOptions.compatibilityThreshold.toFixed(2) }}</span>
               </div>
               <input id="schema-diff-compat-threshold" v-model.number="localOptions.compatibilityThreshold" type="range" min="0" max="1" step="0.05" class="h-1.5 w-full cursor-pointer accent-primary" />
             </div>
             <div class="grid grid-cols-2 gap-2">
               <div class="min-w-0 space-y-1">
-                <label class="text-[11px] font-medium text-muted-foreground" for="schema-diff-source-dialect">{{ t("schemaDiff.options.sourceDialect") }}</label>
+                <label class="text-xs font-medium text-muted-foreground" for="schema-diff-source-dialect">{{ t("schemaDiff.options.sourceDialect") }}</label>
                 <input id="schema-diff-source-dialect" v-model="localOptions.sourceDialect" class="h-8 w-full rounded-md border border-input bg-background px-2 text-xs outline-none transition-shadow focus:ring-1 focus:ring-ring" :placeholder="t('schemaDiff.options.dialectAuto')" />
               </div>
               <div class="min-w-0 space-y-1">
-                <label class="text-[11px] font-medium text-muted-foreground" for="schema-diff-target-dialect">{{ t("schemaDiff.options.targetDialect") }}</label>
+                <label class="text-xs font-medium text-muted-foreground" for="schema-diff-target-dialect">{{ t("schemaDiff.options.targetDialect") }}</label>
                 <input id="schema-diff-target-dialect" v-model="localOptions.targetDialect" class="h-8 w-full rounded-md border border-input bg-background px-2 text-xs outline-none transition-shadow focus:ring-1 focus:ring-ring" :placeholder="t('schemaDiff.options.dialectAuto')" />
               </div>
             </div>

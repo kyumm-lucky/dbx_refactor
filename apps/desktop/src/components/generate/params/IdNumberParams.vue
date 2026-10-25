@@ -234,7 +234,7 @@ function refresh() {
     <div v-if="hasCustom" class="rounded-md border bg-muted/10 p-3">
       <div class="text-xs text-muted-foreground mb-1">{{ tr("customPattern", "自定义模式") }}</div>
       <input v-model="params.idCustomPattern" class="w-full rounded border bg-background px-2 py-1 text-xs font-mono" :placeholder="tr('customPatternPlaceholder', '如 ([A-Z]{2})-([0-9]{8})')" />
-      <div class="text-[10px] text-muted-foreground mt-1">{{ tr("customPatternHint", "支持 [A-Z] 字母、[0-9] 数字、{n} 重复、连字符等简单模式") }}</div>
+      <div class="text-xs text-muted-foreground mt-1">{{ tr("customPatternHint", "支持 [A-Z] 字母、[0-9] 数字、{n} 重复、连字符等简单模式") }}</div>
     </div>
     <div class="rounded-md border bg-muted/10 p-3">
       <div class="flex items-center gap-2 text-xs">

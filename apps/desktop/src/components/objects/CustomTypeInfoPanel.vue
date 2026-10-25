@@ -241,7 +241,7 @@ defineExpose({ selectTab, refresh });
   <div class="flex h-full min-h-0 flex-col">
     <div class="flex items-center gap-2 border-b px-3 py-1.5 bg-muted/20 h-9 shrink-0">
       <span class="text-xs font-medium flex-1 min-w-0 truncate">{{ name }}</span>
-      <span class="rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground shrink-0">{{ kindLabel || details?.oracleMetadata?.typeCode || "" }}</span>
+      <span class="rounded border border-border bg-background px-1.5 py-0.5 text-xs text-muted-foreground shrink-0">{{ kindLabel || details?.oracleMetadata?.typeCode || "" }}</span>
       <Button v-if="isOracleFamily && details" variant="ghost" size="icon" class="h-6 w-6" :title="t('common.retry')" :aria-label="t('common.retry')" @click="refresh">
         <RefreshCw class="w-3 h-3" />
       </Button>
@@ -303,7 +303,7 @@ defineExpose({ selectTab, refresh });
             <span class="text-xs text-muted-foreground">{{ t("customType.members.empty") }}</span>
           </div>
 
-          <table v-if="tab === 'members' && details.oracleMetadata && details.oracleMetadata.attributes.length > 0" class="w-full text-[11px]">
+          <table v-if="tab === 'members' && details.oracleMetadata && details.oracleMetadata.attributes.length > 0" class="w-full text-xs">
             <thead class="sticky top-0 bg-muted/40 text-left text-muted-foreground">
               <tr>
                 <th class="px-3 py-1.5 font-medium">#</th>
@@ -326,7 +326,7 @@ defineExpose({ selectTab, refresh });
             </tbody>
           </table>
           <!-- Members: composite fields -->
-          <table v-else-if="tab === 'members' && isFieldKind(details.kind)" class="w-full text-[11px]">
+          <table v-else-if="tab === 'members' && isFieldKind(details.kind)" class="w-full text-xs">
             <thead class="sticky top-0 bg-muted/40 text-left text-muted-foreground">
               <tr>
                 <th class="px-3 py-1.5 font-medium">#</th>
@@ -351,14 +351,14 @@ defineExpose({ selectTab, refresh });
 
           <!-- Members: enum values -->
           <ul v-else-if="tab === 'members' && isEnumKind(details.kind) && details.members.length > 0" class="divide-y divide-border/60">
-            <li v-for="member in details.members" :key="member.ordinal" class="flex items-center gap-3 px-3 py-1.5 text-[11px]">
+            <li v-for="member in details.members" :key="member.ordinal" class="flex items-center gap-3 px-3 py-1.5 text-xs">
               <span class="w-6 text-muted-foreground text-right">{{ member.ordinal }}</span>
               <span class="font-mono">{{ member.enumValue }}</span>
             </li>
           </ul>
 
           <!-- Properties -->
-          <table v-else-if="tab === 'properties'" class="w-full text-[11px]">
+          <table v-else-if="tab === 'properties'" class="w-full text-xs">
             <tbody>
               <template v-if="details.oracleMetadata">
                 <tr v-for="row in oraclePropertyRows" :key="row.label" class="border-b border-border/60">
@@ -461,7 +461,7 @@ defineExpose({ selectTab, refresh });
         <!-- DDL -->
         <div v-if="details && tab === 'ddl'" class="flex h-full flex-col">
           <div v-if="details.ddl && !details.ddl.complete" class="border-b border-amber-500/30 bg-amber-500/10 px-3 py-1.5">
-            <div v-for="warning in details.ddl.warnings" :key="warning" class="text-[11px] text-amber-600 dark:text-amber-400">{{ warning }}</div>
+            <div v-for="warning in details.ddl.warnings" :key="warning" class="text-xs text-amber-600 dark:text-amber-400">{{ warning }}</div>
           </div>
           <pre class="flex-1 overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-[11px] leading-relaxed">{{ ddlText || t("customType.ddl.empty") }}</pre>
         </div>

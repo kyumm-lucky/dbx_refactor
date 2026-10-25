@@ -636,7 +636,7 @@ onBeforeUnmount(() => {
             <PopoverTrigger as-child>
               <Button variant="outline" size="sm" class="h-8 shrink-0 gap-1.5">
                 {{ t("meilisearch.hybrid") }}
-                <Badge :variant="hybridEnabled ? 'default' : 'secondary'" class="h-4 px-1 text-[10px]">{{ hybridEnabled ? "ON" : "OFF" }}</Badge>
+                <Badge :variant="hybridEnabled ? 'default' : 'secondary'" class="h-5 px-1 text-xs">{{ hybridEnabled ? "ON" : "OFF" }}</Badge>
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" class="w-64 space-y-3 p-3">

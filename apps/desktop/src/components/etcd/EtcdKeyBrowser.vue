@@ -1249,7 +1249,7 @@ defineExpose({ focusSearch, refresh });
               <pre
                 class="mt-1.5 max-h-14 overflow-hidden text-ellipsis whitespace-pre-wrap break-all font-mono text-xs text-muted-foreground"
               ><template v-for="(segment, index) in searchSegments(searchValueDisplay(result.summary.value) || '(空值)')" :key="index"><mark v-if="segment.matched && result.matchesValue" class="rounded-sm bg-amber-300/80 px-0.5 text-foreground dark:bg-amber-500/40">{{ segment.text }}</mark><span v-else>{{ segment.text }}</span></template></pre>
-              <span class="mt-1 block font-mono text-[11px] text-muted-foreground sm:hidden">rev {{ result.summary.modRevision || "-" }}</span>
+              <span class="mt-1 block font-mono text-xs text-muted-foreground sm:hidden">rev {{ result.summary.modRevision || "-" }}</span>
             </button>
           </div>
         </div>

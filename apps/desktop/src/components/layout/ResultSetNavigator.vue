@@ -190,19 +190,19 @@ watch(
         <div class="flex items-center justify-between gap-2 border-b pb-2">
           <span class="shrink-0 text-xs font-semibold">{{ t("tabs.batchResultActions") }}</span>
           <input ref="batchSearchInput" v-model="batchSearch" type="search" class="min-w-0 flex-1 rounded-md border bg-background px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring" :placeholder="t('tabs.searchResults')" :aria-label="t('tabs.searchResults')" />
-          <span class="shrink-0 text-[11px] text-muted-foreground">{{ t("tabs.batchSelectedCount", { count: selectedBatchItems.length, total: items.length }) }}</span>
+          <span class="shrink-0 text-xs text-muted-foreground">{{ t("tabs.batchSelectedCount", { count: selectedBatchItems.length, total: items.length }) }}</span>
         </div>
         <div class="flex min-h-0 max-h-56 flex-col gap-1 overflow-y-auto py-1">
           <label v-for="item in filteredBatchItems" :key="item.index" class="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-xs hover:bg-accent">
             <input type="checkbox" :checked="selectedIndexes.has(item.index)" @change="toggleBatchItem(item)" />
             <span class="min-w-0 flex-1 truncate">{{ item.displayLabel || item.label || t("tabs.resultN", { n: item.n }) }}</span>
-            <span class="shrink-0 text-[10px] text-muted-foreground tabular-nums"
+            <span class="shrink-0 text-xs text-muted-foreground tabular-nums"
               >{{ item.result.rows.length }}<template v-if="item.result.has_more || item.result.truncated"> · {{ t("tabs.batchIncompleteResult") }}</template></span
             >
           </label>
           <p v-if="!filteredBatchItems.length" role="status" class="p-4 text-center text-xs text-muted-foreground">{{ t("tabs.noMatchingResults") }}</p>
         </div>
-        <p class="text-[11px] text-muted-foreground">{{ t("tabs.batchLoadedRowsOnly") }}</p>
+        <p class="text-xs text-muted-foreground">{{ t("tabs.batchLoadedRowsOnly") }}</p>
         <div class="flex flex-wrap items-center gap-1 border-t pt-2">
           <Button variant="ghost" size="sm" class="h-6 px-2 text-xs" :disabled="!filteredBatchItems.length" @click="setVisibleBatchSelection(true)">{{ t("tabs.selectAllResults") }}</Button>
           <Button variant="ghost" size="sm" class="h-6 px-2 text-xs" :disabled="!filteredBatchItems.length" @click="setVisibleBatchSelection(false)">{{ t("tabs.clearResultSelection") }}</Button>

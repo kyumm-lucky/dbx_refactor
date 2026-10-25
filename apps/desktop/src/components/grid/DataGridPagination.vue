@@ -134,7 +134,7 @@ function handlePageInputKeydown(event: KeyboardEvent) {
       >
         <div class="bg-border -mx-1 my-1 h-px" />
         <div class="px-2 pt-2 text-xs font-medium text-foreground">{{ t("grid.customRowsPerPage") }}</div>
-        <div class="px-2 pb-2 text-[11px] text-muted-foreground">{{ t("grid.currentAndDefaultPageSize", { current: pageSize, default: defaultPageSize }) }}</div>
+        <div class="px-2 pb-2 text-xs text-muted-foreground">{{ t("grid.currentAndDefaultPageSize", { current: pageSize, default: defaultPageSize }) }}</div>
         <div class="flex items-center gap-1.5 px-2 pb-2" @pointerdown.stop @click.stop @keydown.stop>
           <Input
             v-model="customPageSizeInput"

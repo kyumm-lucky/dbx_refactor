@@ -157,7 +157,7 @@ async function copyFullCode() {
             </div>
             <div data-native-clipboard data-testid="danger-code-preview" class="max-h-40 min-w-0 overflow-auto rounded bg-muted px-3 py-3 text-xs font-mono">
               <pre class="font-inherit" :class="wrap ? 'w-full whitespace-pre-wrap break-all' : 'w-max min-w-full whitespace-pre'" v-html="highlightedHead" />
-              <div v-if="preview.truncated" data-testid="danger-preview-truncated" class="my-2 rounded border border-border/70 bg-background/70 px-2 py-1.5 text-center text-[11px] leading-4 text-muted-foreground whitespace-normal">
+              <div v-if="preview.truncated" data-testid="danger-preview-truncated" class="my-2 rounded border border-border/70 bg-background/70 px-2 py-1.5 text-center text-xs leading-4 text-muted-foreground whitespace-normal">
                 {{ t("dangerDialog.previewTruncated", { lines: preview.omittedLines.toLocaleString(), characters: preview.omittedCharacters.toLocaleString() }) }}
               </div>
               <pre v-if="preview.tail" class="font-inherit" :class="wrap ? 'w-full whitespace-pre-wrap break-all' : 'w-max min-w-full whitespace-pre'" v-html="highlightedTail" />

@@ -506,7 +506,7 @@ watch(
 .scope-label {
   margin-top: 4px;
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .permissions-content {
@@ -529,7 +529,7 @@ watch(
 
 h4 {
   margin: 0 0 12px;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
 }
 
@@ -545,7 +545,7 @@ label {
   flex-direction: column;
   gap: 6px;
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 input[type="text"],
@@ -566,7 +566,7 @@ input.invalid {
 
 .field-error {
   color: var(--color-error);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1.4;
 }
 
@@ -575,7 +575,7 @@ input.invalid {
   flex-wrap: wrap;
   gap: 8px 12px;
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .actions-group.invalid {
@@ -626,7 +626,7 @@ td {
 
 th {
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
 }
 
@@ -651,7 +651,7 @@ th {
   border-radius: var(--dbx-radius-fixed-4);
   background: var(--color-primary-alpha);
   color: var(--color-primary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .empty-state,
@@ -667,7 +667,7 @@ th {
   padding: 12px 16px;
   margin-bottom: 12px;
   border-radius: var(--dbx-radius-fixed-6);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .panel-error {
@@ -728,7 +728,7 @@ th {
 .token-message {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1.6;
 }
 
@@ -752,25 +752,25 @@ th {
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-warning-alpha);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1.5;
 }
 
 .token-config-error strong {
   color: var(--color-warning);
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 700;
 }
 
 .token-config-error small {
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1.5;
 }
 
 .token-warning {
   color: var(--color-warning);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
 }
 
@@ -782,7 +782,7 @@ th {
   background: var(--color-background);
   color: var(--color-text);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   resize: vertical;
 }
 

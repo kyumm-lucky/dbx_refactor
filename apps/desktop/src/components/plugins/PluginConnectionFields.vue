@@ -336,7 +336,7 @@ async function runPluginFieldPicker(field: PluginFormField) {
             {{ t(pickerLabelKey(field)) }}
           </Button>
         </div>
-        <div v-if="field.description" class="text-[11px] leading-5 text-muted-foreground">{{ field.description }}</div>
+        <div v-if="field.description" class="text-xs leading-5 text-muted-foreground">{{ field.description }}</div>
       </div>
     </div>
   </div>

@@ -335,7 +335,7 @@ function groupSelectionState(kind: TransferObjectKind, items: string[]): "none" 
           <X class="h-3.5 w-3.5" />
         </button>
       </div>
-      <p class="mb-1.5 text-[11px] leading-snug text-muted-foreground">{{ t("transfer.bulkSelectHint") }}</p>
+      <p class="mb-1.5 text-xs leading-snug text-muted-foreground">{{ t("transfer.bulkSelectHint") }}</p>
       <textarea
         data-test="bulk-input"
         v-model="bulkText"
@@ -348,7 +348,7 @@ function groupSelectionState(kind: TransferObjectKind, items: string[]): "none" 
         class="mb-1.5 min-h-16 w-full resize-y rounded-md border border-input bg-transparent px-2 py-1.5 font-mono text-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring placeholder:text-muted-foreground/70"
       />
       <div class="flex items-end gap-2">
-        <div data-test="bulk-feedback" class="min-w-0 flex-1 text-[11px] leading-snug">
+        <div data-test="bulk-feedback" class="min-w-0 flex-1 text-xs leading-snug">
           <p v-if="bulkFeedback && bulkFeedback.matchedCount > 0" class="text-foreground/80">
             {{ t("transfer.bulkSelectMatched", { count: bulkFeedback.matchedCount }) }}
           </p>
@@ -384,8 +384,8 @@ function groupSelectionState(kind: TransferObjectKind, items: string[]): "none" 
           <span class="flex-1 text-xs font-semibold text-foreground/90 cursor-pointer" @click="toggleGroup(group.kind)">
             {{ group.label }}
           </span>
-          <span class="text-[10px] px-1 py-0.5 rounded-full bg-muted/60 text-muted-foreground font-mono shrink-0"> {{ (modelValue[group.kind] ?? []).length }}/{{ group.items.length }} </span>
-          <span v-if="disabledHints[group.kind]" class="rounded bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-700 font-medium shrink-0">
+          <span class="text-xs px-1 py-0.5 rounded-full bg-muted/60 text-muted-foreground font-mono shrink-0"> {{ (modelValue[group.kind] ?? []).length }}/{{ group.items.length }} </span>
+          <span v-if="disabledHints[group.kind]" class="rounded bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 text-xs text-amber-700 font-medium shrink-0">
             {{ disabledHints[group.kind] }}
           </span>
           <button data-test="group-expand" type="button" class="text-muted-foreground hover:text-foreground shrink-0 p-0.5" :aria-expanded="expanded.has(group.kind)" @click="toggleGroup(group.kind)">

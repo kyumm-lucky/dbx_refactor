@@ -78,7 +78,7 @@ function clear() {
         <label v-for="column in columns" :key="column.name" class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-muted/70">
           <input type="checkbox" class="h-3.5 w-3.5 accent-primary" :checked="draftColumns.includes(column.name)" :disabled="disabled" @change="toggleColumn(column.name, ($event.target as HTMLInputElement).checked)" />
           <span class="min-w-0 flex-1 truncate font-mono">{{ column.name }}</span>
-          <span v-if="column.is_nullable" class="shrink-0 text-[10px] text-muted-foreground">NULL</span>
+          <span v-if="column.is_nullable" class="shrink-0 text-xs text-muted-foreground">NULL</span>
         </label>
       </div>
       <div class="flex items-center justify-between gap-2 border-t px-3 py-2">

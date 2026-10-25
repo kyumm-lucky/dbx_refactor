@@ -6769,10 +6769,10 @@ async function openExternalUrl(url: string) {
                    binding whose connection was deleted or renamed away. -->
               <span v-else class="min-w-0 flex-1">
                 <span class="block truncate" :title="conv.title">{{ conv.title }}</span>
-                <span v-if="conv.connectionName" class="block truncate text-[10px]" :class="conversationRowDetail(conv).connectionMissing ? 'text-destructive/80' : 'text-muted-foreground/70'">{{ conv.connectionName }}</span>
+                <span v-if="conv.connectionName" class="block truncate text-xs" :class="conversationRowDetail(conv).connectionMissing ? 'text-destructive/80' : 'text-muted-foreground/70'">{{ conv.connectionName }}</span>
               </span>
               <button v-if="renamingConversationId !== conv.id" type="button" class="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground" :title="t('ai.renameConversation')" @click.stop="startRenameConversation(conv)"><Pencil class="h-3 w-3" /></button>
-              <span v-if="conversationRowDetail(conv).hasQueuedInput" class="shrink-0 rounded border border-primary/40 bg-primary/10 px-1 py-px text-[10px] text-primary" :aria-label="t('ai.rowQueuedInput')" :title="t('ai.rowQueuedInput')">{{ t("ai.rowQueuedInput") }}</span>
+              <span v-if="conversationRowDetail(conv).hasQueuedInput" class="shrink-0 rounded border border-primary/40 bg-primary/10 px-1 py-px text-xs text-primary" :aria-label="t('ai.rowQueuedInput')" :title="t('ai.rowQueuedInput')">{{ t("ai.rowQueuedInput") }}</span>
               <span v-if="conversationRowDetail(conv).status === 'preparing' || conversationRowDetail(conv).status === 'running'" class="flex min-w-0 shrink-0 items-center gap-1 text-muted-foreground" :aria-label="t('ai.runStatusRunning')" :title="t('ai.runStatusRunning')">
                 <Loader2 class="h-3 w-3 shrink-0 animate-spin" />
                 <span class="hidden truncate min-[430px]:inline">{{ conversationRowDetail(conv).phaseText ?? t("ai.runStatusRunning") }}</span>
@@ -6864,8 +6864,8 @@ async function openExternalUrl(url: string) {
           <template v-for="(msg, i) in visibleMessages" :key="i">
             <div v-if="awayUpdatesBaselineIndex >= 0 && i === awayUpdatesBaselineIndex" class="mb-1 flex items-center gap-2 py-0.5" role="separator" :aria-label="t('ai.awayUpdatesDivider')">
               <span class="h-px flex-1 bg-primary/25" />
-              <span class="shrink-0 text-[10px] uppercase tracking-wide text-primary/80">{{ t("ai.awayUpdatesDivider") }}</span>
-              <button type="button" class="shrink-0 rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/20" :title="t('ai.jumpToLatest')" :aria-label="t('ai.jumpToLatest')" @click="dismissAwayUpdates">
+              <span class="shrink-0 text-xs uppercase tracking-wide text-primary/80">{{ t("ai.awayUpdatesDivider") }}</span>
+              <button type="button" class="shrink-0 rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary hover:bg-primary/20" :title="t('ai.jumpToLatest')" :aria-label="t('ai.jumpToLatest')" @click="dismissAwayUpdates">
                 <ArrowDown class="mr-0.5 inline h-2.5 w-2.5" />
                 {{ t("ai.jumpToLatest") }}
               </button>
@@ -6879,7 +6879,7 @@ async function openExternalUrl(url: string) {
                       v-for="(mention, mentionIndex) in editingMentions"
                       :key="`${mention.kind}:${mention.raw}:${mentionIndex}`"
                       type="button"
-                      class="group inline-flex max-w-full items-center gap-1 rounded border border-border/80 bg-muted/70 px-1.5 py-0.5 text-[11px] text-foreground/90 hover:bg-muted"
+                      class="group inline-flex max-w-full items-center gap-1 rounded border border-border/80 bg-muted/70 px-1.5 py-0.5 text-xs text-foreground/90 hover:bg-muted"
                       :title="mentionDisplayName(mention)"
                       @click="removeEditingMentionChip(mentionIndex)"
                     >
@@ -6934,8 +6934,8 @@ async function openExternalUrl(url: string) {
                     @compositionend="editCompositionActive = false"
                   />
                   <div class="mt-1.5 flex justify-end gap-1.5">
-                    <Button size="sm" variant="ghost" class="h-6 px-2 text-[11px]" @click="cancelEdit">{{ t("ai.editCancel") }}</Button>
-                    <Button size="sm" class="h-6 px-2 text-[11px]" @click="submitEdit(i)">{{ t("ai.editResend") }}</Button>
+                    <Button size="sm" variant="ghost" class="h-6 px-2 text-xs" @click="cancelEdit">{{ t("ai.editCancel") }}</Button>
+                    <Button size="sm" class="h-6 px-2 text-xs" @click="submitEdit(i)">{{ t("ai.editResend") }}</Button>
                   </div>
                 </template>
                 <template v-else>
@@ -6986,10 +6986,10 @@ async function openExternalUrl(url: string) {
                     </div>
                     <div v-if="messageReferenceMentions(msg).length || messageSelectionLabels(msg).length || msg.content" class="ai-conversation-text min-w-0 rounded-lg bg-primary px-3 py-2 text-xs text-primary-foreground">
                       <div v-if="messageSelectionLabels(msg).length" class="mb-1.5 flex flex-wrap justify-end gap-1" data-ai-message-selections>
-                        <span v-for="selection in msg.selections" :key="selection.id" class="inline-flex max-w-full items-center gap-1 rounded border border-primary-foreground/25 bg-primary-foreground/15 px-1.5 py-0.5 text-[11px] text-primary-foreground">
+                        <span v-for="selection in msg.selections" :key="selection.id" class="inline-flex max-w-full items-center gap-1 rounded border border-primary-foreground/25 bg-primary-foreground/15 px-1.5 py-0.5 text-xs text-primary-foreground">
                           <FileCode class="h-3 w-3 shrink-0" />
                           <span class="truncate">{{ selectionChipName(selection) }}</span>
-                          <span v-if="selection.truncated" class="shrink-0 text-[9px]">{{ t("ai.attachmentTruncatedStatus") }}</span>
+                          <span v-if="selection.truncated" class="shrink-0 text-xs">{{ t("ai.attachmentTruncatedStatus") }}</span>
                         </span>
                       </div>
                       <div v-if="messageReferenceMentions(msg).length" class="mb-1.5 flex flex-wrap justify-end gap-1">
@@ -6997,7 +6997,7 @@ async function openExternalUrl(url: string) {
                           v-for="mention in messageReferenceMentions(msg)"
                           :key="`${mention.kind}:${mention.raw}`"
                           type="button"
-                          class="inline-flex max-w-full items-center gap-1 rounded border border-primary-foreground/25 bg-primary-foreground/15 px-1.5 py-0.5 text-[11px] text-primary-foreground hover:bg-primary-foreground/25"
+                          class="inline-flex max-w-full items-center gap-1 rounded border border-primary-foreground/25 bg-primary-foreground/15 px-1.5 py-0.5 text-xs text-primary-foreground hover:bg-primary-foreground/25"
                           :title="mention.kind === 'table' ? [mention.schema, mention.table].filter(Boolean).join('.') : mention.name"
                           @click.stop="openMessageMention(mention)"
                         >
@@ -7014,7 +7014,7 @@ async function openExternalUrl(url: string) {
                       <button
                         data-ai-auto-routed-chip
                         type="button"
-                        class="inline-flex max-w-full items-center gap-1 rounded border border-border/70 bg-background/80 px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                        class="inline-flex max-w-full items-center gap-1 rounded border border-border/70 bg-background/80 px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
                         :title="t('ai.routing.switchTo', { action: actionLabelFor(routedActionOf(msg)) })"
                         :aria-label="t('ai.routing.switchTo', { action: actionLabelFor(routedActionOf(msg)) })"
                         @click="switchToRoutedAction(routedActionOf(msg))"
@@ -7063,7 +7063,7 @@ async function openExternalUrl(url: string) {
             <div v-else-if="msg.content || msg.reasoning || msg.isThinking" class="flex w-full max-w-[95%] min-w-0 flex-col">
               <div data-ai-assistant-message-content class="ai-conversation-text w-full rounded-lg bg-muted px-3 py-2 text-xs leading-relaxed [overflow-wrap:anywhere]">
                 <div v-if="msg.reasoning || msg.isThinking" class="mb-2">
-                  <button class="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors" @click="toggleReasoning()">
+                  <button class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors" @click="toggleReasoning()">
                     <ChevronRight class="h-3 w-3 transition-transform duration-200" :class="{ 'rotate-90': reasoningExpanded }" />
                     <Loader2 v-if="msg.isThinking" class="h-3 w-3 animate-spin" />
                     <span>{{ t("ai.reasoningProcess") }}</span>
@@ -7076,13 +7076,13 @@ async function openExternalUrl(url: string) {
                       opacity: reasoningExpanded ? '1' : '0',
                     }"
                   >
-                    <div class="mt-1.5 pl-4 border-l-2 border-muted-foreground/20 text-[11px] text-muted-foreground whitespace-pre-wrap">
+                    <div class="mt-1.5 pl-4 border-l-2 border-muted-foreground/20 text-xs text-muted-foreground whitespace-pre-wrap">
                       {{ msg.reasoning }}
                     </div>
                   </div>
                 </div>
                 <div v-if="msg.agentSteps?.length" class="mb-2 space-y-1">
-                  <div v-for="step in msg.agentSteps" :key="step.key" class="rounded border text-[10px]" :class="agentStepClass(step.tone)">
+                  <div v-for="step in msg.agentSteps" :key="step.key" class="rounded border text-xs" :class="agentStepClass(step.tone)">
                     <button class="flex w-full items-center gap-1 px-2 py-1.5 text-left" @click="step.toolResult || step.toolArgs?.sql ? toggleStep(step.key) : undefined">
                       <Loader2 v-if="step.tone === 'active' && step.toolName" class="h-3 w-3 shrink-0 animate-spin" />
                       <component :is="agentStepIcon(step.tone)" v-else class="h-3 w-3 shrink-0" />
@@ -7099,16 +7099,16 @@ async function openExternalUrl(url: string) {
                     </button>
                     <AiToolApprovalCard v-if="step.approval" :approval="step.approval" @resolve="resolveToolApproval(step, $event)" />
                     <div v-if="expandedSteps.has(step.key)" class="border-t border-current/10 px-2 pb-2 pt-1">
-                      <div v-if="step.toolArgs?.sql" class="mb-1 rounded bg-background/50 px-2 py-1 font-mono text-[10px] text-foreground/80 whitespace-pre-wrap">{{ step.toolArgs.sql }}</div>
-                      <Button v-if="step.toolName === 'explain_query' && step.toolArgs?.sql" size="sm" variant="outline" class="mb-1 h-6 gap-1 text-[10px]" @click="emit('openExplainPlan', step.toolArgs.sql as string, conversationBinding)">
+                      <div v-if="step.toolArgs?.sql" class="mb-1 rounded bg-background/50 px-2 py-1 font-mono text-xs text-foreground/80 whitespace-pre-wrap">{{ step.toolArgs.sql }}</div>
+                      <Button v-if="step.toolName === 'explain_query' && step.toolArgs?.sql" size="sm" variant="outline" class="mb-1 h-6 gap-1 text-xs" @click="emit('openExplainPlan', step.toolArgs.sql as string, conversationBinding)">
                         <GitBranch class="h-3 w-3" />
                         {{ t("explain.title") }}
                       </Button>
                       <div v-if="step.toolName === 'explain_query' && step.explainData && boundConnection?.db_type" class="mb-1 h-64 overflow-hidden rounded border">
                         <ExplainPlanViewer :plan="parseExplainFromData(step.explainData, boundConnection.db_type)" />
                       </div>
-                      <div v-else-if="step.isError && step.toolResult" class="text-[10px] text-red-600 dark:text-red-400">{{ step.toolResult }}</div>
-                      <div v-else-if="step.toolResult" class="max-h-48 overflow-auto text-[10px] text-muted-foreground whitespace-pre-wrap">{{ step.toolResult }}</div>
+                      <div v-else-if="step.isError && step.toolResult" class="text-xs text-red-600 dark:text-red-400">{{ step.toolResult }}</div>
+                      <div v-else-if="step.toolResult" class="max-h-48 overflow-auto text-xs text-muted-foreground whitespace-pre-wrap">{{ step.toolResult }}</div>
                     </div>
                   </div>
                 </div>
@@ -7119,7 +7119,7 @@ async function openExternalUrl(url: string) {
                   <AiChartRenderer v-else-if="seg.type === 'chart'" :spec="seg.spec" :content="seg.content" />
                   <AiHtmlPreview v-else-if="seg.type === 'html'" :content="seg.content" :document="seg.document" />
                   <div v-else class="my-2 overflow-hidden rounded-md border border-zinc-200 bg-zinc-50 dark:border-zinc-700/50 dark:bg-zinc-900">
-                    <div class="flex items-center border-b border-zinc-200 px-3 py-1.5 text-[10px] font-medium text-zinc-600 dark:border-zinc-700/50 dark:text-zinc-400">
+                    <div class="flex items-center border-b border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 dark:border-zinc-700/50 dark:text-zinc-400">
                       <component :is="seg.isSql ? Database : Terminal" class="h-3 w-3 mr-1.5" />
                       <span>{{ seg.lang }}</span>
                       <span class="flex-1" />
@@ -7173,7 +7173,7 @@ async function openExternalUrl(url: string) {
                       v-if="sqlBlockStatus(i, j)"
                       data-ai-sql-action-status
                       role="status"
-                      class="border-t border-zinc-200 px-3 py-1.5 text-[10px] dark:border-zinc-700/50"
+                      class="border-t border-zinc-200 px-3 py-1.5 text-xs dark:border-zinc-700/50"
                       :class="sqlBlockStatus(i, j)?.phase === 'failed' || sqlBlockStatus(i, j)?.phase === 'unavailable' ? 'text-red-600 dark:text-red-400' : 'text-zinc-500 dark:text-zinc-400'"
                     >
                       <span class="flex items-start gap-1.5">
@@ -7186,18 +7186,18 @@ async function openExternalUrl(url: string) {
                   </div>
                 </template>
                 <div v-if="msg === proposalConfirmMessage" class="mt-2 flex gap-2" :title="t('ai.proposalConfirmTitle')">
-                  <Button size="sm" variant="default" class="h-7 gap-1 text-[11px]" @click="sendProposalReply(true)">
+                  <Button size="sm" variant="default" class="h-7 gap-1 text-xs" @click="sendProposalReply(true)">
                     <Check class="h-3 w-3" />
                     {{ t(isActionableWriteProposalMessage(msg) ? "ai.writeSqlConfirmYes" : "ai.proposalConfirmYes") }}
                   </Button>
-                  <Button size="sm" variant="outline" class="h-7 gap-1 text-[11px]" @click="sendProposalReply(false)">
+                  <Button size="sm" variant="outline" class="h-7 gap-1 text-xs" @click="sendProposalReply(false)">
                     <X class="h-3 w-3" />
                     {{ t(isActionableWriteProposalMessage(msg) ? "ai.writeSqlConfirmNo" : "ai.proposalConfirmNo") }}
                   </Button>
                 </div>
               </div>
               <div v-if="canCopyMessage(msg)" class="mt-1 flex items-center justify-between">
-                <span v-if="msg.tokens" class="text-[10px] text-muted-foreground">&#8593;{{ msg.tokens.input.toLocaleString() }} &#8595;{{ msg.tokens.output.toLocaleString() }} tokens</span>
+                <span v-if="msg.tokens" class="text-xs text-muted-foreground">&#8593;{{ msg.tokens.input.toLocaleString() }} &#8595;{{ msg.tokens.output.toLocaleString() }} tokens</span>
                 <span v-else />
                 <div class="flex items-center gap-1">
                   <button
@@ -7252,12 +7252,12 @@ async function openExternalUrl(url: string) {
             <template v-if="generationStatusIdle && generationStatus.activeTool && generationStatus.phase !== 'cancelling'">
               <span class="whitespace-nowrap tabular-nums">{{ t("ai.status.idle", { idle: statusIdleSeconds }) }}</span>
               <span class="whitespace-nowrap">{{ t("ai.status.runningToolAction") }}</span>
-              <span class="whitespace-nowrap rounded-[5px] border border-chart-2/30 bg-chart-2/12 px-1.5 py-px font-mono text-[10px] text-chart-2">{{ statusToolLabel }}</span>
+              <span class="whitespace-nowrap rounded-[5px] border border-chart-2/30 bg-chart-2/12 px-1.5 py-px font-mono text-xs text-chart-2">{{ statusToolLabel }}</span>
             </template>
             <template v-else-if="generationStatusRunningTool">
-              <span v-if="statusTurnBadge" class="whitespace-nowrap rounded-[5px] border border-border px-[5px] font-mono text-[10px] text-muted-foreground">{{ statusTurnBadge }}</span>
+              <span v-if="statusTurnBadge" class="whitespace-nowrap rounded-[5px] border border-border px-[5px] font-mono text-xs text-muted-foreground">{{ statusTurnBadge }}</span>
               <span class="whitespace-nowrap">{{ t("ai.status.runningToolAction") }}</span>
-              <span class="whitespace-nowrap rounded-[5px] border border-chart-2/30 bg-chart-2/12 px-1.5 py-px font-mono text-[10px] text-chart-2">{{ statusToolLabel }}</span>
+              <span class="whitespace-nowrap rounded-[5px] border border-chart-2/30 bg-chart-2/12 px-1.5 py-px font-mono text-xs text-chart-2">{{ statusToolLabel }}</span>
               <span class="whitespace-nowrap tabular-nums">{{ t("ai.status.runningToolElapsed", { elapsed: statusElapsedSeconds }) }}</span>
             </template>
             <span v-else class="min-w-0 tabular-nums">{{ generationStatusText }}</span>
@@ -7348,8 +7348,8 @@ async function openExternalUrl(url: string) {
                           <Check :class="['h-4 w-4 shrink-0', selectedDatabaseValues.has(option.database) ? 'opacity-100' : 'opacity-0']" />
                           <span class="min-w-0 flex-1 truncate">{{ option.label }}</span>
                         </button>
-                        <span v-if="isTargetNamespace(option.database)" class="shrink-0 rounded-sm bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary" data-ai-database-target>{{ t("ai.databaseTarget") }}</span>
-                        <button v-else type="button" class="shrink-0 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground" data-ai-database-target-action @click.stop="setDatabaseTarget(option.database)">{{ t("ai.setDatabaseTarget") }}</button>
+                        <span v-if="isTargetNamespace(option.database)" class="shrink-0 rounded-sm bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary" data-ai-database-target>{{ t("ai.databaseTarget") }}</span>
+                        <button v-else type="button" class="shrink-0 rounded-sm px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-foreground/5 hover:text-foreground" data-ai-database-target-action @click.stop="setDatabaseTarget(option.database)">{{ t("ai.setDatabaseTarget") }}</button>
                       </div>
                       <div v-if="!filteredDbSelectOptions.length" class="px-2 py-1.5 text-sm text-muted-foreground">{{ t("ai.noDatabasesFound") }}</div>
                     </div>
@@ -7383,12 +7383,7 @@ async function openExternalUrl(url: string) {
             <!-- Template selector -->
             <Popover v-if="!pluginContext" v-model:open="showTemplateSelector">
               <PopoverTrigger as-child>
-                <button
-                  type="button"
-                  class="ai-template-selector-trigger flex min-w-0 max-w-[40%] items-center gap-1 rounded-[6px] border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
-                  :aria-label="templateSelectorTriggerLabel"
-                  :title="templateSelectorTriggerLabel"
-                >
+                <button type="button" class="ai-template-selector-trigger flex min-w-0 max-w-[40%] items-center gap-1 rounded-[6px] border px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground" :aria-label="templateSelectorTriggerLabel" :title="templateSelectorTriggerLabel">
                   <FileCode class="h-3 w-3" />
                   <span class="ai-template-selector-label truncate">{{ templateSelectorTriggerLabel }}</span>
                   <svg class="ai-template-selector-chevron h-3 w-3 shrink-0 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
@@ -7413,7 +7408,7 @@ async function openExternalUrl(url: string) {
                             <span class="truncate">{{ tpl.name }}</span>
                             <Star v-if="isDefaultTemplateForCurrentDb(tpl.id)" class="h-3 w-3 shrink-0 text-amber-500" :title="t('ai.templateDefaultBadgeTitle', { type: currentDbTypeLabel() })" />
                           </div>
-                          <div class="text-[10px] text-muted-foreground truncate">{{ tpl.content.slice(0, 60) }}</div>
+                          <div class="text-xs text-muted-foreground truncate">{{ tpl.content.slice(0, 60) }}</div>
                         </div>
                       </button>
                     </template>
@@ -7431,14 +7426,14 @@ async function openExternalUrl(url: string) {
               <PopoverTrigger as-child>
                 <button
                   type="button"
-                  class="ai-skills-selector-trigger flex min-w-0 items-center gap-1 rounded-[6px] border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+                  class="ai-skills-selector-trigger flex min-w-0 items-center gap-1 rounded-[6px] border px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
                   :disabled="skillCapabilityUnavailable"
                   :aria-label="skillSelectorTriggerLabel"
                   :title="skillSelectorTriggerLabel"
                 >
                   <Layers class="h-3 w-3" />
                   <span class="ai-skills-selector-label truncate">{{ t("ai.skillsEntry") }}</span>
-                  <span v-if="selectedSkillIds.length" class="ai-skills-selector-count rounded-sm bg-primary px-1 text-[10px] font-medium text-primary-foreground">{{ selectedSkillIds.length }}</span>
+                  <span v-if="selectedSkillIds.length" class="ai-skills-selector-count rounded-sm bg-primary px-1 text-xs font-medium text-primary-foreground">{{ selectedSkillIds.length }}</span>
                 </button>
               </PopoverTrigger>
               <PopoverContent align="end" class="w-72 gap-0 p-1.5">
@@ -7448,7 +7443,7 @@ async function openExternalUrl(url: string) {
                   </div>
                   <div v-else-if="userSkillStore.lastError" class="space-y-1 px-3 py-4 text-center text-xs text-muted-foreground">
                     <div>{{ t("ai.skillsLoadError") }}</div>
-                    <button type="button" class="text-[11px] text-primary hover:underline" @click="refreshSkills">
+                    <button type="button" class="text-xs text-primary hover:underline" @click="refreshSkills">
                       {{ t("ai.skillsRetry") }}
                     </button>
                   </div>
@@ -7457,13 +7452,13 @@ async function openExternalUrl(url: string) {
                   </div>
                   <template v-else>
                     <template v-for="group in userSkillStore.groupedSkills" :key="group.source">
-                      <div class="px-2 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      <div class="px-2 pb-1 pt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         {{ t(group.source === "custom" ? "ai.skillsGroupCustom" : "ai.skillsGroupDefault") }}
                       </div>
                       <!-- Same-root name collision: the model addresses skills by name + source,
                            so it cannot pick between these two, and only changing one of the two
                            frontmatter `name` values fixes it (the folder name is irrelevant). -->
-                      <div v-if="duplicateNamesBySource.get(group.source)?.size" class="ai-skill-duplicate-note mx-2 mb-1 rounded-sm bg-amber-500/10 px-2 py-1 text-[10px] leading-snug text-amber-600">
+                      <div v-if="duplicateNamesBySource.get(group.source)?.size" class="ai-skill-duplicate-note mx-2 mb-1 rounded-sm bg-amber-500/10 px-2 py-1 text-xs leading-snug text-amber-600">
                         {{ t("ai.skillsDuplicateNameNote") }}
                       </div>
                       <template v-for="skill in group.skills" :key="skill.id">
@@ -7474,12 +7469,12 @@ async function openExternalUrl(url: string) {
                           <div class="min-w-0 flex-1 text-left">
                             <div class="flex items-center gap-1">
                               <span class="truncate font-medium">{{ skill.name }}</span>
-                              <span v-if="duplicateNamesBySource.get(group.source)?.has(skill.name)" class="ai-skill-duplicate-name inline-flex shrink-0 items-center gap-0.5 rounded-sm bg-amber-500/15 px-1 text-[10px] font-normal text-amber-600" :title="t('ai.skillsDuplicateName')">
+                              <span v-if="duplicateNamesBySource.get(group.source)?.has(skill.name)" class="ai-skill-duplicate-name inline-flex shrink-0 items-center gap-0.5 rounded-sm bg-amber-500/15 px-1 text-xs font-normal text-amber-600" :title="t('ai.skillsDuplicateName')">
                                 <AlertTriangle class="h-2.5 w-2.5" />
                                 {{ t("ai.skillsDuplicateName") }}
                               </span>
                             </div>
-                            <div class="truncate text-[10px] text-muted-foreground">{{ skill.description }}</div>
+                            <div class="truncate text-xs text-muted-foreground">{{ skill.description }}</div>
                           </div>
                         </button>
                       </template>
@@ -7532,7 +7527,7 @@ async function openExternalUrl(url: string) {
                 <span class="min-w-0 flex-1 truncate">
                   {{ mentionCandidateName(candidate) }}
                 </span>
-                <span class="max-w-[45%] shrink-0 truncate text-[10px] text-muted-foreground">{{ formatMentionCandidateType(candidate) }}</span>
+                <span class="max-w-[45%] shrink-0 truncate text-xs text-muted-foreground">{{ formatMentionCandidateType(candidate) }}</span>
               </button>
             </div>
           </div>
@@ -7549,7 +7544,7 @@ async function openExternalUrl(url: string) {
               >
                 <component :is="cmd.type === 'action' ? cmd.button.icon : Layers" class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 <span class="font-medium">/{{ cmd.type === "action" ? cmd.button.action : "skill" }}</span>
-                <span class="ml-auto text-[11px] text-muted-foreground">{{ t(cmd.type === "action" ? cmd.button.key : "ai.skillsEntry") }}</span>
+                <span class="ml-auto text-xs text-muted-foreground">{{ t(cmd.type === "action" ? cmd.button.key : "ai.skillsEntry") }}</span>
               </button>
             </div>
           </div>
@@ -7561,14 +7556,14 @@ async function openExternalUrl(url: string) {
               v-for="selection in selectedEditorSelections"
               :key="selection.id"
               type="button"
-              class="group inline-flex max-w-full items-center gap-1 rounded border bg-muted/60 px-1.5 py-0.5 text-[11px] text-foreground/90 hover:bg-muted"
+              class="group inline-flex max-w-full items-center gap-1 rounded border bg-muted/60 px-1.5 py-0.5 text-xs text-foreground/90 hover:bg-muted"
               :class="selection.truncated ? 'border-amber-500/50' : 'border-border/80'"
               :title="selectionChipTitle(selection)"
               @click="removeSelectionChip(selection.id)"
             >
               <FileCode class="h-3 w-3 shrink-0 text-primary" />
               <span class="truncate">{{ selectionChipName(selection) }}</span>
-              <span v-if="selection.truncated" class="shrink-0 text-[9px] text-amber-600 dark:text-amber-400">{{ t("ai.attachmentTruncatedStatus") }}</span>
+              <span v-if="selection.truncated" class="shrink-0 text-xs text-amber-600 dark:text-amber-400">{{ t("ai.attachmentTruncatedStatus") }}</span>
               <X class="h-3 w-3 shrink-0 text-muted-foreground group-hover:text-foreground" />
             </button>
           </div>
@@ -7577,7 +7572,7 @@ async function openExternalUrl(url: string) {
               v-for="mention in promptMentionChips"
               :key="mention.raw"
               type="button"
-              class="group inline-flex max-w-full items-center gap-1 rounded border border-border/80 bg-muted/60 px-1.5 py-0.5 text-[11px] text-foreground/90 hover:bg-muted"
+              class="group inline-flex max-w-full items-center gap-1 rounded border border-border/80 bg-muted/60 px-1.5 py-0.5 text-xs text-foreground/90 hover:bg-muted"
               :title="mentionDisplayName(mention)"
               @click="removeMentionChip(mention)"
             >
@@ -7594,24 +7589,19 @@ async function openExternalUrl(url: string) {
             <template v-if="selectedSkillsCollapsed">
               <button
                 type="button"
-                class="ai-skills-expand-toggle inline-flex max-w-full items-center gap-1.5 rounded border border-border/80 bg-muted/60 px-2 py-0.5 text-[11px] text-foreground/90 hover:bg-muted"
+                class="ai-skills-expand-toggle inline-flex max-w-full items-center gap-1.5 rounded border border-border/80 bg-muted/60 px-2 py-0.5 text-xs text-foreground/90 hover:bg-muted"
                 :title="t('ai.skillsExpand')"
                 :aria-label="t('ai.skillsExpand')"
                 @click="selectedSkillsCollapsed = false"
               >
                 <Layers class="h-3 w-3 shrink-0 text-primary" />
                 <span class="truncate font-medium">{{ t("ai.skillsSelectedCount", { count: selectedSkillChips.length }) }}</span>
-                <span v-if="loadedSelectedSkillsCount > 0" class="shrink-0 text-[9px] font-medium text-emerald-600 dark:text-emerald-400"> ({{ loadedSelectedSkillsCount }}/{{ selectedSkillChips.length }} {{ t("ai.skillsLoadedState") }}) </span>
+                <span v-if="loadedSelectedSkillsCount > 0" class="shrink-0 text-xs font-medium text-emerald-600 dark:text-emerald-400"> ({{ loadedSelectedSkillsCount }}/{{ selectedSkillChips.length }} {{ t("ai.skillsLoadedState") }}) </span>
                 <ChevronDown class="h-3 w-3 shrink-0 text-muted-foreground" />
               </button>
             </template>
             <template v-else>
-              <span
-                v-for="chip in selectedSkillChips"
-                :key="chip.id"
-                class="inline-flex max-w-full items-center rounded border bg-muted/60 text-[11px] text-foreground/90"
-                :class="chip.unavailable ? 'border-destructive/50 text-destructive' : chip.loaded ? 'border-emerald-500/60' : 'border-border/80'"
-              >
+              <span v-for="chip in selectedSkillChips" :key="chip.id" class="inline-flex max-w-full items-center rounded border bg-muted/60 text-xs text-foreground/90" :class="chip.unavailable ? 'border-destructive/50 text-destructive' : chip.loaded ? 'border-emerald-500/60' : 'border-border/80'">
                 <button
                   type="button"
                   class="ai-skill-chip flex min-w-0 items-center gap-1 py-0.5 pl-1.5 pr-1 hover:bg-muted disabled:cursor-not-allowed"
@@ -7624,8 +7614,8 @@ async function openExternalUrl(url: string) {
                   <AlertTriangle v-else-if="chip.unavailable" class="h-3 w-3 shrink-0" />
                   <Layers v-else class="h-3 w-3 shrink-0 text-primary" />
                   <span class="truncate" :title="chip.description || chip.name">{{ chip.name }}</span>
-                  <span class="shrink-0 text-[9px] text-muted-foreground">{{ t(chip.source === "custom" ? "ai.skillsGroupCustom" : "ai.skillsGroupDefault") }}</span>
-                  <span v-if="chip.loaded" class="shrink-0 text-[9px] font-medium text-emerald-600 dark:text-emerald-400">{{ t("ai.skillsLoadedState") }}</span>
+                  <span class="shrink-0 text-xs text-muted-foreground">{{ t(chip.source === "custom" ? "ai.skillsGroupCustom" : "ai.skillsGroupDefault") }}</span>
+                  <span v-if="chip.loaded" class="shrink-0 text-xs font-medium text-emerald-600 dark:text-emerald-400">{{ t("ai.skillsLoadedState") }}</span>
                 </button>
                 <button type="button" class="ai-skill-chip-remove shrink-0 py-0.5 pl-0.5 pr-1.5 hover:text-destructive" :aria-label="t('common.remove')" :title="t('common.remove')" @click="removeSelectedSkill(chip.id)">
                   <X class="h-3 w-3 shrink-0" />
@@ -7633,7 +7623,7 @@ async function openExternalUrl(url: string) {
               </span>
               <button
                 type="button"
-                class="ai-skills-collapse-toggle inline-flex items-center gap-1 rounded border border-border/80 bg-muted/60 px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                class="ai-skills-collapse-toggle inline-flex items-center gap-1 rounded border border-border/80 bg-muted/60 px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
                 :title="t('ai.skillsCollapse')"
                 :aria-label="t('ai.skillsCollapse')"
                 @click="selectedSkillsCollapsed = true"
@@ -7646,7 +7636,7 @@ async function openExternalUrl(url: string) {
           <!-- Req 14: one one-time hint per conversation while nothing selected has
                been loaded yet. Clicking it is the same force-load as the chip. -->
           <div v-if="showSkillHint && !selectedSkillsCollapsed" class="mb-1.5">
-            <button type="button" class="ai-skill-hint inline-flex max-w-full items-center gap-1 rounded border border-primary/40 bg-primary/5 px-1.5 py-0.5 text-left text-[11px] text-primary hover:bg-primary/10" :title="t('ai.skillsPreload')" @click="preloadHintedSkill">
+            <button type="button" class="ai-skill-hint inline-flex max-w-full items-center gap-1 rounded border border-primary/40 bg-primary/5 px-1.5 py-0.5 text-left text-xs text-primary hover:bg-primary/10" :title="t('ai.skillsPreload')" @click="preloadHintedSkill">
               <Sparkles class="h-3 w-3 shrink-0" />
               <span class="truncate">{{ skillHintText }}</span>
             </button>
@@ -7684,33 +7674,33 @@ async function openExternalUrl(url: string) {
               @remove="removeImageAttachment(index)"
             />
           </div>
-          <div v-if="skillFailures.length" class="mb-1.5 flex items-start gap-1.5 rounded-[7px] border border-destructive/40 bg-destructive/10 px-[9px] py-[5px] text-[11px] text-destructive" role="alert">
+          <div v-if="skillFailures.length" class="mb-1.5 flex items-start gap-1.5 rounded-[7px] border border-destructive/40 bg-destructive/10 px-[9px] py-[5px] text-xs text-destructive" role="alert">
             <AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <div class="min-w-0 flex-1">
               <div class="font-medium">{{ t("ai.skillsSendBlocked") }}</div>
               <div v-for="failure in skillFailures" :key="failure.id" class="truncate">{{ userSkillStore.metaFor(failure.id)?.name ?? failure.id }} — {{ t(skillFailureReasonKey(failure.reason)) }}</div>
             </div>
-            <button type="button" class="shrink-0 rounded border border-destructive/40 px-1.5 py-0.5 text-[10px] font-medium hover:bg-destructive/20" @click="send()">
+            <button type="button" class="shrink-0 rounded border border-destructive/40 px-1.5 py-0.5 text-xs font-medium hover:bg-destructive/20" @click="send()">
               {{ t("ai.skillsRetry") }}
             </button>
-            <button type="button" class="shrink-0 rounded px-1 py-0.5 text-[10px] text-muted-foreground hover:text-foreground" :disabled="userSkillStore.isLoading" @click="refreshSkills">
+            <button type="button" class="shrink-0 rounded px-1 py-0.5 text-xs text-muted-foreground hover:text-foreground" :disabled="userSkillStore.isLoading" @click="refreshSkills">
               {{ t("ai.skillsRefresh") }}
             </button>
-            <button v-if="skillFailures.some((failure) => failure.reason === 'root_unavailable')" type="button" class="shrink-0 rounded px-1 py-0.5 text-[10px] text-muted-foreground hover:text-foreground" @click="openSkillRootSettings">
+            <button v-if="skillFailures.some((failure) => failure.reason === 'root_unavailable')" type="button" class="shrink-0 rounded px-1 py-0.5 text-xs text-muted-foreground hover:text-foreground" @click="openSkillRootSettings">
               {{ t("ai.skillsOpenSettings") }}
             </button>
             <button type="button" class="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive" :aria-label="t('common.remove')" @click="removeFailedSkills()">
               <X class="h-3 w-3" />
             </button>
           </div>
-          <div v-if="recoveredDraftActive" class="mb-1.5 flex items-center gap-1.5 rounded-[7px] border border-primary/30 bg-primary/10 px-[9px] py-[5px] text-[11px] text-primary" role="status">
+          <div v-if="recoveredDraftActive" class="mb-1.5 flex items-center gap-1.5 rounded-[7px] border border-primary/30 bg-primary/10 px-[9px] py-[5px] text-xs text-primary" role="status">
             <Clock class="h-3.5 w-3.5 shrink-0" />
             <span class="min-w-0 flex-1 truncate"> {{ t("ai.recoveredDraftBanner") }} — {{ t("ai.recoveredDraftHint") }} </span>
             <button type="button" class="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive" :title="t('ai.discardDraft')" :aria-label="t('ai.discardDraft')" @click="discardRecoveredDraft">
               <X class="h-3 w-3" />
             </button>
           </div>
-          <div v-if="currentQueuedInput" class="mb-1.5 flex items-center gap-1.5 rounded-[7px] border border-primary/30 bg-primary/10 px-[9px] py-[5px] text-[11px] text-primary" role="status">
+          <div v-if="currentQueuedInput" class="mb-1.5 flex items-center gap-1.5 rounded-[7px] border border-primary/30 bg-primary/10 px-[9px] py-[5px] text-xs text-primary" role="status">
             <Hourglass class="h-3.5 w-3.5 shrink-0" />
             <span class="min-w-0 flex-1 truncate" :title="currentQueuedInput.text">
               {{ hasActiveRunForCurrentConversation ? t("ai.queuedInputWaiting", { text: currentQueuedInput.text }) : t("ai.queuedInputPending", { text: currentQueuedInput.text }) }}
@@ -7718,7 +7708,7 @@ async function openExternalUrl(url: string) {
             <button
               v-if="!hasActiveRunForCurrentConversation"
               type="button"
-              class="shrink-0 rounded border border-primary/40 bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground hover:bg-primary/90"
+              class="shrink-0 rounded border border-primary/40 bg-primary px-1.5 py-0.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
               :title="t('ai.sendQueuedInput')"
               :aria-label="t('ai.sendQueuedInput')"
               @click="sendQueuedInputNow"
@@ -7749,7 +7739,7 @@ async function openExternalUrl(url: string) {
           <input ref="csvFileInputRef" type="file" multiple accept="image/png,image/jpeg,image/gif,image/webp,.csv,.md,.markdown,.txt,.text,.json,.yaml,.yml,.xml,.log,.tsv" class="hidden" @change="onCsvFileSelected" />
           <!-- Gentle >60s hint (Issue #6743 feature 1): never asserts the request is
                stuck/hung, only that it is running long and may be waited on or stopped. -->
-          <div v-if="statusLongRunningHintVisible" class="mb-1.5 flex items-center gap-1.5 rounded-[7px] border border-warning/30 bg-warning/10 px-[9px] py-[5px] text-[11px] text-warning">
+          <div v-if="statusLongRunningHintVisible" class="mb-1.5 flex items-center gap-1.5 rounded-[7px] border border-warning/30 bg-warning/10 px-[9px] py-[5px] text-xs text-warning">
             <Clock class="h-3.5 w-3.5 shrink-0" />
             <span>{{ t("ai.status.longRunningHint") }}</span>
           </div>
@@ -7769,7 +7759,7 @@ async function openExternalUrl(url: string) {
             <!-- Combined mode + action selector -->
             <Popover v-model:open="modeActionOpen">
               <PopoverTrigger as-child>
-                <button type="button" class="ai-mode-action-trigger flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[6px] border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground" :aria-label="modeActionTriggerLabel" :title="modeActionTriggerLabel">
+                <button type="button" class="ai-mode-action-trigger flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[6px] border px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground" :aria-label="modeActionTriggerLabel" :title="modeActionTriggerLabel">
                   <component :is="modeIcon" class="h-3 w-3" />
                   <span class="ai-mode-action-label">{{ modeActionTriggerLabel }}</span>
                   <svg class="ai-mode-action-chevron h-3 w-3 shrink-0 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
@@ -7817,7 +7807,7 @@ async function openExternalUrl(url: string) {
                 <PopoverTrigger as-child>
                   <button
                     type="button"
-                    class="ai-model-selector-trigger min-w-0 flex shrink items-center gap-1.5 max-w-[220px] rounded-[6px] border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                    class="ai-model-selector-trigger min-w-0 flex shrink items-center gap-1.5 max-w-[220px] rounded-[6px] border px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
                     :aria-label="activeFullConfig?.model || t('ai.selectModel')"
                     :title="activeFullConfig?.model || t('ai.selectModel')"
                   >
@@ -7850,7 +7840,7 @@ async function openExternalUrl(url: string) {
                         />
                         <span class="min-w-0 flex-1 truncate font-medium">{{ config.name }}</span>
                         <Loader2 v-if="getModelCatalog(config.id).status === 'loading'" class="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />
-                        <span v-if="config.isDefault" class="ml-auto text-[10px] text-muted-foreground">{{ t("ai.default") }}</span>
+                        <span v-if="config.isDefault" class="ml-auto text-xs text-muted-foreground">{{ t("ai.default") }}</span>
                       </button>
                       <div v-if="!isModelConfigCollapsed(config.id)" class="ml-5 border-l border-border/60 pl-1">
                         <div v-if="getModelCatalog(config.id).status === 'loading' && !getModelsForConfig(config.id).length" class="flex items-center gap-2 px-2 py-2 text-xs text-muted-foreground">
@@ -7874,7 +7864,7 @@ async function openExternalUrl(url: string) {
                             <button type="button" class="flex min-w-0 flex-1 items-center gap-2 py-0.5 text-left" :data-model-id="model.id" @click="handleModelSelect(config.id, model.id)">
                               <span class="min-w-0 flex-1 truncate">
                                 {{ model.displayName || model.id }}
-                                <span v-if="model.displayName && model.displayName !== model.id" class="ml-1 text-[10px] text-muted-foreground">{{ model.id }}</span>
+                                <span v-if="model.displayName && model.displayName !== model.id" class="ml-1 text-xs text-muted-foreground">{{ model.id }}</span>
                               </span>
                               <Check v-if="model.id === settings.activeModel?.modelId && config.id === settings.activeModel?.configId" class="h-3.5 w-3.5 shrink-0 text-primary" />
                             </button>
@@ -7891,13 +7881,13 @@ async function openExternalUrl(url: string) {
                             </button>
                           </div>
                         </template>
-                        <div v-if="getModelCatalog(config.id).status === 'error' && getModelsForConfig(config.id).length" class="flex items-center justify-between gap-2 px-2 py-1 text-[10px] text-muted-foreground">
+                        <div v-if="getModelCatalog(config.id).status === 'error' && getModelsForConfig(config.id).length" class="flex items-center justify-between gap-2 px-2 py-1 text-xs text-muted-foreground">
                           <span class="truncate" :title="getModelCatalog(config.id).error">{{ t("ai.modelLoadFailed") }}</span>
                           <button type="button" class="shrink-0 text-primary hover:underline" @click="loadModels(config, true)">{{ t("ai.retry") }}</button>
                         </div>
                         <form v-if="manualModelConfigId === config.id" class="flex items-center gap-1 px-2 py-1" @submit.prevent="applyManualModel(config.id)">
                           <input v-model="manualModelId" data-manual-model-input type="text" :placeholder="t('ai.manualModelPlaceholder')" class="min-w-0 flex-1 rounded-sm border bg-background px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-primary" @click.stop />
-                          <Button type="submit" size="sm" class="h-6 px-2 text-[10px]" :disabled="!manualModelId.trim()">{{ t("common.confirm") }}</Button>
+                          <Button type="submit" size="sm" class="h-6 px-2 text-xs" :disabled="!manualModelId.trim()">{{ t("common.confirm") }}</Button>
                         </form>
                         <button v-else type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground" @click="startManualModel(config.id)">
                           <Pencil class="h-3 w-3" />
@@ -8017,7 +8007,7 @@ async function openExternalUrl(url: string) {
                             @click.stop
                             @blur="commitTextEffort"
                           />
-                          <Button type="submit" size="sm" class="h-6 px-2 text-[10px]">{{ t("common.confirm") }}</Button>
+                          <Button type="submit" size="sm" class="h-6 px-2 text-xs">{{ t("common.confirm") }}</Button>
                         </form>
                         <div v-else-if="activeEffortCapability?.kind === 'unsupported'" class="px-2 py-2 text-xs text-muted-foreground">
                           {{ t("ai.effortUnsupported") }}
@@ -8033,7 +8023,7 @@ async function openExternalUrl(url: string) {
             </button>
             <button
               v-else-if="hasActiveRunForCurrentConversation"
-              class="ai-prompt-send-control ai-prompt-queue-control h-7 shrink-0 items-center gap-1 rounded-full bg-foreground px-2.5 text-[11px] font-medium text-background-solid disabled:opacity-30 flex"
+              class="ai-prompt-send-control ai-prompt-queue-control h-7 shrink-0 items-center gap-1 rounded-full bg-foreground px-2.5 text-xs font-medium text-background-solid disabled:opacity-30 flex"
               :disabled="!canSubmitPrompt"
               :aria-label="t('ai.queueSend')"
               :title="t('ai.queueSendHint')"

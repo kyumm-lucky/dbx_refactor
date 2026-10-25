@@ -394,7 +394,7 @@ defineExpose({
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--color-text-tertiary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1;
   user-select: none;
   pointer-events: none;
@@ -416,7 +416,7 @@ defineExpose({
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .committed-placeholder {
@@ -425,7 +425,7 @@ defineExpose({
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--color-text-tertiary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .topic-combobox-input {
@@ -436,7 +436,7 @@ defineExpose({
   border: none;
   background: transparent;
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   outline: none;
 }
 
@@ -470,7 +470,7 @@ defineExpose({
   border: none;
   background: transparent;
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   text-align: left;
   cursor: pointer;
 }
@@ -483,11 +483,11 @@ defineExpose({
 .topic-combobox-empty {
   padding: 10px 12px;
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .topic-hint {
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-tertiary);
 }
 </style>

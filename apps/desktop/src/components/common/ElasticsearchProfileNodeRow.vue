@@ -88,18 +88,18 @@ const costPercent = computed(() => {
         <div class="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
           <div class="h-full rounded-full" :style="{ width: barPercent, background: HEAT_COLORS[node.heatLevel] }" />
         </div>
-        <span class="shrink-0 rounded px-1 font-mono text-[10px] font-semibold tabular-nums" :class="HEAT_BADGE_CLASSES[node.heatLevel]" :title="t('profile.legendSelfTime')">{{ costPercent }}</span>
+        <span class="shrink-0 rounded px-1 font-mono text-xs font-semibold tabular-nums" :class="HEAT_BADGE_CLASSES[node.heatLevel]" :title="t('profile.legendSelfTime')">{{ costPercent }}</span>
       </div>
 
-      <span v-if="node.isCriticalPath" class="shrink-0 rounded border border-orange-500/30 bg-orange-500/10 px-1 py-0.5 text-[10px] font-semibold text-orange-700 dark:text-orange-300" :title="t('profile.criticalPath')">
+      <span v-if="node.isCriticalPath" class="shrink-0 rounded border border-orange-500/30 bg-orange-500/10 px-1 py-0.5 text-xs font-semibold text-orange-700 dark:text-orange-300" :title="t('profile.criticalPath')">
         {{ t("profile.criticalPathTag") }}
       </span>
     </div>
 
     <div v-if="!collapsed">
       <div v-if="breakdownEntries.length" class="ml-6 mt-px flex flex-wrap items-center gap-1 pl-2">
-        <span class="text-[10px] uppercase tracking-wide text-muted-foreground">{{ t("profile.breakdown") }}</span>
-        <span v-for="entry in breakdownEntries" :key="entry.name" class="rounded bg-muted/60 px-1 py-0.5 font-mono text-[10px] tabular-nums text-foreground/80">{{ entry.name }}:{{ formatProfileNanos(entry.value) }}</span>
+        <span class="text-xs uppercase tracking-wide text-muted-foreground">{{ t("profile.breakdown") }}</span>
+        <span v-for="entry in breakdownEntries" :key="entry.name" class="rounded bg-muted/60 px-1 py-0.5 font-mono text-xs tabular-nums text-foreground/80">{{ entry.name }}:{{ formatProfileNanos(entry.value) }}</span>
       </div>
       <div v-if="node.children.length" class="ml-3 mt-px space-y-px border-l pl-2">
         <ElasticsearchProfileNodeRow v-for="(child, index) in node.children" :key="index" :node="child" :depth="depth + 1" :global-collapse="globalCollapse" @manual="emit('manual')" />

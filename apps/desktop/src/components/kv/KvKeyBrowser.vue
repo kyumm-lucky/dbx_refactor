@@ -2117,7 +2117,7 @@ defineExpose({
                   </div>
                 </div>
                 <div class="min-w-0 rounded-md border border-amber-500/30 bg-background/60 px-2.5 py-1.5 text-xs text-foreground sm:max-w-[22rem]">
-                  <div class="mb-1 text-[11px] font-medium text-muted-foreground">{{ labels.sessionId || "Session ID" }}</div>
+                  <div class="mb-1 text-xs font-medium text-muted-foreground">{{ labels.sessionId || "Session ID" }}</div>
                   <div class="flex min-w-0 items-center gap-1.5">
                     <code class="min-w-0 flex-1 truncate font-mono" :title="String(selectedMetadata?.session || '')">{{ selectedMetadata?.session }}</code>
                     <Button size="icon" variant="ghost" class="h-6 w-6 shrink-0" :title="labels.copy || 'Copy'" @click="copyText(selectedMetadata?.session)"><Copy class="h-3.5 w-3.5" /></Button>
@@ -2186,7 +2186,7 @@ defineExpose({
                   <div class="border-b bg-muted/30 px-3 py-2 text-xs font-medium text-muted-foreground">{{ labels.metadata || "Metadata" }}</div>
                   <dl class="grid grid-cols-2 divide-x divide-y sm:grid-cols-3">
                     <div v-for="row in consulMetadataRows" :key="row[0]" class="min-w-0 px-3 py-2.5">
-                      <dt class="text-[11px] font-medium text-muted-foreground">{{ row[0] }}</dt>
+                      <dt class="text-xs font-medium text-muted-foreground">{{ row[0] }}</dt>
                       <dd class="dbx-editor-font-family mt-1 truncate text-sm font-medium text-blue-600 dark:text-blue-400" :title="String(row[1])">{{ row[1] }}</dd>
                     </div>
                   </dl>

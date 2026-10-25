@@ -383,25 +383,25 @@ function getLayerColor(layerId: string): string {
 
           <div class="mt-2 space-y-1.5">
             <div class="flex border-b border-border">
-              <button type="button" class="flex-1 px-1 py-1 text-[10px] transition-colors" :class="getAddTableTab(layer.id) === 'existing' ? 'border-b-2 border-primary text-primary font-medium' : 'text-muted-foreground hover:text-foreground'" @click.stop="setAddTableTab(layer.id, 'existing')">
+              <button type="button" class="flex-1 px-1 py-1 text-xs transition-colors" :class="getAddTableTab(layer.id) === 'existing' ? 'border-b-2 border-primary text-primary font-medium' : 'text-muted-foreground hover:text-foreground'" @click.stop="setAddTableTab(layer.id, 'existing')">
                 {{ t("diagram.tabSelectExisting") }}
               </button>
-              <button type="button" class="flex-1 px-1 py-1 text-[10px] transition-colors" :class="getAddTableTab(layer.id) === 'create' ? 'border-b-2 border-primary text-primary font-medium' : 'text-muted-foreground hover:text-foreground'" @click.stop="setAddTableTab(layer.id, 'create')">
+              <button type="button" class="flex-1 px-1 py-1 text-xs transition-colors" :class="getAddTableTab(layer.id) === 'create' ? 'border-b-2 border-primary text-primary font-medium' : 'text-muted-foreground hover:text-foreground'" @click.stop="setAddTableTab(layer.id, 'create')">
                 {{ t("diagram.tabCreateTable") }}
               </button>
             </div>
 
             <div v-if="getAddTableTab(layer.id) === 'existing'" class="space-y-1">
               <div class="flex gap-1">
-                <button type="button" class="flex-1 text-[9px] bg-muted hover:bg-muted/80 py-0.5 rounded transition-colors" @click.stop="selectAllAvailableTables(layer.id)">
+                <button type="button" class="flex-1 text-xs bg-muted hover:bg-muted/80 py-0.5 rounded transition-colors" @click.stop="selectAllAvailableTables(layer.id)">
                   {{ t("diagram.selectAll") }}
                 </button>
-                <button type="button" class="flex-1 text-[9px] bg-muted hover:bg-muted/80 py-0.5 rounded transition-colors" @click.stop="clearSelection(layer.id)">
+                <button type="button" class="flex-1 text-xs bg-muted hover:bg-muted/80 py-0.5 rounded transition-colors" @click.stop="clearSelection(layer.id)">
                   {{ t("diagram.clearSelection") }}
                 </button>
               </div>
 
-              <input v-model="addTableFilter" type="search" class="w-full h-7 text-[11px] bg-background border border-border rounded px-2 outline-none focus:border-primary" :placeholder="t('diagram.filterTables')" @click.stop />
+              <input v-model="addTableFilter" type="search" class="w-full h-7 text-xs bg-background border border-border rounded px-2 outline-none focus:border-primary" :placeholder="t('diagram.filterTables')" @click.stop />
 
               <div class="space-y-0.5 max-h-48 overflow-y-auto border border-border rounded">
                 <div v-for="table in filteredAvailableTables" :key="tableKey(table)" class="flex items-center gap-1.5 px-2 py-1 text-xs hover:bg-muted/50 cursor-pointer" @click.stop="toggleSelectedTable(layer.id, tableKey(table))">
@@ -409,19 +409,19 @@ function getLayerColor(layerId: string): string {
                   <Square v-else class="h-3 w-3 text-muted-foreground shrink-0" />
                   <span class="flex-1 min-w-0 truncate" :title="tableKey(table)">{{ tableKey(table) }}</span>
                 </div>
-                <div v-if="filteredAvailableTables.length === 0" class="px-2 py-2 text-[10px] text-muted-foreground text-center">
+                <div v-if="filteredAvailableTables.length === 0" class="px-2 py-2 text-xs text-muted-foreground text-center">
                   {{ t("diagram.noMatchingTables") }}
                 </div>
               </div>
 
               <div v-if="store.layers.length > 1" class="mt-1">
                 <div class="flex items-center justify-between mb-1 gap-1">
-                  <button type="button" class="flex items-center gap-0.5 min-w-0 text-[9px] text-muted-foreground hover:text-foreground" @click.stop="toggleOtherLayersExpanded(layer.id)">
+                  <button type="button" class="flex items-center gap-0.5 min-w-0 text-xs text-muted-foreground hover:text-foreground" @click.stop="toggleOtherLayersExpanded(layer.id)">
                     <ChevronDown v-if="isOtherLayersExpanded(layer.id)" class="h-3 w-3 shrink-0" />
                     <ChevronRight v-else class="h-3 w-3 shrink-0" />
                     <span class="truncate">{{ t("diagram.tablesInOtherLayers") }}</span>
                   </button>
-                  <button type="button" class="text-[9px] text-primary/70 hover:text-primary shrink-0" @click.stop="selectAllTablesFromOtherLayers(layer.id)">
+                  <button type="button" class="text-xs text-primary/70 hover:text-primary shrink-0" @click.stop="selectAllTablesFromOtherLayers(layer.id)">
                     {{ t("diagram.selectAll") }}
                   </button>
                 </div>
@@ -433,11 +433,11 @@ function getLayerColor(layerId: string): string {
                       <div class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-background" :style="{ backgroundColor: getLayerColor(findLayerForTable(table, layer.id)?.id || '') }" />
                     </div>
                     <span class="flex-1 min-w-0 truncate opacity-70" :title="tableKey(table)">{{ tableKey(table) }}</span>
-                    <span class="text-[9px] px-1 py-0.5 rounded bg-muted-foreground/10 text-muted-foreground shrink-0">
+                    <span class="text-xs px-1 py-0.5 rounded bg-muted-foreground/10 text-muted-foreground shrink-0">
                       {{ getOtherLayerForTable(table, layer.id) }}
                     </span>
                   </div>
-                  <div v-if="getFilteredOtherLayerTables(layer.id).length === 0" class="px-2 py-2 text-[10px] text-muted-foreground text-center">
+                  <div v-if="getFilteredOtherLayerTables(layer.id).length === 0" class="px-2 py-2 text-xs text-muted-foreground text-center">
                     {{ t("diagram.noMatchingTables") }}
                   </div>
                 </div>
@@ -449,12 +449,12 @@ function getLayerColor(layerId: string): string {
             </div>
 
             <div v-else class="space-y-1.5" @click.stop>
-              <input v-model="createNameByLayerId[layer.id]" class="w-full h-7 text-[11px] bg-background border border-border rounded px-2 outline-none focus:border-primary" :placeholder="t('diagram.tableName')" @keydown.enter="submitCreateDraft(layer.id)" />
-              <label class="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <input v-model="createNameByLayerId[layer.id]" class="w-full h-7 text-xs bg-background border border-border rounded px-2 outline-none focus:border-primary" :placeholder="t('diagram.tableName')" @keydown.enter="submitCreateDraft(layer.id)" />
+              <label class="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <input v-model="createWithIdByLayerId[layer.id]" type="checkbox" />
                 {{ t("diagram.withDefaultIdPk") }}
               </label>
-              <p v-if="createErrorByLayerId[layer.id]" class="text-[10px] text-destructive">{{ createErrorByLayerId[layer.id] }}</p>
+              <p v-if="createErrorByLayerId[layer.id]" class="text-xs text-destructive">{{ createErrorByLayerId[layer.id] }}</p>
               <button type="button" class="w-full text-xs bg-primary text-primary-foreground py-1 rounded hover:bg-primary/90 transition-colors" @click.stop="submitCreateDraft(layer.id)">
                 {{ t("diagram.create") }}
               </button>

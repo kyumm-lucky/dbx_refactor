@@ -93,11 +93,11 @@ function handleSnippetClick(match: SavedSqlLineMatch) {
     <div
       v-for="match in visibleMatches"
       :key="match.lineNumber"
-      class="group/snippet flex cursor-pointer items-center gap-1.5 rounded py-0.5 pr-2 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
+      class="group/snippet flex cursor-pointer items-center gap-1.5 rounded py-0.5 pr-2 font-mono text-xs text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
       :title="formatMatchTooltip(match)"
       @click.stop="handleSnippetClick(match)"
     >
-      <span class="shrink-0 text-[10px] text-muted-foreground/70 select-none"> L{{ match.lineNumber }} </span>
+      <span class="shrink-0 text-xs text-muted-foreground/70 select-none"> L{{ match.lineNumber }} </span>
       <span v-center-search-match class="min-w-0 flex-1 overflow-hidden whitespace-nowrap">
         <template v-for="(seg, idx) in match.segments" :key="idx">
           <mark v-if="seg.matched" class="rounded-[2px] bg-amber-300/80 px-0.5 text-foreground dark:bg-amber-500/40">{{ seg.text }}</mark>
@@ -106,12 +106,12 @@ function handleSnippetClick(match: SavedSqlLineMatch) {
       </span>
     </div>
 
-    <div v-if="hasHiddenMatches" class="pt-0.5 text-[11px]">
-      <button type="button" class="text-[11px] font-normal text-primary hover:underline hover:text-primary/80 select-none" @click.stop="toggleExpanded">
+    <div v-if="hasHiddenMatches" class="pt-0.5 text-xs">
+      <button type="button" class="text-xs font-normal text-primary hover:underline hover:text-primary/80 select-none" @click.stop="toggleExpanded">
         {{ expanded ? t("sqlLibrary.collapseMatches") : t("sqlLibrary.moreMatches", { count: totalMatches - initialVisible }) }}
       </button>
     </div>
-    <p v-if="previewLimited" class="pt-0.5 text-[11px] text-muted-foreground">
+    <p v-if="previewLimited" class="pt-0.5 text-xs text-muted-foreground">
       {{ t("sqlLibrary.matchPreviewLimit", { limit: previewLimit, total: totalMatches }) }}
     </p>
   </div>

@@ -105,7 +105,7 @@ onUnmounted(() => {
 <template>
   <div class="grid min-h-0 flex-1 grid-cols-2 overflow-hidden">
     <section class="flex min-h-0 min-w-0 flex-col border-r">
-      <div class="flex h-8 shrink-0 items-center gap-2 border-b bg-muted/20 px-2 text-[11px]">
+      <div class="flex h-8 shrink-0 items-center gap-2 border-b bg-muted/20 px-2 text-xs">
         <span class="min-w-0 flex-1 truncate font-mono text-muted-foreground" :title="beforeLabel">{{ beforeLabel }}</span>
         <Button variant="ghost" size="icon" class="h-6 w-6" :disabled="!beforeAvailable" :title="copyBeforeTitle" @click="emit('copy', 'before')"><Copy class="h-3 w-3" /></Button>
       </div>
@@ -124,7 +124,7 @@ onUnmounted(() => {
     </section>
 
     <section class="flex min-h-0 min-w-0 flex-col">
-      <div class="flex h-8 shrink-0 items-center gap-2 border-b bg-muted/20 px-2 text-[11px]">
+      <div class="flex h-8 shrink-0 items-center gap-2 border-b bg-muted/20 px-2 text-xs">
         <span class="min-w-0 flex-1 truncate font-mono text-muted-foreground" :title="afterLabel">{{ afterLabel }}</span>
         <Button variant="ghost" size="icon" class="h-6 w-6" :disabled="!afterAvailable" :title="copyAfterTitle" @click="emit('copy', 'after')"><Copy class="h-3 w-3" /></Button>
       </div>

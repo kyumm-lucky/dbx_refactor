@@ -352,7 +352,7 @@ async function executeRequest() {
 
 .preset-header span {
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .preset-header span:nth-child(2) {
@@ -361,7 +361,7 @@ async function executeRequest() {
 
 .preset-toggle {
   color: var(--color-primary) !important;
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .preset-grid {
@@ -397,7 +397,7 @@ async function executeRequest() {
   background: var(--color-primary-alpha);
   color: var(--color-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
 }
 
@@ -409,13 +409,13 @@ async function executeRequest() {
 }
 
 .preset-copy strong {
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
 }
 
 .preset-copy small {
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1.35;
 }
 
@@ -431,7 +431,7 @@ label {
   gap: 6px;
   margin-bottom: 12px;
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .field-header {
@@ -476,7 +476,7 @@ textarea:disabled {
 
 h4 {
   margin: 0 0 12px;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
 }
 
@@ -485,7 +485,7 @@ h4 {
   gap: 8px;
   margin-bottom: 8px;
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 pre {
@@ -509,7 +509,7 @@ pre {
   padding: 12px 16px;
   margin-bottom: 12px;
   border-radius: var(--dbx-radius-fixed-6);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .panel-error {

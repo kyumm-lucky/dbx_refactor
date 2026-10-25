@@ -293,7 +293,7 @@ onUnmounted(stopAutoRefresh);
     <div class="flex h-11 shrink-0 items-center gap-2 border-b bg-muted/20 px-3">
       <Gauge class="h-4 w-4 text-primary" />
       <div class="truncate text-sm font-semibold">{{ t("xuguServerDashboard.title") }}</div>
-      <Badge variant="outline" class="h-5 max-w-56 truncate rounded-md px-1.5 text-[11px]" :title="connectionName">{{ connectionName }}</Badge>
+      <Badge variant="outline" class="h-5 max-w-56 truncate rounded-md px-1.5 text-xs" :title="connectionName">{{ connectionName }}</Badge>
       <div class="ml-auto flex items-center gap-2">
         <span class="hidden text-xs text-muted-foreground sm:inline">{{ version || "—" }}</span>
         <select :value="String(refreshSeconds)" class="h-7 rounded-md border bg-background px-2 text-xs" @change="changeRefresh(($event.target as HTMLSelectElement).value)">
@@ -361,7 +361,7 @@ onUnmounted(stopAutoRefresh);
                 ><span class="text-muted-foreground">{{ bufferTotalBytes === null || bufferFreeBytes === null ? "—" : `${formatBytes(bufferTotalBytes - bufferFreeBytes)} / ${formatBytes(bufferTotalBytes)}` }}</span>
               </div>
               <div class="h-2 overflow-hidden rounded-full bg-muted"><div class="h-full rounded-full bg-primary" :style="{ width: `${percentage(bufferTotalBytes, bufferFreeBytes)}%` }" /></div>
-              <div class="mt-1.5 flex justify-between text-[11px] text-muted-foreground">
+              <div class="mt-1.5 flex justify-between text-xs text-muted-foreground">
                 <span>{{ bufferTotalBytes === null || bufferFreeBytes === null ? "—" : t("xuguServerDashboard.usedPercent", { percent: percentage(bufferTotalBytes, bufferFreeBytes).toFixed(1) }) }}</span
                 ><span>{{ bufferDirtyBytes === null ? "—" : t("xuguServerDashboard.dirtyPages", { value: formatBytes(bufferDirtyBytes) }) }}</span>
               </div>
@@ -372,7 +372,7 @@ onUnmounted(stopAutoRefresh);
                 ><span class="text-muted-foreground">{{ sgaTotalBytes === null || sgaFreeBytes === null ? "—" : `${formatBytes(sgaTotalBytes - sgaFreeBytes)} / ${formatBytes(sgaTotalBytes)}` }}</span>
               </div>
               <div class="h-2 overflow-hidden rounded-full bg-muted"><div class="h-full rounded-full bg-sky-500" :style="{ width: `${percentage(sgaTotalBytes, sgaFreeBytes)}%` }" /></div>
-              <div class="mt-1.5 text-[11px] text-muted-foreground">{{ sgaTotalBytes === null || sgaFreeBytes === null ? "—" : t("xuguServerDashboard.usedPercent", { percent: percentage(sgaTotalBytes, sgaFreeBytes).toFixed(1) }) }}</div>
+              <div class="mt-1.5 text-xs text-muted-foreground">{{ sgaTotalBytes === null || sgaFreeBytes === null ? "—" : t("xuguServerDashboard.usedPercent", { percent: percentage(sgaTotalBytes, sgaFreeBytes).toFixed(1) }) }}</div>
             </div>
             <div>
               <div class="mb-1.5 flex items-center justify-between text-xs">
@@ -380,7 +380,7 @@ onUnmounted(stopAutoRefresh);
                 ><span class="text-muted-foreground">{{ swapTotalBytes === null || swapFreeBytes === null ? "—" : `${formatBytes(swapTotalBytes - swapFreeBytes)} / ${formatBytes(swapTotalBytes)}` }}</span>
               </div>
               <div class="h-2 overflow-hidden rounded-full bg-muted"><div class="h-full rounded-full bg-amber-500" :style="{ width: `${percentage(swapTotalBytes, swapFreeBytes)}%` }" /></div>
-              <div class="mt-1.5 text-[11px] text-muted-foreground">{{ swapTotalBytes === null || swapFreeBytes === null ? "—" : t("xuguServerDashboard.usedPercent", { percent: percentage(swapTotalBytes, swapFreeBytes).toFixed(1) }) }}</div>
+              <div class="mt-1.5 text-xs text-muted-foreground">{{ swapTotalBytes === null || swapFreeBytes === null ? "—" : t("xuguServerDashboard.usedPercent", { percent: percentage(swapTotalBytes, swapFreeBytes).toFixed(1) }) }}</div>
             </div>
           </div>
         </section>
@@ -485,7 +485,7 @@ onUnmounted(stopAutoRefresh);
                 <div class="mt-0.5 font-semibold">{{ lockModeCount(mode) ?? "—" }}</div>
               </div>
             </div>
-            <div class="mt-2 text-[11px] text-muted-foreground">{{ t("xuguServerDashboard.rowLockLimit") }}</div>
+            <div class="mt-2 text-xs text-muted-foreground">{{ t("xuguServerDashboard.rowLockLimit") }}</div>
           </div>
         </section>
       </div>
@@ -516,11 +516,11 @@ onUnmounted(stopAutoRefresh);
               <tr v-for="node in nodes" :key="node.nodeId" class="border-t hover:bg-muted/30">
                 <td class="px-3 py-2">
                   <div class="font-medium">#{{ node.nodeId }} · {{ node.host || "—" }}</div>
-                  <div class="mt-0.5 text-[11px] text-muted-foreground">{{ t("xuguServerDashboard.rack", { rack: node.rackNo || "—" }) }} · {{ t("xuguServerDashboard.stores", { count: node.storeCount || "0" }) }}</div>
+                  <div class="mt-0.5 text-xs text-muted-foreground">{{ t("xuguServerDashboard.rack", { rack: node.rackNo || "—" }) }} · {{ t("xuguServerDashboard.stores", { count: node.storeCount || "0" }) }}</div>
                 </td>
                 <td class="px-3 py-2">{{ nodeTypeText(node) }}</td>
                 <td class="px-3 py-2">
-                  <Badge variant="outline" class="h-5 rounded-full px-2 text-[10px]" :class="nodeStateClass(node)">{{ nodeStateText(node) }}</Badge>
+                  <Badge variant="outline" class="h-5 rounded-full px-2 text-xs" :class="nodeStateClass(node)">{{ nodeStateText(node) }}</Badge>
                 </td>
                 <td class="px-3 py-2">{{ node.cpuLoad || "—" }}</td>
                 <td class="px-3 py-2">

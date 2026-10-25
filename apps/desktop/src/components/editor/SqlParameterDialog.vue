@@ -184,7 +184,7 @@ async function copyResolvedSql() {
             </div>
             <div v-for="parameter in parameters" :key="parameter.key" class="grid grid-cols-[minmax(140px,1fr)_104px_132px_minmax(180px,1.5fr)] items-center gap-2 border-b px-3 py-2 text-sm last:border-b-0">
               <div class="min-w-0 truncate font-mono text-xs">{{ parameter.name }}</div>
-              <div class="min-w-0 truncate font-mono text-[11px] text-muted-foreground">{{ syntaxLabel(parameter) }}</div>
+              <div class="min-w-0 truncate font-mono text-xs text-muted-foreground">{{ syntaxLabel(parameter) }}</div>
               <Select :model-value="values[parameter.key]?.kind || 'string'" @update:model-value="(value) => updateKind(parameter.key, value as SqlParameterValueKind)">
                 <SelectTrigger class="h-8 bg-background text-xs">
                   <SelectValue />
@@ -220,7 +220,7 @@ async function copyResolvedSql() {
                       @mousedown.prevent="selectHistoryEntry(parameter.key, entry)"
                     >
                       <TruncatedTextTooltip :text="entry.value" class="min-w-0 flex-1 font-mono" side="top" :delay="150" />
-                      <span class="shrink-0 text-[10px] uppercase text-muted-foreground">{{ t(`sqlParameters.kind.${entry.kind}`) }}</span>
+                      <span class="shrink-0 text-xs uppercase text-muted-foreground">{{ t(`sqlParameters.kind.${entry.kind}`) }}</span>
                     </button>
                   </PopoverContent>
                 </Popover>

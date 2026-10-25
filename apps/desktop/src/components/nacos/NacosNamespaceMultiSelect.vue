@@ -122,7 +122,7 @@ function remove(value: string) {
           </button>
         </template>
       </div>
-      <div v-if="modelValue.length" class="border-t px-2 pt-1.5 text-[11px] text-muted-foreground">{{ t("nacos.namespaceSelectedCount", { count: modelValue.length }) }}</div>
+      <div v-if="modelValue.length" class="border-t px-2 pt-1.5 text-xs text-muted-foreground">{{ t("nacos.namespaceSelectedCount", { count: modelValue.length }) }}</div>
     </PopoverContent>
   </Popover>
 </template>

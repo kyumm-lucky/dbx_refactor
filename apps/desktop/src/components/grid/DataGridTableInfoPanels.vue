@@ -123,11 +123,11 @@ const overviewRows = computed(() => {
               <KeyRound v-if="column.is_primary_key" class="h-3 w-3 text-amber-500" />
               {{ column.name }}
             </span>
-            <div v-if="column.comment" class="mt-0.5 text-[11px] text-muted-foreground truncate">
+            <div v-if="column.comment" class="mt-0.5 text-xs text-muted-foreground truncate">
               {{ column.comment }}
             </div>
           </td>
-          <td class="px-3 py-2 font-mono text-[11px] text-muted-foreground">
+          <td class="px-3 py-2 font-mono text-xs text-muted-foreground">
             {{ props.formatColumnType(column.data_type) }}
           </td>
           <td class="px-3 py-2">
@@ -135,7 +135,7 @@ const overviewRows = computed(() => {
           </td>
           <td
             data-table-info-column-default
-            class="max-w-56 px-3 py-2 font-mono text-[11px]"
+            class="max-w-56 px-3 py-2 font-mono text-xs"
             :class="{
               'text-muted-foreground/70': column.column_default == null,
             }"
@@ -171,11 +171,11 @@ const overviewRows = computed(() => {
               <span v-if="index.is_unique" class="rounded bg-emerald-500/10 px-1.5 py-0.5 text-emerald-600">UNIQUE</span>
               <span v-if="index.index_type" class="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">{{ index.index_type }}</span>
             </div>
-            <div class="mt-2 font-mono text-[11px] text-muted-foreground break-all">
+            <div class="mt-2 font-mono text-xs text-muted-foreground break-all">
               {{ index.columns.join(", ") }}
             </div>
           </div>
-          <Button v-if="props.canManageMongoIndexes && !props.isProtectedMongoIndex(index)" variant="ghost" size="sm" class="h-7 shrink-0 px-2 text-[11px] text-destructive hover:text-destructive" @click="emit('requestDropMongoIndex', index)">
+          <Button v-if="props.canManageMongoIndexes && !props.isProtectedMongoIndex(index)" variant="ghost" size="sm" class="h-7 shrink-0 px-2 text-xs text-destructive hover:text-destructive" @click="emit('requestDropMongoIndex', index)">
             <Trash2 class="mr-1 h-3 w-3" />
             {{ t("contextMenu.dropIndex") }}
           </Button>
@@ -200,7 +200,7 @@ const overviewRows = computed(() => {
     <div v-else class="divide-y">
       <div v-for="foreignKey in props.foreignKeys" :key="`${foreignKey.name}:${foreignKey.column}`" class="p-3 text-xs">
         <div class="font-medium truncate">{{ foreignKey.name }}</div>
-        <div class="mt-1 font-mono text-[11px] text-muted-foreground break-all">{{ foreignKey.column }} -> {{ foreignKey.ref_table }}.{{ foreignKey.ref_column }}</div>
+        <div class="mt-1 font-mono text-xs text-muted-foreground break-all">{{ foreignKey.column }} -> {{ foreignKey.ref_table }}.{{ foreignKey.ref_column }}</div>
       </div>
     </div>
   </div>
@@ -221,7 +221,7 @@ const overviewRows = computed(() => {
     <div v-else class="divide-y">
       <div v-for="trigger in props.triggers" :key="trigger.name" class="p-3 text-xs">
         <div class="font-medium truncate">{{ trigger.name }}</div>
-        <div class="mt-1 text-[11px] text-muted-foreground">{{ trigger.timing }} {{ trigger.event }}</div>
+        <div class="mt-1 text-xs text-muted-foreground">{{ trigger.timing }} {{ trigger.event }}</div>
       </div>
     </div>
   </div>
@@ -243,13 +243,13 @@ const overviewRows = computed(() => {
       <div v-for="constraint in props.constraints" :key="constraint.name" class="p-3 text-xs" :class="constraint.enabled === false ? 'opacity-60' : ''">
         <div class="flex flex-wrap items-center gap-1.5">
           <span class="font-medium truncate">{{ constraint.name }}</span>
-          <span class="rounded border px-1 py-px text-[10px] text-muted-foreground">{{ constraint.constraint_type }}</span>
-          <span class="rounded border px-1 py-px text-[10px] text-muted-foreground">{{ t(constraint.enabled === true ? "grid.tableInfoConstraintEnabled" : constraint.enabled === false ? "grid.tableInfoConstraintDisabled" : "grid.tableInfoConstraintEnabledUnknown") }}</span>
-          <span class="rounded border px-1 py-px text-[10px] text-muted-foreground">{{ t(constraint.valid === true ? "grid.tableInfoConstraintValidated" : constraint.valid === false ? "grid.tableInfoConstraintNotValidated" : "grid.tableInfoConstraintValidationUnknown") }}</span>
+          <span class="rounded border px-1 py-px text-xs text-muted-foreground">{{ constraint.constraint_type }}</span>
+          <span class="rounded border px-1 py-px text-xs text-muted-foreground">{{ t(constraint.enabled === true ? "grid.tableInfoConstraintEnabled" : constraint.enabled === false ? "grid.tableInfoConstraintDisabled" : "grid.tableInfoConstraintEnabledUnknown") }}</span>
+          <span class="rounded border px-1 py-px text-xs text-muted-foreground">{{ t(constraint.valid === true ? "grid.tableInfoConstraintValidated" : constraint.valid === false ? "grid.tableInfoConstraintNotValidated" : "grid.tableInfoConstraintValidationUnknown") }}</span>
         </div>
-        <div v-if="constraint.columns.length" class="mt-1 font-mono text-[11px] text-muted-foreground break-all">{{ constraint.columns.join(", ") }}</div>
-        <div v-if="constraint.ref_table" class="mt-1 font-mono text-[11px] text-muted-foreground break-all">-> {{ constraint.ref_schema ? `${constraint.ref_schema}.` : "" }}{{ constraint.ref_table }}{{ constraint.ref_columns.length ? `(${constraint.ref_columns.join(", ")})` : "" }}</div>
-        <div v-if="constraint.definition" class="mt-1 font-mono text-[11px] text-muted-foreground break-all whitespace-pre-wrap">{{ constraint.definition }}</div>
+        <div v-if="constraint.columns.length" class="mt-1 font-mono text-xs text-muted-foreground break-all">{{ constraint.columns.join(", ") }}</div>
+        <div v-if="constraint.ref_table" class="mt-1 font-mono text-xs text-muted-foreground break-all">-> {{ constraint.ref_schema ? `${constraint.ref_schema}.` : "" }}{{ constraint.ref_table }}{{ constraint.ref_columns.length ? `(${constraint.ref_columns.join(", ")})` : "" }}</div>
+        <div v-if="constraint.definition" class="mt-1 font-mono text-xs text-muted-foreground break-all whitespace-pre-wrap">{{ constraint.definition }}</div>
       </div>
     </div>
   </div>
@@ -263,7 +263,7 @@ const overviewRows = computed(() => {
     <div v-else class="divide-y">
       <div v-for="row in overviewRows" :key="row.label" class="flex items-baseline gap-3 px-3 py-2 text-xs">
         <span class="w-20 shrink-0 text-muted-foreground">{{ row.label }}</span>
-        <span class="min-w-0 flex-1 select-text break-words" :class="row.mono ? 'font-mono text-[11px]' : ''" :title="row.value">{{ row.value }}</span>
+        <span class="min-w-0 flex-1 select-text break-words" :class="row.mono ? 'font-mono text-xs' : ''" :title="row.value">{{ row.value }}</span>
       </div>
     </div>
   </div>

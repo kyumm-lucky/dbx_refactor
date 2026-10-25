@@ -70,7 +70,7 @@ function toggleSelectAll() {
   <div class="space-y-2 rounded-lg border p-2">
     <div class="flex items-center justify-between gap-2">
       <Label class="text-xs font-medium">{{ title || t("tableMultiSelect.tables") }}</Label>
-      <div v-if="tables.length" class="text-[11px] text-muted-foreground">
+      <div v-if="tables.length" class="text-xs text-muted-foreground">
         {{ t("tableMultiSelect.selected", { selected: modelValue.length, total: tables.length }) }}
       </div>
     </div>

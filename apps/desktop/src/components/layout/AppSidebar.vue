@@ -209,7 +209,7 @@ defineExpose({ focusSearch, locateTabInSidebar, disconnectAllActiveConnections, 
       <div class="app-sidebar-toolbar flex items-center gap-px px-3 text-xs font-medium text-muted-foreground border-b bg-muted/20" :class="classicLayout ? 'h-9' : 'h-10'">
         <span v-if="showConnectionMultiSelectToolbar" class="flex min-w-0 self-stretch items-center" data-tauri-drag-region>
           <span class="truncate" data-tauri-drag-region>{{ t("sidebar.connections") }}</span>
-          <span class="ml-1.5 shrink-0 text-[11px] font-normal text-muted-foreground/80" data-connection-selection-count>
+          <span class="ml-1.5 shrink-0 text-xs font-normal text-muted-foreground/80" data-connection-selection-count>
             {{ t("connectionGroup.selectedConnections", { count: selectedConnectionCount }) }}
           </span>
         </span>
@@ -284,7 +284,7 @@ defineExpose({ focusSearch, locateTabInSidebar, disconnectAllActiveConnections, 
           @open-dependency-object="(context, target) => emit('open-dependency-object', context, target)"
         />
       </div>
-      <div v-if="activeConnectionEndpoint" data-sidebar-connection-endpoint class="flex shrink-0 items-center gap-1.5 border-t border-border/60 px-2.5 py-1.5 text-[11px] leading-none text-muted-foreground" :title="activeWindowConnection?.name">
+      <div v-if="activeConnectionEndpoint" data-sidebar-connection-endpoint class="flex shrink-0 items-center gap-1.5 border-t border-border/60 px-2.5 py-1.5 text-xs leading-none text-muted-foreground" :title="activeWindowConnection?.name">
         <Server class="h-3 w-3 shrink-0" />
         <span class="min-w-0 truncate font-mono">{{ activeConnectionEndpoint }}</span>
       </div>

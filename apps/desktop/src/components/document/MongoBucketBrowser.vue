@@ -502,7 +502,7 @@ watch(
               <PopoverTrigger as-child>
                 <button
                   type="button"
-                  class="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[11px] transition-colors"
+                  class="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-xs transition-colors"
                   :class="filterBuilderActive || filterInput.trim() ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15' : 'border-border/70 text-muted-foreground hover:bg-accent hover:text-foreground'"
                   @click="ensureFilterRule"
                 >
@@ -527,7 +527,7 @@ watch(
                       <Button
                         variant="ghost"
                         size="sm"
-                        class="h-6 px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                        class="h-6 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
                         @click="
                           updateFilterRule(rule.id, {
                             conjunction: rule.conjunction === 'AND' ? 'OR' : 'AND',
@@ -562,7 +562,7 @@ watch(
 
                       <div v-if="documentFilterModeUsesRange(rule.mode)" class="flex min-w-0 items-center gap-1.5">
                         <Input :model-value="rule.rawValue" class="h-8 min-w-0 flex-1 text-xs" :placeholder="t('grid.filterBuilderRangeStart')" @update:model-value="(value) => updateFilterRule(rule.id, { rawValue: String(value ?? '') })" @keydown.enter.prevent="applyStructuredFilters" />
-                        <span class="shrink-0 text-[10px] text-muted-foreground">—</span>
+                        <span class="shrink-0 text-xs text-muted-foreground">—</span>
                         <Input :model-value="rule.rawEndValue" class="h-8 min-w-0 flex-1 text-xs" :placeholder="t('grid.filterBuilderRangeEnd')" @update:model-value="(value) => updateFilterRule(rule.id, { rawEndValue: String(value ?? '') })" @keydown.enter.prevent="applyStructuredFilters" />
                       </div>
                       <textarea
@@ -642,7 +642,7 @@ watch(
           </div>
         </div>
         <div class="border-t border-border/60 px-3 py-1.5">
-          <div class="truncate font-mono text-[11px] text-muted-foreground" :title="filesQueryPreview">
+          <div class="truncate font-mono text-xs text-muted-foreground" :title="filesQueryPreview">
             {{ filesQueryPreview }}
           </div>
         </div>
@@ -663,7 +663,7 @@ watch(
 
     <div v-else class="min-h-0 flex flex-1 flex-col overflow-hidden xl:flex-row xl:divide-x xl:divide-border">
       <div class="min-h-0 flex-1 overflow-auto">
-        <table class="min-w-full border-collapse text-[13px]">
+        <table class="min-w-full border-collapse text-xs">
           <thead class="sticky top-0 z-10 bg-background">
             <tr class="border-b border-border text-left text-xs text-muted-foreground">
               <th class="w-11 px-3 py-2 font-medium">
@@ -732,12 +732,12 @@ watch(
                 <div class="truncate font-medium" :title="displayName(file)">{{ displayName(file) }}</div>
                 <div v-if="file.aliases?.length" class="mt-1 truncate text-xs text-muted-foreground" :title="file.aliases.join(', ')">{{ file.aliases.join(", ") }}</div>
               </td>
-              <td class="px-4 py-2 align-top whitespace-nowrap text-[12px] text-muted-foreground">{{ file.id }}</td>
+              <td class="px-4 py-2 align-top whitespace-nowrap text-xs text-muted-foreground">{{ file.id }}</td>
               <td class="px-4 py-2 align-top whitespace-nowrap tabular-nums text-muted-foreground">{{ formatBytes(file.length) }}</td>
               <td class="px-4 py-2 align-top whitespace-nowrap tabular-nums text-muted-foreground">{{ formatBytes(file.chunkSize || 0) }}</td>
               <td class="px-4 py-2 align-top whitespace-nowrap tabular-nums text-muted-foreground">{{ formattedUploadDate(file.uploadDate) }}</td>
               <td class="px-4 py-2 align-top whitespace-nowrap text-muted-foreground">{{ file.contentType || "-" }}</td>
-              <td class="px-4 py-2 align-top whitespace-nowrap text-[12px] text-muted-foreground">{{ file.md5 || "-" }}</td>
+              <td class="px-4 py-2 align-top whitespace-nowrap text-xs text-muted-foreground">{{ file.md5 || "-" }}</td>
             </tr>
           </tbody>
         </table>

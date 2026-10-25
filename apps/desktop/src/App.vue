@@ -30,7 +30,7 @@ import { useSqlExecutionDangerStore } from "@/stores/sqlExecutionDangerStore";
 import type { MultiDbExecutionContext } from "@/composables/useMultiDbExecution";
 import type { MultiDbExecutionTarget } from "@/types/sqlExecution";
 import { useProductionSafetyStore } from "@/stores/productionSafetyStore";
-import { enforceRightSidebarPanelExclusivity, RIGHT_SIDEBAR_PANEL_IDS, transitionRightSidebarPanels, useSettingsStore, type RightSidebarPanelId, type RightSidebarPanelState } from "@/stores/settingsStore";
+import { enforceRightSidebarPanelExclusivity, RIGHT_SIDEBAR_PANEL_IDS, SIDEBAR_FONT_SIZE_DEFAULT, transitionRightSidebarPanels, useSettingsStore, type RightSidebarPanelId, type RightSidebarPanelState } from "@/stores/settingsStore";
 import { useSavedSqlStore } from "@/stores/savedSqlStore";
 import { usePromptTemplateStore } from "@/stores/promptTemplateStore";
 import { useToast } from "@/composables/useToast";
@@ -1810,6 +1810,15 @@ function applyUiFontFamily(fontFamily: string, options?: { debouncePluginBumpMs?
   document.body.style.fontFamily = `var(${APP_FONT_SANS_CSS_VAR}, ${DEFAULT_UI_FONT_FAMILY})`;
 }
 
+// 全程序界面字号以左侧栏字号为基准：tokens.css 的正文步长都指向这个变量，
+// 侧栏字号一变整程序跟随。代码编辑器（fontSize）与数据网格内容（tableFontSize）
+// 仍按各自设置渲染。
+function applyUiFontSize(size: number) {
+  if (typeof document === "undefined") return;
+  const next = Number.isFinite(size) && size > 0 ? size : SIDEBAR_FONT_SIZE_DEFAULT;
+  writeRootToken("--dbx-ui-font-size", `${next}px`);
+}
+
 // Mirrors the editor font onto the global mono token so host mono surfaces and
 // plugin sandboxes (via the plugin bridge's token push) follow the same setting.
 function applyMonoFontFamily(fontFamily: string) {
@@ -1970,6 +1979,14 @@ watch(
   () => settingsStore.editorSettings.uiScale,
   (scale) => {
     void applyUiScale(scale);
+  },
+  { immediate: true },
+);
+
+watch(
+  () => settingsStore.editorSettings.sidebarFontSize,
+  (size) => {
+    applyUiFontSize(size);
   },
   { immediate: true },
 );

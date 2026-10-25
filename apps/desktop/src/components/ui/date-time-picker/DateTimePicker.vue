@@ -394,7 +394,7 @@ if (isOpen.value) beginDraft();
           </Button>
         </div>
 
-        <div ref="calendarGridRef" class="space-y-0.5 text-center text-[11px]" role="grid" :aria-label="label('calendarLabel', 'Calendar')">
+        <div ref="calendarGridRef" class="space-y-0.5 text-center text-xs" role="grid" :aria-label="label('calendarLabel', 'Calendar')">
           <div role="row" class="grid grid-cols-7 gap-0.5">
             <div v-for="weekDay in weekDays" :key="weekDay" role="columnheader" class="py-0.5 font-medium text-muted-foreground">{{ weekDay }}</div>
           </div>

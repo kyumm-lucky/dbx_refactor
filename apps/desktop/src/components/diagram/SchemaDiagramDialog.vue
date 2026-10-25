@@ -2390,7 +2390,7 @@ onUnmounted(() => {
                     </Button>
                     <div v-if="customRelationships.length > 0" class="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
                       <Badge v-for="relationship in customRelationships" :key="relationship.id" variant="secondary" class="gap-1 pr-1">
-                        <span class="max-w-48 truncate text-[10px]"> {{ relationship.sourceTable }}.{{ relationship.sourceColumn }} {{ relationship.sourceCardinality }}:{{ relationship.targetCardinality }} {{ relationship.targetTable }}.{{ relationship.targetColumn }} </span>
+                        <span class="max-w-48 truncate text-xs"> {{ relationship.sourceTable }}.{{ relationship.sourceColumn }} {{ relationship.sourceCardinality }}:{{ relationship.targetCardinality }} {{ relationship.targetTable }}.{{ relationship.targetColumn }} </span>
                         <button type="button" class="rounded-sm p-0.5 hover:bg-background/80" :title="t('diagram.removeRelationship')" @click="removeCustomRelationship(relationship.id)">
                           <Trash2 class="h-3 w-3" />
                         </button>

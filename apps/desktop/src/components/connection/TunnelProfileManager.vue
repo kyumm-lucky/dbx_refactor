@@ -272,7 +272,7 @@ async function testSelected() {
         :class="profile.id === selectedId ? 'tunnel-profile-option--selected border-primary bg-primary/5' : 'hover:bg-muted/50'"
         @click="selectedId = profile.id"
       >
-        <span class="shrink-0 rounded border bg-muted/40 px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">{{ profileTypeLabel(profile) }}</span>
+        <span class="shrink-0 rounded border bg-muted/40 px-1.5 py-0.5 text-xs uppercase text-muted-foreground">{{ profileTypeLabel(profile) }}</span>
         <span class="min-w-0 flex-1 truncate">{{ profileDisplayName(profile) }}</span>
         <span class="min-w-0 truncate text-muted-foreground">{{ tunnelProfileSummary(profile) }}</span>
       </button>

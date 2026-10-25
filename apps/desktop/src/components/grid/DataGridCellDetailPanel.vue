@@ -238,7 +238,7 @@ defineExpose({ openSearch });
           ]"
           @dblclick="emit('startEdit')"
           >{{ presentedValuePreview }}</pre>
-        <div v-if="detail.isValuePreviewTruncated && !sideJsonView" :style="transformOpen ? { display: 'none' } : null" :class="valueBesideImage ? 'col-start-1' : ''" class="text-[11px] text-muted-foreground">{{ t("grid.largeValuePreviewHint", { count: detail.rawValuePreview.length }) }}</div>
+        <div v-if="detail.isValuePreviewTruncated && !sideJsonView" :style="transformOpen ? { display: 'none' } : null" :class="valueBesideImage ? 'col-start-1' : ''" class="text-xs text-muted-foreground">{{ t("grid.largeValuePreviewHint", { count: detail.rawValuePreview.length }) }}</div>
       </div>
     </div>
     <div class="flex min-w-0 flex-wrap gap-1 overflow-hidden border-t bg-background p-1.5" :class="panelIsBottom ? 'shrink-0 items-center' : 'shrink-0 flex-col'">

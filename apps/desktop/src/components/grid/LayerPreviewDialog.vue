@@ -688,21 +688,21 @@ onBeforeUnmount(() => cleanupMap());
         </div>
 
         <!-- SRID selector (built-in shortlist + custom EPSG) -->
-        <select class="h-6 max-w-44 shrink-0 rounded border bg-background px-1.5 text-[11px] outline-none" :value="showCustomSrid ? 'custom' : String(selectedSrid)" @change="onSridSelect(($event.target as HTMLSelectElement).value)">
+        <select class="h-6 max-w-44 shrink-0 rounded border bg-background px-1.5 text-xs outline-none" :value="showCustomSrid ? 'custom' : String(selectedSrid)" @change="onSridSelect(($event.target as HTMLSelectElement).value)">
           <option v-for="opt in sridOptions" :key="opt.srid" :value="String(opt.srid)">{{ opt.label }}</option>
           <option v-if="!sridOptions.some((o) => o.srid === selectedSrid)" :value="String(selectedSrid)">
             {{ getSpatialReference(selectedSrid)?.label ?? `EPSG:${selectedSrid}` }}
           </option>
           <option value="custom">{{ t("grid.layerPreviewCustomCrs") }}</option>
         </select>
-        <input v-if="showCustomSrid" v-model="customSridInput" type="number" inputmode="numeric" :placeholder="t('grid.layerPreviewCustomCrsPlaceholder')" class="h-6 w-24 shrink-0 rounded border bg-background px-1.5 text-[11px] outline-none" @keyup.enter="onCustomSridSubmit" />
-        <span class="shrink-0 text-[11px] text-muted-foreground">{{ spatialSourceLabel }}</span>
-        <span v-if="skippedFeatureCount > 0" class="shrink-0 text-[11px] text-amber-600">
+        <input v-if="showCustomSrid" v-model="customSridInput" type="number" inputmode="numeric" :placeholder="t('grid.layerPreviewCustomCrsPlaceholder')" class="h-6 w-24 shrink-0 rounded border bg-background px-1.5 text-xs outline-none" @keyup.enter="onCustomSridSubmit" />
+        <span class="shrink-0 text-xs text-muted-foreground">{{ spatialSourceLabel }}</span>
+        <span v-if="skippedFeatureCount > 0" class="shrink-0 text-xs text-amber-600">
           {{ t("grid.layerPreviewSkipped", { count: skippedFeatureCount }) }}
         </span>
 
         <!-- Label property selector -->
-        <select v-if="labelProperties.length" v-model="labelProperty" class="h-6 max-w-40 shrink-0 rounded border bg-background px-1.5 text-[11px] outline-none" @change="onLabelPropertyChange">
+        <select v-if="labelProperties.length" v-model="labelProperty" class="h-6 max-w-40 shrink-0 rounded border bg-background px-1.5 text-xs outline-none" @change="onLabelPropertyChange">
           <option value="">{{ t("grid.layerPreviewLabel") }}</option>
           <option v-for="p in labelProperties" :key="p" :value="p">
             {{ p }}
@@ -712,7 +712,7 @@ onBeforeUnmount(() => cleanupMap());
         <!-- Basemap selector -->
         <Popover v-model:open="customBasemapOpen">
           <PopoverAnchor as-child>
-            <select class="ml-auto h-6 shrink-0 rounded border bg-background px-1.5 text-[11px] outline-none" :value="selectedBasemapId" @change="onBasemapSelect(($event.target as HTMLSelectElement).value)">
+            <select class="ml-auto h-6 shrink-0 rounded border bg-background px-1.5 text-xs outline-none" :value="selectedBasemapId" @change="onBasemapSelect(($event.target as HTMLSelectElement).value)">
               <option v-for="bm in basemaps" :key="bm.id" :value="bm.id">
                 {{ bm.label }}
               </option>
@@ -798,7 +798,7 @@ onBeforeUnmount(() => cleanupMap());
 }
 .layer-preview-dialog .leaflet-popup-content-wrapper {
   border-radius: var(--dbx-radius-fixed-6);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 .layer-preview-dialog .leaflet-popup-content {
   margin: 8px 12px;

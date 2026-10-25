@@ -495,7 +495,7 @@ onBeforeUnmount(() => {
         <div class="truncate text-sm font-semibold">{{ collectionLabel }}</div>
         <div class="truncate text-xs text-muted-foreground">
           {{ t("vector.productCollection", { product: productLabel }) }}
-          <span v-if="collectionDimension != null" class="ml-1.5 inline-flex items-center rounded border bg-muted/50 px-1.5 py-px text-[11px] font-medium text-foreground/80">{{ collectionDimension }}d</span>
+          <span v-if="collectionDimension != null" class="ml-1.5 inline-flex items-center rounded border bg-muted/50 px-1.5 py-px text-xs font-medium text-foreground/80">{{ collectionDimension }}d</span>
         </div>
       </div>
       <div class="flex shrink-0 items-center gap-1.5">

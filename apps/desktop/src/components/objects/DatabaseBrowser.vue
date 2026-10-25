@@ -671,7 +671,7 @@ defineExpose({ focusSearch, refresh });
                   v-for="key in visibleColumns"
                   :key="key"
                   class="min-w-0 truncate text-xs text-muted-foreground"
-                  :class="{ 'flex items-center gap-2 text-[13px] font-medium text-foreground': key === 'name', 'tabular-nums': key === 'sizeBytes' || key === 'createdAt' || key === 'updatedAt' }"
+                  :class="{ 'flex items-center gap-2 text-xs font-medium text-foreground': key === 'name', 'tabular-nums': key === 'sizeBytes' || key === 'createdAt' || key === 'updatedAt' }"
                   :title="displayValue(row, key)"
                 >
                   <Database v-if="key === 'name'" class="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
@@ -696,7 +696,7 @@ defineExpose({ focusSearch, refresh });
           tabindex="0"
           :class="
             isCompactView
-              ? 'flex h-7 min-w-0 cursor-pointer items-center gap-1 rounded border bg-card px-1.5 text-[11px] outline-none transition-all hover:border-primary/40 hover:bg-accent/40 focus-visible:border-primary'
+              ? 'flex h-7 min-w-0 cursor-pointer items-center gap-1 rounded border bg-card px-1.5 text-xs outline-none transition-all hover:border-primary/40 hover:bg-accent/40 focus-visible:border-primary'
               : 'flex min-h-28 cursor-pointer flex-col items-center gap-1 rounded-lg border bg-card p-3 text-center outline-none transition-all hover:border-primary/40 hover:shadow-sm focus-visible:border-primary'
           "
           @dblclick="openDatabase(row.name)"
@@ -711,11 +711,11 @@ defineExpose({ focusSearch, refresh });
               <template v-else>
                 <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 shadow-sm"><Database class="h-6 w-6 text-emerald-600 dark:text-emerald-400" /></div>
                 <span class="w-full truncate text-sm font-medium text-foreground" :title="row.name">{{ row.name }}</span>
-                <div class="flex min-h-[15px] items-center gap-1 text-[10px] leading-[15px] text-muted-foreground">
+                <div class="flex min-h-5 items-center gap-1 text-xs leading-5 text-muted-foreground">
                   <span v-if="row.sizeBytes != null">{{ formatObjectBrowserBytes(row.sizeBytes) }}</span
                   ><span v-if="row.createdAt && row.sizeBytes != null">·</span><span v-if="row.createdAt">{{ formatObjectBrowserTimestamp(row.createdAt) }}</span>
                 </div>
-                <div v-if="hasComment" class="w-full truncate text-[10px] leading-[15px] text-muted-foreground/60" :title="row.comment || ''">{{ row.comment || "\u00A0" }}</div>
+                <div v-if="hasComment" class="w-full truncate text-xs leading-5 text-muted-foreground/60" :title="row.comment || ''">{{ row.comment || "\u00A0" }}</div>
               </template>
             </div>
           </CustomContextMenu>

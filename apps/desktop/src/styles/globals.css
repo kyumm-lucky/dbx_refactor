@@ -1217,9 +1217,9 @@ html.dbx-legacy-webview [data-slot="tabs-trigger"] {
   border: 1px solid transparent;
   border-radius: var(--dbx-radius-fixed-6);
   color: rgba(10, 10, 10, 0.6);
-  font-size: 0.875rem;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
-  line-height: 1.25rem;
+  line-height: calc(var(--dbx-ui-font-size) + 6px);
   white-space: nowrap;
   transition:
     color 150ms ease,

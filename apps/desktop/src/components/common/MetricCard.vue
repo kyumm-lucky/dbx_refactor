@@ -16,6 +16,6 @@ defineProps<{
       <span class="truncate">{{ label }}</span>
     </div>
     <div class="text-xl font-semibold tabular-nums">{{ value }}</div>
-    <div v-if="sub" class="truncate text-[11px] text-muted-foreground">{{ sub }}</div>
+    <div v-if="sub" class="truncate text-xs text-muted-foreground">{{ sub }}</div>
   </div>
 </template>

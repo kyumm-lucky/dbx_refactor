@@ -313,7 +313,7 @@ function confirmRemoveChild() {
   margin-left: 8px;
   color: var(--muted-foreground);
   font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .json-edit-remove {
@@ -328,7 +328,7 @@ function confirmRemoveChild() {
   min-height: 28px;
   color: var(--muted-foreground);
   font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   white-space: nowrap;
 }
 

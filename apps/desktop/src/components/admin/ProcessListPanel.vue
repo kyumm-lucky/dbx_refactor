@@ -713,10 +713,8 @@ onBeforeUnmount(() => {
       <div class="flex min-w-0 items-center gap-2">
         <Activity class="h-4 w-4 text-primary" />
         <div class="truncate text-sm font-semibold">{{ t(transactionMode ? "processList.transactionTitle" : "processList.title") }}</div>
-        <Badge variant="outline" class="h-5 rounded-md px-1.5 text-[11px]">{{ connection.name }}</Badge>
-        <Badge v-if="!transactionMode || !loadError" variant="secondary" class="h-5 rounded-md px-1.5 text-[11px]">{{
-          t(transactionMode ? "processList.transactionCount" : "processList.sessionCount", { count: processListSessionCount(truncated ? rows.length : filteredRows.length, truncated) })
-        }}</Badge>
+        <Badge variant="outline" class="h-5 rounded-md px-1.5 text-xs">{{ connection.name }}</Badge>
+        <Badge v-if="!transactionMode || !loadError" variant="secondary" class="h-5 rounded-md px-1.5 text-xs">{{ t(transactionMode ? "processList.transactionCount" : "processList.sessionCount", { count: processListSessionCount(truncated ? rows.length : filteredRows.length, truncated) }) }}</Badge>
       </div>
       <div class="ml-auto flex flex-wrap items-center gap-2">
         <Button
@@ -755,7 +753,7 @@ onBeforeUnmount(() => {
         </label>
         <div class="flex h-7 items-center gap-1 rounded-md border bg-background px-1.5">
           <Input v-model.number="intervalSeconds" type="number" min="1" max="3600" class="h-6 w-14 border-0 px-1 text-xs shadow-none focus-visible:ring-0" @change="onIntervalInput" />
-          <span class="pr-1 text-[11px] text-muted-foreground">{{ t("processList.seconds") }}</span>
+          <span class="pr-1 text-xs text-muted-foreground">{{ t("processList.seconds") }}</span>
         </div>
         <Button variant="outline" size="sm" class="h-7 gap-1.5 px-2 text-xs" :disabled="refreshing || actionsLocked" @click="load()">
           <Loader2 v-if="loading" class="h-3.5 w-3.5 animate-spin" />
@@ -822,17 +820,17 @@ onBeforeUnmount(() => {
             >
               <template v-if="column.key === 'id'">
                 {{ row.id }}
-                <Badge v-if="isOwnSession(row)" variant="outline" class="ml-1 h-4 rounded px-1 text-[10px]">{{ t("processList.self") }}</Badge>
+                <Badge v-if="isOwnSession(row)" variant="outline" class="ml-1 h-5 rounded px-1 text-xs">{{ t("processList.self") }}</Badge>
               </template>
               <template v-else>{{ row[column.key] === null || row[column.key] === undefined ? "—" : row[column.key] }}</template>
             </td>
             <td class="px-3 py-1.5 text-right">
               <span class="inline-flex items-center justify-end gap-1">
-                <Button v-if="driver?.diagnosticEngine" variant="ghost" size="sm" class="h-6 gap-1 px-1.5 text-[11px]" :disabled="actionsLocked || refreshing" @click="showDiagnostics(row)">
+                <Button v-if="driver?.diagnosticEngine" variant="ghost" size="sm" class="h-6 gap-1 px-1.5 text-xs" :disabled="actionsLocked || refreshing" @click="showDiagnostics(row)">
                   <Activity class="h-3.5 w-3.5" />
                   {{ t("sessionDiagnostics.open") }}
                 </Button>
-                <Button v-if="driver?.buildLockDetailsSql" variant="ghost" size="sm" class="h-6 gap-1 px-1.5 text-[11px]" :disabled="actionsLocked || refreshing || loadingLocks" :title="t('processList.oracleLockDetails')" @click="showLocks(row)">
+                <Button v-if="driver?.buildLockDetailsSql" variant="ghost" size="sm" class="h-6 gap-1 px-1.5 text-xs" :disabled="actionsLocked || refreshing || loadingLocks" :title="t('processList.oracleLockDetails')" @click="showLocks(row)">
                   <Search class="h-3.5 w-3.5" />
                   {{ t("processList.oracleLockDetails") }}
                 </Button>
@@ -840,7 +838,7 @@ onBeforeUnmount(() => {
                   v-if="cancelSupported"
                   variant="ghost"
                   size="sm"
-                  class="h-6 gap-1 px-1.5 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
+                  class="h-6 gap-1 px-1.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
                   :disabled="isOwnSession(row) || transactionIdentityUnavailable || actionsLocked || refreshing"
                   :title="isOwnSession(row) ? t(transactionMode ? 'processList.transactionCannotKillSelf' : 'processList.cannotKillSelf') : t(transactionMode ? 'processList.transactionKill' : 'processList.kill')"
                   @click="requestCancel(row)"
@@ -852,7 +850,7 @@ onBeforeUnmount(() => {
                   v-if="terminateSupported"
                   variant="ghost"
                   size="sm"
-                  class="h-6 gap-1 px-1.5 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
+                  class="h-6 gap-1 px-1.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
                   :disabled="(rowAwareTerminate && ownSessionId === null) || isOwnSession(row) || !!terminateRowDisabledReason(row) || actionsLocked || refreshing"
                   :title="isOwnSession(row) ? t('processList.cannotTerminateSelf') : terminateRowDisabledReason(row) ? t(terminateRowDisabledReason(row) ?? '') : t('processList.terminate')"
                   @click="requestTerminate(row)"

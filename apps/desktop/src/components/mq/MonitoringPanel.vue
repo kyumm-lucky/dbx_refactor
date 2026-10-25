@@ -956,7 +956,7 @@ onUnmounted(() => {
   padding: 5px 9px;
   border: 1px solid transparent;
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
   color: var(--monitor-muted);
   cursor: pointer;
@@ -984,7 +984,7 @@ onUnmounted(() => {
   padding: 5px 30px 5px 10px;
   border: 1px solid var(--monitor-border);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
   background: var(--monitor-surface);
   color: var(--monitor-text);
@@ -1022,7 +1022,7 @@ onUnmounted(() => {
   background: var(--monitor-surface);
   color: var(--monitor-text);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 560;
   line-height: 1;
   white-space: nowrap;
@@ -1136,7 +1136,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 9px;
   margin: 0 0 14px;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1.35;
   font-weight: 680;
   color: var(--monitor-text);
@@ -1181,7 +1181,7 @@ onUnmounted(() => {
 
 .chart-panel h4 {
   margin: 0 0 8px 0;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1.35;
   font-weight: 650;
   color: var(--monitor-muted);
@@ -1283,7 +1283,7 @@ onUnmounted(() => {
 
 .stat-label {
   margin-bottom: 6px;
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1.3;
   font-weight: 560;
   color: var(--monitor-muted);
@@ -1342,7 +1342,7 @@ onUnmounted(() => {
   border-bottom: 1px solid var(--monitor-border);
   text-align: left;
   white-space: nowrap;
-  font-size: 12.5px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1.45;
   color: var(--monitor-text);
   font-variant-numeric: tabular-nums;
@@ -1355,7 +1355,7 @@ onUnmounted(() => {
   z-index: 1;
   background: color-mix(in srgb, var(--monitor-surface) 86%, var(--monitor-panel-bg));
   color: var(--monitor-muted);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 680;
 }
 
@@ -1393,7 +1393,7 @@ onUnmounted(() => {
   min-height: 24px;
   padding: 3px 9px;
   border-radius: 7px;
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 650;
   line-height: 1;
 }
@@ -1418,7 +1418,7 @@ onUnmounted(() => {
 
 .partition-detail h5 {
   margin: 0 0 12px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1.4;
   font-weight: 680;
   color: var(--monitor-text);
@@ -1433,7 +1433,7 @@ onUnmounted(() => {
 .detail-title {
   margin-bottom: 8px;
   color: var(--monitor-muted);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 650;
 }
 
@@ -1457,7 +1457,7 @@ onUnmounted(() => {
 }
 
 .health-label {
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1.35;
   color: var(--monitor-muted);
   font-weight: 560;
@@ -1469,7 +1469,7 @@ onUnmounted(() => {
   min-height: 24px;
   padding: 4px 10px;
   border-radius: 7px;
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 650;
   white-space: nowrap;
 }

@@ -455,7 +455,7 @@ th {
   padding: 10px 12px;
   text-align: left;
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
   border-bottom: 1px solid var(--color-border);
 }
@@ -496,7 +496,7 @@ td {
   background: var(--color-primary-alpha);
   color: var(--color-primary);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .tag-remove {
@@ -505,7 +505,7 @@ td {
   color: inherit;
   cursor: pointer;
   padding: 0;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1;
 }
 
@@ -573,7 +573,7 @@ button:disabled {
   display: block;
   margin-bottom: 6px;
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .form-group input[type="text"] {
@@ -581,7 +581,7 @@ button:disabled {
   padding: 8px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   box-sizing: border-box;
 }
 
@@ -631,12 +631,12 @@ button:disabled {
 .cluster-placeholder {
   flex: 1;
   color: var(--color-text-tertiary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .cluster-arrow {
   color: var(--color-text-tertiary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .cluster-options {
@@ -665,7 +665,7 @@ button:disabled {
   background: transparent;
   color: var(--color-text);
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   text-align: left;
 }
 
@@ -687,7 +687,7 @@ button:disabled {
 .cluster-empty {
   padding: 10px 12px;
   color: var(--color-text-tertiary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .cluster-manual {
@@ -696,7 +696,7 @@ button:disabled {
 
 .form-hint {
   margin-top: 4px;
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-tertiary);
 }
 
@@ -710,7 +710,7 @@ button:disabled {
   background: var(--color-error-bg);
   color: var(--color-error);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .dialog-footer {

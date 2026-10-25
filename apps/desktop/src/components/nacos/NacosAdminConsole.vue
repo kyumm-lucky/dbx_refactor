@@ -2937,7 +2937,7 @@ useUpdateBlocker(() =>
           <div v-if="configError" class="border-b px-3 py-2 text-xs text-destructive">{{ configError }}</div>
           <div ref="configListViewport" class="nacos-config-list-viewport min-h-0 flex-1 overflow-auto">
             <div class="w-max min-w-full" :style="{ minWidth: configListMinWidth }">
-              <div class="sticky top-0 z-20 grid border-b bg-muted px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground shadow-sm" :style="{ gridTemplateColumns: configListGridTemplate }">
+              <div class="sticky top-0 z-20 grid border-b bg-muted px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground shadow-sm" :style="{ gridTemplateColumns: configListGridTemplate }">
                 <div v-for="(column, columnIndex) in configListColumns" :key="column" class="relative min-w-0" :class="column === 'dataId' ? 'pr-3' : columnIndex === configListColumns.length - 1 ? 'pl-3 pr-10' : 'px-3'">
                   <span v-if="column === 'dataId'" class="flex items-center gap-2">
                     <input type="checkbox" :checked="allCurrentPageSelected" :aria-label="t('nacos.selectCurrentPage')" @change="toggleCurrentPageSelection(($event.target as HTMLInputElement).checked)" />
@@ -3035,11 +3035,11 @@ useUpdateBlocker(() =>
                     <h2 class="truncate text-sm font-semibold leading-5" :title="selectedConfig.dataId || t('nacos.newConfigDraft')">
                       {{ selectedConfig.dataId || t("nacos.newConfigDraft") }}
                     </h2>
-                    <span v-if="isCreatingConfig" class="shrink-0 rounded border border-dashed px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <span v-if="isCreatingConfig" class="shrink-0 rounded border border-dashed px-1.5 py-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       {{ t("nacos.draft") }}
                     </span>
                   </div>
-                  <div class="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <div class="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
                     <span class="truncate" :title="namespaceLabel">{{ namespaceLabel }}</span>
                     <span aria-hidden="true">/</span>
                     <span class="truncate" :title="selectedConfig.group || 'DEFAULT_GROUP'">{{ selectedConfig.group || "DEFAULT_GROUP" }}</span>
@@ -3048,7 +3048,7 @@ useUpdateBlocker(() =>
               </div>
 
               <div class="nacos-config-state shrink-0" aria-live="polite">
-                <span v-if="readOnly" class="rounded-md border bg-muted/30 px-2 py-1 text-[11px] font-medium text-muted-foreground">{{ t("nacos.readOnlyState") }}</span>
+                <span v-if="readOnly" class="rounded-md border bg-muted/30 px-2 py-1 text-xs font-medium text-muted-foreground">{{ t("nacos.readOnlyState") }}</span>
                 <span v-else-if="savingConfig" class="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Loader2 class="h-3.5 w-3.5 animate-spin" />
                   {{ t("nacos.saving") }}
@@ -3071,14 +3071,14 @@ useUpdateBlocker(() =>
 
             <section v-if="isCreatingConfig" class="nacos-config-identity-grid shrink-0 border-b bg-muted/10 px-3 py-2.5" :aria-label="t('nacos.configIdentity')">
               <div class="min-w-0 space-y-1">
-                <Label :for="`${configWorkbenchId}-data-id`" class="text-[11px] font-medium text-muted-foreground">
+                <Label :for="`${configWorkbenchId}-data-id`" class="text-xs font-medium text-muted-foreground">
                   <span class="text-destructive">*</span>
                   {{ t("nacos.dataId") }}
                 </Label>
                 <Input :id="`${configWorkbenchId}-data-id`" v-model="selectedConfig.dataId" class="h-8" :placeholder="t('nacos.dataId')" @input="configSaveNotice = ''" />
               </div>
               <div class="min-w-0 space-y-1">
-                <Label :for="`${configWorkbenchId}-group`" class="text-[11px] font-medium text-muted-foreground">
+                <Label :for="`${configWorkbenchId}-group`" class="text-xs font-medium text-muted-foreground">
                   <span class="text-destructive">*</span>
                   {{ t("nacos.group") }}
                 </Label>
@@ -3100,15 +3100,15 @@ useUpdateBlocker(() =>
               </button>
               <div v-if="configAdvancedOpen" :id="`${configWorkbenchId}-inspector`" class="nacos-config-inspector-grid border-t bg-muted/10 px-3 py-2.5">
                 <div class="min-w-0 space-y-1">
-                  <Label :for="`${configWorkbenchId}-tags`" class="text-[11px] font-medium text-muted-foreground">{{ t("nacos.tags") }}</Label>
+                  <Label :for="`${configWorkbenchId}-tags`" class="text-xs font-medium text-muted-foreground">{{ t("nacos.tags") }}</Label>
                   <Input :id="`${configWorkbenchId}-tags`" v-model="selectedConfig.tags" class="h-8" placeholder="tag1,tag2" :disabled="readOnly" @input="configSaveNotice = ''" />
                 </div>
                 <div class="min-w-0 space-y-1">
-                  <Label :for="`${configWorkbenchId}-application`" class="text-[11px] font-medium text-muted-foreground">{{ t("nacos.application") }}</Label>
+                  <Label :for="`${configWorkbenchId}-application`" class="text-xs font-medium text-muted-foreground">{{ t("nacos.application") }}</Label>
                   <Input :id="`${configWorkbenchId}-application`" v-model="selectedConfig.appName" class="h-8" :disabled="readOnly" @input="configSaveNotice = ''" />
                 </div>
                 <div class="nacos-config-description min-w-0 space-y-1">
-                  <Label :for="`${configWorkbenchId}-description`" class="text-[11px] font-medium text-muted-foreground">{{ t("nacos.description") }}</Label>
+                  <Label :for="`${configWorkbenchId}-description`" class="text-xs font-medium text-muted-foreground">{{ t("nacos.description") }}</Label>
                   <Input :id="`${configWorkbenchId}-description`" v-model="selectedConfig.desc" class="h-8" :disabled="readOnly" @input="configSaveNotice = ''" />
                 </div>
               </div>
@@ -3123,7 +3123,7 @@ useUpdateBlocker(() =>
                     v-for="format in configFormatOptions"
                     :key="format"
                     type="button"
-                    class="shrink-0 rounded border px-2 py-0.5 text-[11px] font-medium transition-colors"
+                    class="shrink-0 rounded border px-2 py-0.5 text-xs font-medium transition-colors"
                     :class="configType === format ? 'border-foreground/80 bg-foreground text-background-solid' : 'border-transparent text-muted-foreground hover:border-border hover:bg-background hover:text-foreground'"
                     :disabled="readOnly"
                     :aria-pressed="configType === format"

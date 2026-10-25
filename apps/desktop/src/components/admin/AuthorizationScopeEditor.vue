@@ -293,7 +293,7 @@ function isPostgresGrantSchema(schema: string): boolean {
     <div v-if="!compact" class="flex items-center justify-between gap-3">
       <div>
         <div class="text-xs font-medium">{{ t("userAdmin.databaseAccess") }}</div>
-        <div class="mt-1 text-[11px] text-muted-foreground">{{ t("userAdmin.databaseAccessHint") }}</div>
+        <div class="mt-1 text-xs text-muted-foreground">{{ t("userAdmin.databaseAccessHint") }}</div>
       </div>
       <Badge variant="outline">{{ t("userAdmin.selectedDatabaseCount", { count: modelValue.length }) }}</Badge>
     </div>
@@ -327,19 +327,19 @@ function isPostgresGrantSchema(schema: string): boolean {
         </div>
         <div v-if="supportsTableGrants && database.database !== GLOBAL_SCOPE && selectedDatabaseSet.has(authorizationOptionKey(database))" class="mt-2 flex gap-2" :class="compact ? 'flex-col gap-1.5' : 'items-center pl-5'">
           <div v-if="!objectScope" class="flex items-center gap-2">
-            <span v-if="!compact" class="shrink-0 text-[11px] text-muted-foreground">{{ t("userAdmin.tableScope") }}</span>
+            <span v-if="!compact" class="shrink-0 text-xs text-muted-foreground">{{ t("userAdmin.tableScope") }}</span>
             <div class="flex h-7 shrink-0 items-center rounded-md border bg-muted/30 p-0.5">
-              <button type="button" class="h-5 rounded px-2 text-[10px]" :class="!usesSelectedTables(database) ? 'bg-background font-medium shadow-sm' : 'text-muted-foreground'" @click="updateTableScope(database, false)">
+              <button type="button" class="h-5 rounded px-2 text-xs" :class="!usesSelectedTables(database) ? 'bg-background font-medium shadow-sm' : 'text-muted-foreground'" @click="updateTableScope(database, false)">
                 {{ t("userAdmin.allTables") }}
               </button>
-              <button type="button" class="h-5 rounded px-2 text-[10px]" :class="usesSelectedTables(database) ? 'bg-background font-medium shadow-sm' : 'text-muted-foreground'" @click="updateTableScope(database, true)">
+              <button type="button" class="h-5 rounded px-2 text-xs" :class="usesSelectedTables(database) ? 'bg-background font-medium shadow-sm' : 'text-muted-foreground'" @click="updateTableScope(database, true)">
                 {{ t("userAdmin.specificTables") }}
               </button>
             </div>
           </div>
           <Popover v-if="usesSelectedTables(database)">
             <PopoverTrigger as-child>
-              <button type="button" class="flex min-w-0 flex-1 items-center gap-1.5 rounded-md border bg-background px-2 text-left hover:bg-accent" :class="compact ? 'h-9 text-xs' : 'h-7 text-[11px]'">
+              <button type="button" class="flex min-w-0 flex-1 items-center gap-1.5 rounded-md border bg-background px-2 text-left hover:bg-accent" :class="compact ? 'h-9 text-xs' : 'h-7 text-xs'">
                 <Table2 class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 <span class="min-w-0 flex-1 truncate">
                   {{ objectScope ? `${t("oracleSecurity.chooseObjects")} (${selectionFor(database)?.tables?.length ?? 0})` : selectionFor(database)?.tables?.length ? t("userAdmin.selectedTableCount", { count: selectionFor(database)?.tables?.length }) : t("userAdmin.chooseTables") }}
@@ -352,9 +352,9 @@ function isPostgresGrantSchema(schema: string): boolean {
               <div class="flex items-center gap-2 border-b p-2">
                 <div class="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-md border px-2">
                   <Search class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <input v-model="tableSearch[authorizationOptionKey(database)]" class="min-w-0 flex-1 bg-transparent text-[11px] outline-none" :placeholder="t(objectScope ? 'oracleSecurity.searchObjects' : 'userAdmin.searchTable')" />
+                  <input v-model="tableSearch[authorizationOptionKey(database)]" class="min-w-0 flex-1 bg-transparent text-xs outline-none" :placeholder="t(objectScope ? 'oracleSecurity.searchObjects' : 'userAdmin.searchTable')" />
                 </div>
-                <button v-if="!objectScope" type="button" class="shrink-0 text-[11px] text-primary disabled:text-muted-foreground" :disabled="!(tables[authorizationOptionKey(database)]?.length > 0)" @click="toggleAllTables(database)">
+                <button v-if="!objectScope" type="button" class="shrink-0 text-xs text-primary disabled:text-muted-foreground" :disabled="!(tables[authorizationOptionKey(database)]?.length > 0)" @click="toggleAllTables(database)">
                   {{ t(allTablesSelected(database) ? "userAdmin.clearAllTables" : "userAdmin.selectAllTables") }}
                 </button>
               </div>
@@ -380,7 +380,7 @@ function isPostgresGrantSchema(schema: string): boolean {
             </PopoverContent>
           </Popover>
         </div>
-        <p v-if="!objectScope && usesSelectedTables(database) && !selectionFor(database)?.tables?.length" class="mt-1 text-[10px] text-destructive" :class="compact ? '' : 'pl-5'">
+        <p v-if="!objectScope && usesSelectedTables(database) && !selectionFor(database)?.tables?.length" class="mt-1 text-xs text-destructive" :class="compact ? '' : 'pl-5'">
           {{ t("userAdmin.tableSelectionRequired") }}
         </p>
         <div v-if="selectionFor(database)?.preset === 'custom'" class="mt-2 grid gap-1.5" :class="compact ? 'grid-cols-2' : 'grid-cols-3 pl-5'">
@@ -389,18 +389,18 @@ function isPostgresGrantSchema(schema: string): boolean {
             :key="privilege"
             type="button"
             :title="privilege"
-            class="flex h-7 min-w-0 items-center gap-1.5 rounded border px-2 text-[10px]"
+            class="flex h-7 min-w-0 items-center gap-1.5 rounded border px-2 text-xs"
             :class="isPrivilegeSelected(database, privilege) ? 'border-primary bg-primary/10 text-primary' : 'bg-background'"
             @click="togglePrivilege(database, privilege)"
           >
             <Check v-if="isPrivilegeSelected(database, privilege)" class="h-3 w-3 shrink-0" />
             <span class="min-w-0 flex-1 truncate text-left">{{ privilege }}</span>
           </button>
-          <p v-if="!selectionFor(database)?.privileges?.length" class="text-[10px] text-destructive" :class="compact ? 'col-span-2' : 'col-span-3'">
+          <p v-if="!selectionFor(database)?.privileges?.length" class="text-xs text-destructive" :class="compact ? 'col-span-2' : 'col-span-3'">
             {{ t("userAdmin.customPrivilegeRequired") }}
           </p>
         </div>
-        <p v-if="provider?.dialect === 'postgres' && selectedDatabaseSet.has(authorizationOptionKey(database)) && selectionFor(database)?.preset === 'ddl'" class="mt-2 text-[10px] text-muted-foreground" :class="compact ? '' : 'pl-5'">
+        <p v-if="provider?.dialect === 'postgres' && selectedDatabaseSet.has(authorizationOptionKey(database)) && selectionFor(database)?.preset === 'ddl'" class="mt-2 text-xs text-muted-foreground" :class="compact ? '' : 'pl-5'">
           {{ t("userAdmin.postgresDdlHint") }}
         </p>
       </div>

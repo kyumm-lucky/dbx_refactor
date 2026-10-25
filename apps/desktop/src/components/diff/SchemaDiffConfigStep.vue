@@ -941,11 +941,11 @@ async function fetchDbVersion(connectionId: string, database: string, schema: st
             {{ restrictTables ? t("diff.compareAllTables") : t("diff.chooseTables") }}
           </Button>
         </div>
-        <div v-if="!tablesCompareEnabled" class="text-[11px] text-muted-foreground">
+        <div v-if="!tablesCompareEnabled" class="text-xs text-muted-foreground">
           {{ t("diff.tableCompareDisabled") }}
         </div>
         <template v-else>
-          <div v-if="!restrictTables" class="text-[11px] text-muted-foreground">
+          <div v-if="!restrictTables" class="text-xs text-muted-foreground">
             {{ t("diff.tableSelectionUnrestricted") }}
           </div>
           <TableMultiSelect
@@ -1033,10 +1033,10 @@ async function fetchDbVersion(connectionId: string, database: string, schema: st
             {{ restrictRoutines ? t("diff.compareAllRoutines") : t("diff.chooseRoutines") }}
           </Button>
         </div>
-        <div v-if="!canEnableRoutinesCompare" class="text-[11px] text-muted-foreground">
+        <div v-if="!canEnableRoutinesCompare" class="text-xs text-muted-foreground">
           {{ t("diff.routineSelectionUnsupported") }}
         </div>
-        <div v-else-if="!routinesCompareEnabled" class="text-[11px] text-muted-foreground">
+        <div v-else-if="!routinesCompareEnabled" class="text-xs text-muted-foreground">
           {{ t("diff.routineCompareDisabled") }}
         </div>
         <template v-else>
@@ -1046,10 +1046,10 @@ async function fetchDbVersion(connectionId: string, database: string, schema: st
               {{ kind.replaceAll("_", " ") }}
             </label>
           </div>
-          <div v-if="!restrictRoutines" class="text-[11px] text-muted-foreground">
+          <div v-if="!restrictRoutines" class="text-xs text-muted-foreground">
             {{ !isTableIdentityReady("source") ? t("diff.routineSelectionNeedSource") : t("diff.routineSelectionUnrestricted") }}
           </div>
-          <div v-if="unrestrictedRoutineLoadTooLarge" class="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
+          <div v-if="unrestrictedRoutineLoadTooLarge" class="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-700 dark:text-amber-300">
             {{ t("diff.routineSelectionTooLarge", { count: sourceRoutineList.length, limit: SCHEMA_DIFF_UNRESTRICTED_ROUTINE_LIMIT }) }}
           </div>
           <TableMultiSelect
@@ -1074,7 +1074,7 @@ async function fetchDbVersion(connectionId: string, database: string, schema: st
             {{ t("diff.matchedRoutines", { matched: matchedRoutineCount, total: localSelectedRoutines.length }) }}
           </div>
         </div>
-        <p class="text-[11px] text-muted-foreground">{{ t("diff.routineSameNameMatchingOnly") }}</p>
+        <p class="text-xs text-muted-foreground">{{ t("diff.routineSameNameMatchingOnly") }}</p>
         <div class="overflow-x-auto rounded border">
           <table class="w-full min-w-[520px]">
             <thead class="border-b bg-muted/30 text-muted-foreground">
@@ -1138,7 +1138,7 @@ async function fetchDbVersion(connectionId: string, database: string, schema: st
             <div class="flex items-center justify-between w-full gap-2">
               <div class="flex flex-col gap-0.5 min-w-0">
                 <span class="text-xs font-medium truncate">{{ config.name }}</span>
-                <span class="text-[10px] text-muted-foreground truncate">
+                <span class="text-xs text-muted-foreground truncate">
                   {{ store.getConfig(config.sourceConnectionId)?.name || config.sourceConnectionId }}
                   /{{ config.sourceDatabase }}{{ config.sourceSchema ? `.${config.sourceSchema}` : "" }}
                   →
@@ -1173,7 +1173,7 @@ async function fetchDbVersion(connectionId: string, database: string, schema: st
         <Button v-if="showFieldMapping" variant="outline" size="sm" @click="$emit('open-field-mapping')">
           <ArrowLeftRight class="w-3.5 h-3.5 mr-1" />
           {{ t("diff.openFieldMapping") }}
-          <span v-if="activeFieldMappings.length > 0" class="ml-1 inline-flex items-center justify-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">{{ activeFieldMappings.length }}</span>
+          <span v-if="activeFieldMappings.length > 0" class="ml-1 inline-flex items-center justify-center rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">{{ activeFieldMappings.length }}</span>
         </Button>
       </div>
       <Button size="sm" :disabled="!canCompare || loading" @click="$emit('compare')">

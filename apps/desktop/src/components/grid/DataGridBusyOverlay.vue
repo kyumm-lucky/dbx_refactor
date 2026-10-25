@@ -50,7 +50,7 @@ const pageJumpProgressPercent = computed(() => {
       </div>
       <div class="min-w-0 flex-1">
         <div class="truncate text-sm font-medium text-foreground">{{ t("grid.pageJumpLoading", { page: pageJumpProgress.targetPage }) }}</div>
-        <div class="mt-0.5 flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+        <div class="mt-0.5 flex items-center justify-between gap-3 text-xs text-muted-foreground">
           <span>{{ t("grid.pageJumpProgress", { current: pageJumpProgress.completedRequests, total: pageJumpProgress.totalRequests }) }}</span>
           <span class="shrink-0 tabular-nums">{{ formatElapsedSeconds(elapsedMs) }}s</span>
         </div>

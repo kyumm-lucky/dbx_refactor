@@ -45,9 +45,10 @@
  *
  * The `--text-*` entries likewise redefine Tailwind's whole type scale rather
  * than adding new names: the app already says `text-xs`..`text-xl` in
- * thousands of places, and remapping those five steps onto 11/12/13/15/17 is
- * what collapses the old 10/11/12/12.5/13/16 mix without a class-by-class
- * migration.
+ * thousands of places, and remapping those steps is what collapses the old
+ * 10/11/12/12.5/13/16 mix without a class-by-class migration. The body and
+ * control steps resolve to `--dbx-ui-font-size`, so the whole app shares the
+ * sidebar's text size instead of per-surface one-offs.
  *
  * `@custom-variant dark` travels with it for the same reason: Tailwind's stock
  * `dark:` variant keys off `prefers-color-scheme`, so without this the app's
@@ -62,13 +63,16 @@
   --font-mono: var(--dbx-font-mono);
   --font-heading: var(--dbx-font-ui);
 
-  /* Type scale: five UI steps, no intermediate 12.5px/14px sizes. */
-  --text-xs: 11px;
-  --text-xs--line-height: 14px;
-  --text-sm: 12px;
-  --text-sm--line-height: 16px;
-  --text-base: 13px;
-  --text-base--line-height: 18px;
+  /* Type scale. Body/control steps all resolve to one runtime size,
+   * `--dbx-ui-font-size`, so every surface shares the sidebar's text size
+   * (the sidebar font-size setting drives that variable at runtime). Headings
+   * keep their own larger steps. */
+  --text-xs: var(--dbx-ui-font-size);
+  --text-xs--line-height: calc(var(--dbx-ui-font-size) + 6px);
+  --text-sm: var(--dbx-ui-font-size);
+  --text-sm--line-height: calc(var(--dbx-ui-font-size) + 6px);
+  --text-base: var(--dbx-ui-font-size);
+  --text-base--line-height: calc(var(--dbx-ui-font-size) + 6px);
   --text-lg: 15px;
   --text-lg--line-height: 20px;
   --text-xl: 17px;
@@ -152,6 +156,11 @@
   --dbx-font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
   /* CJK 回退与 appFonts 的 DEFAULT_MONO_FALLBACK_FONTS 保持一致（dbx#674/#1510）。 */
   --dbx-font-mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", monospace;
+
+  /* 全程序界面字号：由左侧栏字号设置（editorSettings.sidebarFontSize）在运行时
+   * 写入；正文步长与清扫后的硬编码字号都指向它。代码编辑器与数据网格内容仍按
+   * 各自设置渲染。 */
+  --dbx-ui-font-size: 14px;
 
   /* Radius: 4/6/8/10/14/20. `2xs` is the inline-chip step (a highlight on a
    * token inside a line of text, where the control radius would read as a

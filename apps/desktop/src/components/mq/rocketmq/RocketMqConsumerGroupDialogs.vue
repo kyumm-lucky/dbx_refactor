@@ -464,7 +464,7 @@ watch(
 .detail-section h4,
 .section-heading h4 {
   margin: 0 0 10px;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .section-heading {
@@ -479,7 +479,7 @@ watch(
   display: grid;
   grid-template-columns: 140px 1fr;
   gap: 8px 12px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .consume-detail-list {
@@ -496,7 +496,7 @@ watch(
   display: flex;
   flex-wrap: wrap;
   gap: 12px 20px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text);
 }
 
@@ -518,7 +518,7 @@ watch(
   padding: 8px 10px;
   border-bottom: 1px solid var(--color-border-light);
   text-align: left;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   white-space: nowrap;
 }
 
@@ -534,7 +534,7 @@ watch(
 .form-group label {
   display: block;
   margin-bottom: 6px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
 }
 
@@ -564,7 +564,7 @@ watch(
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .panel-loading,
@@ -572,7 +572,7 @@ watch(
   padding: 16px;
   text-align: center;
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .panel-placeholder-compact {
@@ -585,7 +585,7 @@ watch(
   background: var(--color-error-bg);
   color: var(--color-error);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 button:disabled {

@@ -24,22 +24,22 @@ function selectView(view: DataTableTabView) {
     <button
       type="button"
       class="inline-flex h-4 shrink-0 items-center rounded px-2 text-xs leading-none transition-colors"
-      :class="activeView === 'structure' ? 'bg-background font-medium text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
-      role="tab"
-      :aria-selected="activeView === 'structure'"
-      @click="selectView('structure')"
-    >
-      <span class="inline-flex h-4 items-center leading-none">{{ t("tabs.tableStructure") }}</span>
-    </button>
-    <button
-      type="button"
-      class="inline-flex h-4 shrink-0 items-center rounded px-2 text-xs leading-none transition-colors"
       :class="activeView === 'data' ? 'bg-background font-medium text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
       role="tab"
       :aria-selected="activeView === 'data'"
       @click="selectView('data')"
     >
       <span class="inline-flex h-4 items-center leading-none">{{ t("tabs.tableDataView") }}</span>
+    </button>
+    <button
+      type="button"
+      class="inline-flex h-4 shrink-0 items-center rounded px-2 text-xs leading-none transition-colors"
+      :class="activeView === 'structure' ? 'bg-background font-medium text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+      role="tab"
+      :aria-selected="activeView === 'structure'"
+      @click="selectView('structure')"
+    >
+      <span class="inline-flex h-4 items-center leading-none">{{ t("tabs.tableStructure") }}</span>
     </button>
   </div>
 </template>

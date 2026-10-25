@@ -345,7 +345,7 @@ defineExpose({ refresh: () => load(currentUri.value) });
         <template v-else>
           <div class="shrink-0 border-b px-4 py-3">
             <div class="truncate text-sm font-medium" :title="selected.name">{{ selected.name }}</div>
-            <div class="mt-1 truncate font-mono text-[11px] text-muted-foreground" :title="selected.uri">{{ selected.uri }}</div>
+            <div class="mt-1 truncate font-mono text-xs text-muted-foreground" :title="selected.uri">{{ selected.uri }}</div>
           </div>
           <div class="min-h-0 flex-1 overflow-auto p-4">
             <div v-if="previewLoading" class="flex h-full items-center justify-center text-sm text-muted-foreground"><Loader2 class="mr-2 size-4 animate-spin" />{{ t("pluginPlatform.loadingPreview") }}</div>
@@ -354,7 +354,7 @@ defineExpose({ refresh: () => load(currentUri.value) });
               <img :src="previewImageUrl" :alt="selected.name" class="max-h-full max-w-full rounded-md object-contain" />
             </template>
             <template v-else-if="previewKind === 'text' && preview">
-              <div class="mb-2 flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+              <div class="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
                 <span>{{ previewContentType }}</span>
                 <span v-if="previewTruncated">{{ t("pluginPlatform.previewTruncated") }}</span>
               </div>

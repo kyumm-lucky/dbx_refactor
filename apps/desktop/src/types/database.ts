@@ -2711,7 +2711,7 @@ export interface QueryTab {
     focusObject?: { owner: string; name: string; type: "INDEX" };
   };
   structureDraft?: TableStructureEditorDraft;
-  /** Data-table tabs only: which top-level view is showing. Undefined means the default (structure). */
+  /** Data-table tabs only: which top-level view is showing. Undefined means the default (data). */
   tableView?: DataTableTabView;
   databaseSearchState?: DatabaseSearchTabState;
   objectBrowser?: {

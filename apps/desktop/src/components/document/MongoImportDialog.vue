@@ -446,7 +446,7 @@ function requestClose() {
                         :items="columnTypeItems"
                         :aria-label="t('mongo.import.columnType', { name: column.name })"
                         :disabled="running"
-                        trigger-class="mt-1 inline-flex h-6 w-full min-w-[6.5rem] max-w-[8.5rem] items-center justify-between gap-1 rounded-md border bg-background px-1.5 text-[11px] font-normal hover:bg-muted/30 disabled:cursor-not-allowed disabled:opacity-50"
+                        trigger-class="mt-1 inline-flex h-6 w-full min-w-[6.5rem] max-w-[8.5rem] items-center justify-between gap-1 rounded-md border bg-background px-1.5 text-xs font-normal hover:bg-muted/30 disabled:cursor-not-allowed disabled:opacity-50"
                         content-class="pointer-events-auto !z-[80] ring-1 ring-foreground/10"
                         check-position="right"
                         @update:model-value="(value) => setColumnType(column.name, value)"

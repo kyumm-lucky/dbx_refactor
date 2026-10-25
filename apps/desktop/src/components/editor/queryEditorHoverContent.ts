@@ -40,7 +40,7 @@ export function createQueryEditorHoverContent(options: QueryEditorHoverContentOp
 
       const copyButton = document.createElement("button");
       copyButton.type = "button";
-      copyButton.className = "rounded border border-border/60 px-1.5 py-0.5 text-[11px] leading-none text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
+      copyButton.className = "rounded border border-border/60 px-1.5 py-0.5 text-xs leading-none text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
       copyButton.textContent = t("grid.copyDdl");
       copyButton.title = t("grid.copyDdl");
       copyButton.setAttribute("aria-label", t("grid.copyDdl"));
@@ -69,7 +69,7 @@ export function createQueryEditorHoverContent(options: QueryEditorHoverContentOp
       dom.appendChild(separator);
 
       const sqlContainer = document.createElement("div");
-      sqlContainer.className = "mt-1.5 text-[11px] leading-5 whitespace-pre font-mono";
+      sqlContainer.className = "mt-1.5 text-xs leading-5 whitespace-pre font-mono";
 
       if (hoverSqlHighlighter) {
         sqlContainer.innerHTML = hoverSqlHighlighter(sqlContent, isDark.value ? "dark" : "light");

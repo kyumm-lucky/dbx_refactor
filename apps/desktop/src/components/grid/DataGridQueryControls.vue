@@ -114,7 +114,7 @@ watch([() => props.filterBuilderOpen, () => props.rules.map((rule) => `${rule.id
           <button
             type="button"
             data-grid-filter-button
-            class="relative flex h-5 w-5 shrink-0 items-center justify-center rounded text-[11px] font-medium transition-colors"
+            class="relative flex h-5 w-5 shrink-0 items-center justify-center rounded text-xs font-medium transition-colors"
             :class="filterButtonActive ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-accent hover:text-foreground'"
             :disabled="!canUseWhereSearch"
             :aria-label="t('grid.filter')"
@@ -179,7 +179,7 @@ watch([() => props.filterBuilderOpen, () => props.rules.map((rule) => `${rule.id
       v-else
       type="button"
       data-grid-filter-button
-      class="relative flex h-5 w-5 shrink-0 items-center justify-center rounded text-[11px] font-medium transition-colors"
+      class="relative flex h-5 w-5 shrink-0 items-center justify-center rounded text-xs font-medium transition-colors"
       :class="filterButtonActive ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-accent hover:text-foreground'"
       :disabled="!canUseWhereSearch"
       :aria-label="t('grid.filter')"

@@ -552,7 +552,7 @@ function blurValueRule(id: string) {
     <div v-if="props.rules.length" :class="props.layout === 'popover' ? 'space-y-1.5' : 'space-y-0'">
       <template v-for="(rule, index) in props.rules" :key="rule.id">
         <div v-if="index > 0 && props.layout === 'popover'" class="flex justify-center">
-          <Button variant="ghost" size="sm" class="h-5 px-2 text-[11px]" @click="emit('updateRule', rule.id, { conjunction: rule.conjunction === 'AND' ? 'OR' : 'AND' })">{{ rule.conjunction }}</Button>
+          <Button variant="ghost" size="sm" class="h-5 px-2 text-xs" @click="emit('updateRule', rule.id, { conjunction: rule.conjunction === 'AND' ? 'OR' : 'AND' })">{{ rule.conjunction }}</Button>
         </div>
         <div
           data-filter-rule-item
@@ -683,7 +683,7 @@ function blurValueRule(id: string) {
                 @update:source="emit('updateValueSuggestionSource', $event)"
                 @select="emit('selectValueSuggestion', $event)"
               />
-              <span class="shrink-0 text-[10px] text-muted-foreground">—</span>
+              <span class="shrink-0 text-xs text-muted-foreground">—</span>
               <Input
                 :model-value="rule.rawEndValue"
                 class="h-6 min-w-0 flex-1 rounded-none border-0 border-b border-transparent bg-transparent px-1 text-xs shadow-none focus-visible:border-primary focus-visible:ring-0"
@@ -896,7 +896,7 @@ function blurValueRule(id: string) {
             />
           </div>
           <div v-else class="flex h-7 items-center rounded-md border border-dashed px-2 text-xs text-muted-foreground">{{ t("grid.filterBuilderNoValue") }}</div>
-          <div v-if="props.layout !== 'text' && shouldShowValueShortcutHint(rule, index)" class="text-[11px] leading-none text-muted-foreground" :class="usesExpandedLayout(rule.mode) ? 'col-start-2 col-span-3 -mt-0.5' : 'col-start-4 row-start-2 -mt-0.5'">
+          <div v-if="props.layout !== 'text' && shouldShowValueShortcutHint(rule, index)" class="text-xs leading-none text-muted-foreground" :class="usesExpandedLayout(rule.mode) ? 'col-start-2 col-span-3 -mt-0.5' : 'col-start-4 row-start-2 -mt-0.5'">
             {{ t("grid.filterBuilderValueShortcutHint") }}
           </div>
           <div class="flex items-center gap-0.5" :class="props.layout === 'text' ? 'col-start-6 row-start-1' : usesExpandedLayout(rule.mode) ? 'col-start-5 row-start-1 row-span-2' : 'col-start-5 row-start-1'">
@@ -955,7 +955,7 @@ function blurValueRule(id: string) {
   border-radius: var(--dbx-radius-2xs);
   background: var(--background);
   color: var(--muted-foreground);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
   line-height: 1;
 }

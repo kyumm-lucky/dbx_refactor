@@ -194,7 +194,7 @@ onMounted(() => void load());
           /></label>
           <label class="grid gap-1"
             ><span class="font-medium">{{ t("meilisearch.primaryKey") }}</span
-            ><Input v-model="createPrimaryKey" class="select-text" :disabled="createWorking" :placeholder="t('meilisearch.createIndexPrimaryKeyPlaceholder')" /><span class="text-[11px] text-muted-foreground">{{ t("meilisearch.createIndexPrimaryKeyHelp") }}</span></label
+            ><Input v-model="createPrimaryKey" class="select-text" :disabled="createWorking" :placeholder="t('meilisearch.createIndexPrimaryKeyPlaceholder')" /><span class="text-xs text-muted-foreground">{{ t("meilisearch.createIndexPrimaryKeyHelp") }}</span></label
           >
           <ErrorBanner v-if="createError" :message="createError" />
         </div>

@@ -86,7 +86,7 @@ function dataTab(connectionId: string, options: { tagValue?: string | null; meta
       affected_rows: 1,
       execution_time_ms: 1,
     },
-    // 本 fork 的数据表标签有「结构 / 数据」双视图，默认落在结构视图；这里显式切到数据视图。
+    // 本 fork 的数据表标签有「结构 / 数据」双视图，默认落在数据视图；这里仍显式指定以固定用例语义。
     tableView: "data",
     tableMeta: { tableName: "cpu", columns, primaryKeys: ["time", "host"] },
   };

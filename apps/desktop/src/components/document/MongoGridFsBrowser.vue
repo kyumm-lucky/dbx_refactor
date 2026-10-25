@@ -231,7 +231,7 @@ onBeforeUnmount(() => {
               <PopoverTrigger as-child>
                 <button
                   type="button"
-                  class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[11px] transition-colors"
+                  class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-xs transition-colors"
                   :class="filterInput.trim() ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15' : 'border-border/70 text-muted-foreground hover:bg-accent hover:text-foreground'"
                 >
                   <Filter class="h-3.5 w-3.5" />

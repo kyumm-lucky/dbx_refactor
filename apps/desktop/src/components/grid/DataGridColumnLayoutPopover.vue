@@ -318,7 +318,7 @@ onBeforeUnmount(resetColumnDragState);
       <div class="border-b bg-muted/40 px-2 py-1.5">
         <div class="flex items-center justify-between gap-2">
           <div class="text-xs font-semibold">{{ t("grid.columnVisibility") }}</div>
-          <div class="text-[10px] text-muted-foreground tabular-nums">{{ grid?.visibleColumnCount ?? 0 }}/{{ grid?.displayableColumnCount ?? 0 }}</div>
+          <div class="text-xs text-muted-foreground tabular-nums">{{ grid?.visibleColumnCount ?? 0 }}/{{ grid?.displayableColumnCount ?? 0 }}</div>
         </div>
       </div>
       <div class="flex items-center gap-1.5 border-b px-2 py-1.5">
@@ -355,7 +355,7 @@ onBeforeUnmount(resetColumnDragState);
                 </span>
                 <span class="flex min-w-0 items-baseline gap-1.5">
                   <span class="truncate font-mono text-xs" :title="option.column">{{ option.column }}</span>
-                  <span v-if="option.comment" class="truncate text-[10px] text-muted-foreground" :title="option.comment">{{ option.comment }}</span>
+                  <span v-if="option.comment" class="truncate text-xs text-muted-foreground" :title="option.comment">{{ option.comment }}</span>
                 </span>
               </button>
             </div>
@@ -373,7 +373,7 @@ onBeforeUnmount(resetColumnDragState);
       </div>
       <div v-if="grid?.autoFitAllColumns" class="flex flex-col gap-1 border-t bg-muted/30 px-2 py-1.5">
         <div class="flex items-center justify-between gap-1">
-          <span class="text-[11px] leading-4 text-muted-foreground">{{ t("grid.columnWidth") }}</span>
+          <span class="text-xs leading-4 text-muted-foreground">{{ t("grid.columnWidth") }}</span>
           <div class="flex flex-wrap items-center justify-end gap-1">
             <Button variant="ghost" size="sm" class="h-7 shrink-0 px-2 text-xs" data-column-auto-fit-all :title="t('grid.autoFitColumnWidthsHint')" @click="grid?.autoFitAllColumns?.()">
               {{ t("grid.autoFitColumnWidths") }}
@@ -385,7 +385,7 @@ onBeforeUnmount(resetColumnDragState);
         </div>
       </div>
       <div class="flex flex-col gap-1 border-t bg-muted/30 px-2 py-1.5">
-        <span class="text-[11px] leading-4 text-muted-foreground">
+        <span class="text-xs leading-4 text-muted-foreground">
           {{ t("grid.columnVisibilityHint") }}
           {{ columnReorderEnabled ? t("grid.columnReorderHint") : t("grid.columnReorderSearchHint") }}
         </span>
@@ -419,7 +419,7 @@ onBeforeUnmount(resetColumnDragState);
       </span>
       <span class="flex min-w-0 items-baseline gap-1.5">
         <span class="truncate font-mono text-xs">{{ dragPreviewOption.column }}</span>
-        <span v-if="dragPreviewOption.comment" class="truncate text-[10px] text-muted-foreground">{{ dragPreviewOption.comment }}</span>
+        <span v-if="dragPreviewOption.comment" class="truncate text-xs text-muted-foreground">{{ dragPreviewOption.comment }}</span>
       </span>
     </div>
   </Teleport>

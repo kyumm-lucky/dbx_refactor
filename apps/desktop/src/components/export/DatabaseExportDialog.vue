@@ -928,7 +928,7 @@ watch([includeStructure, includeData, insertDialect, insertMode, includeObjects,
           <div v-if="exportAllDatabases && databases.length" class="space-y-2">
             <div class="flex items-center justify-between gap-2">
               <Label class="text-xs">{{ t("databaseExport.databaseSelection") }}</Label>
-              <div class="text-[11px] text-muted-foreground">
+              <div class="text-xs text-muted-foreground">
                 {{ t("databaseExport.selectedDatabases", { selected: selectedDatabases.length, total: databases.length }) }}
               </div>
             </div>
@@ -983,7 +983,7 @@ watch([includeStructure, includeData, insertDialect, insertMode, includeObjects,
           <div v-if="!exportAllDatabases && schema && !isPostgresAllSchemas" class="space-y-2">
             <div class="flex items-center justify-between gap-2">
               <Label class="text-xs">{{ t("databaseExport.tableSelection") }}</Label>
-              <div v-if="tables.length" class="text-[11px] text-muted-foreground">
+              <div v-if="tables.length" class="text-xs text-muted-foreground">
                 {{ t("databaseExport.selectedTables", { selected: selectedTables.length, total: tables.length }) }}
               </div>
             </div>
@@ -1061,7 +1061,7 @@ watch([includeStructure, includeData, insertDialect, insertMode, includeObjects,
                 <Square v-else class="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
                 {{ t("databaseExport.standardSqlInsert") }}
               </button>
-              <p class="pl-5 text-[11px] text-muted-foreground">
+              <p class="pl-5 text-xs text-muted-foreground">
                 {{ t("databaseExport.standardSqlInsertDescription") }}
               </p>
             </div>
@@ -1075,7 +1075,7 @@ watch([includeStructure, includeData, insertDialect, insertMode, includeObjects,
                 <input v-model="insertMode" type="radio" value="single" class="h-3.5 w-3.5" />
                 <span>{{ t("grid.sqlInsertModeSingle") }}</span>
               </label>
-              <p class="pl-5 text-[11px] text-muted-foreground">
+              <p class="pl-5 text-xs text-muted-foreground">
                 {{ insertMode === "single" ? t("grid.sqlInsertModeSingleDescription") : t("grid.sqlInsertModeBatchDescription") }}
               </p>
             </div>
@@ -1102,7 +1102,7 @@ watch([includeStructure, includeData, insertDialect, insertMode, includeObjects,
                 @blur="splitSqlPartMaxMb = normalizedSplitSqlPartMaxMb()"
               />
             </div>
-            <p v-if="splitSqlOutput" class="pl-5 text-[11px] text-muted-foreground">
+            <p v-if="splitSqlOutput" class="pl-5 text-xs text-muted-foreground">
               {{ t("databaseExport.splitSqlOutputDescription", { min: MIN_SPLIT_SQL_PART_MB, max: MAX_SPLIT_SQL_PART_MB }) }}
             </p>
           </div>

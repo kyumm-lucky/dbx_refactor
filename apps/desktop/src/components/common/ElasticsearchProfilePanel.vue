@@ -61,7 +61,7 @@ const searchLabel = computed(() => (activeShard.value?.searchCount && activeShar
             {{ shard.id }}
           </button>
         </div>
-        <span class="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 font-mono text-[11px] tabular-nums text-muted-foreground" role="status"> {{ activeShard ? formatProfileNanos(activeShard.totalTimeInNanos) : "—" }}{{ searchLabel }} </span>
+        <span class="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 font-mono text-xs tabular-nums text-muted-foreground" role="status"> {{ activeShard ? formatProfileNanos(activeShard.totalTimeInNanos) : "—" }}{{ searchLabel }} </span>
       </div>
       <LightTooltip :text="t('profile.collapseAll')" side="bottom" :delay="0" :close-delay="0" nowrap>
         <Button variant="ghost" size="icon" class="h-7 w-7 shrink-0" :title="t('profile.collapseAll')" :aria-label="t('profile.collapseAll')" :disabled="!activeShard" @click="globalCollapse = 'collapsed'">
@@ -83,7 +83,7 @@ const searchLabel = computed(() => (activeShard.value?.searchCount && activeShar
         {{ t("profile.emptyShards") }}
       </div>
       <template v-else>
-        <div v-if="showCollapseProtection" class="mb-2 rounded border border-border bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
+        <div v-if="showCollapseProtection" class="mb-2 rounded border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
           {{ t("profile.collapsedProtection", { nodes: nodeCount }) }}
         </div>
         <ElasticsearchProfileNodeRow :node="activeShard!.tree" :global-collapse="globalCollapse" @manual="globalCollapse = null" />

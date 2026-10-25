@@ -851,8 +851,8 @@ const OBJECT_COMPACT_GAP = 4;
 // reserves those slots (even when empty) so borders stay level across a row.
 // objectGridRowHeight adapts to the dataset instead of always using the worst case.
 //   Base: p-3 top+bottom(24) + icon h-11(44) + name(18) + type/bytes(18) + gap-1×2(8) = 112
-//   + optional timestamp row: text-[10px](15) + gap-1(4) = 19
-//   + optional comment row:   text-[10px](15) + gap-1(4) = 19
+//   + optional timestamp row: text-xs(15) + gap-1(4) = 19
+//   + optional comment row:   text-xs(15) + gap-1(4) = 19
 // If the card gains a new metadata row, add a matching constant and include it below.
 const OBJECT_GRID_CARD_BASE_H = 112;
 const OBJECT_GRID_CARD_TIMESTAMP_H = 19;
@@ -5619,14 +5619,14 @@ function getObjectBrowserMenuItems(item: ObjectBrowserRow): ContextMenuItem[] {
                       <component :is="iconFor(item)" class="h-3.5 w-3.5 shrink-0" :class="iconClass(item.type)" />
                       <CircleX v-if="item.valid === false" data-invalid-object-indicator="true" class="pointer-events-none absolute -right-1 -bottom-1 h-2.5 w-2.5 rounded-full bg-background text-destructive stroke-[3]" aria-hidden="true" />
                     </span>
-                    <span class="truncate text-[13px] font-medium text-foreground" :title="item.displayName">{{ item.displayName }}</span>
-                    <span v-if="item.partitionCount" class="shrink-0 rounded border bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
+                    <span class="truncate text-xs font-medium text-foreground" :title="item.displayName">{{ item.displayName }}</span>
+                    <span v-if="item.partitionCount" class="shrink-0 rounded border bg-muted/40 px-1.5 py-0.5 text-xs font-medium leading-none text-muted-foreground">
                       {{ t("objects.partitions", { count: item.partitionCount }) }}
                     </span>
                   </div>
                   <div v-if="isObjectColumnVisible('type')" class="flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground">
                     <span class="truncate">{{ typeLabel(item) }}</span>
-                    <span v-if="item.valid != null" class="shrink-0 rounded border px-1 py-px text-[10px] font-medium" :class="item.valid ? 'border-emerald-500/30 text-emerald-600' : 'border-destructive/30 text-destructive'">
+                    <span v-if="item.valid != null" class="shrink-0 rounded border px-1 py-px text-xs font-medium" :class="item.valid ? 'border-emerald-500/30 text-emerald-600' : 'border-destructive/30 text-destructive'">
                       {{ t(item.valid ? "objects.validStatus" : "objects.invalidStatus") }}
                     </span>
                   </div>
@@ -5677,30 +5677,30 @@ function getObjectBrowserMenuItems(item: ObjectBrowserRow): ContextMenuItem[] {
                     <span class="w-full truncate text-sm font-medium leading-tight text-foreground">{{ item.displayName }}</span>
                     <div class="flex items-center gap-1.5">
                       <span class="text-xs text-muted-foreground">{{ typeLabel(item) }}</span>
-                      <span v-if="item.valid != null" class="rounded border px-1 py-px text-[10px] font-medium" :class="item.valid ? 'border-emerald-500/30 text-emerald-600' : 'border-destructive/30 text-destructive'">
+                      <span v-if="item.valid != null" class="rounded border px-1 py-px text-xs font-medium" :class="item.valid ? 'border-emerald-500/30 text-emerald-600' : 'border-destructive/30 text-destructive'">
                         {{ t(item.valid ? "objects.validStatus" : "objects.invalidStatus") }}
                       </span>
-                      <span v-if="showObjectRowStats && item.estimatedRows != null && item.estimatedRows > 0" class="object-browser-stat-badge object-browser-stat-badge-rows rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-primary">{{
+                      <span v-if="showObjectRowStats && item.estimatedRows != null && item.estimatedRows > 0" class="object-browser-stat-badge object-browser-stat-badge-rows rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-medium tabular-nums text-primary">{{
                         formatObjectBrowserCount(item.estimatedRows)
                       }}</span>
-                      <span v-if="showObjectSizeStats && item.totalBytes != null && item.totalBytes > 0" class="object-browser-stat-badge object-browser-stat-badge-bytes rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">{{
+                      <span v-if="showObjectSizeStats && item.totalBytes != null && item.totalBytes > 0" class="object-browser-stat-badge object-browser-stat-badge-bytes rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">{{
                         formatObjectBrowserBytes(item.totalBytes)
                       }}</span>
                     </div>
                     <!-- Always reserve timestamp/comment slots when the dataset has them so every card shares one height. -->
-                    <div v-if="hasCreatedAt || hasUpdatedAt" class="flex min-h-[15px] items-center gap-1 text-[10px] leading-[15px] text-muted-foreground/70">
+                    <div v-if="hasCreatedAt || hasUpdatedAt" class="flex min-h-5 items-center gap-1 text-xs leading-5 text-muted-foreground/70">
                       <span v-if="item.created_at?.trim()">{{ formatObjectBrowserTimestamp(item.created_at) }}</span>
                       <span v-if="item.created_at?.trim() && item.updated_at?.trim()">·</span>
                       <span v-if="item.updated_at?.trim()">{{ formatObjectBrowserTimestamp(item.updated_at) }}</span>
                     </div>
-                    <div v-if="hasAnyComment" class="w-full truncate text-[10px] leading-[15px] text-muted-foreground/60" :title="item.comment?.trim() || undefined">
+                    <div v-if="hasAnyComment" class="w-full truncate text-xs leading-5 text-muted-foreground/60" :title="item.comment?.trim() || undefined">
                       {{ item.comment?.trim() || "\u00A0" }}
                     </div>
                   </div>
                   <div
                     v-else
                     data-object-compact-card
-                    class="flex h-full min-w-0 cursor-default items-center gap-1 rounded border px-1.5 text-[11px] text-foreground transition-colors"
+                    class="flex h-full min-w-0 cursor-default items-center gap-1 rounded border px-1.5 text-xs text-foreground transition-colors"
                     :class="{
                       'border-primary bg-accent shadow-sm': isOpen || sourceRow?.id === item.id || sidePanelRow?.id === item.id || selectedRowId === item.id || selectedTableIds.has(item.id),
                       'bg-card hover:border-primary/40 hover:bg-accent/40': !isOpen && sourceRow?.id !== item.id && sidePanelRow?.id !== item.id && selectedRowId !== item.id && !selectedTableIds.has(item.id),
@@ -5765,7 +5765,7 @@ function getObjectBrowserMenuItems(item: ObjectBrowserRow): ContextMenuItem[] {
             <button
               v-for="tab in tableInfoTabs"
               :key="tab.id"
-              class="h-9 min-w-0 px-1.5 text-[11px] border-b-2 transition-colors"
+              class="h-9 min-w-0 px-1.5 text-xs border-b-2 transition-colors"
               :class="tableInfoTab === tab.id ? 'border-primary bg-gray-300/80 text-foreground dark:bg-gray-700/80' : 'border-transparent text-muted-foreground hover:bg-gray-200 hover:text-foreground dark:hover:bg-gray-800/50'"
               :title="tab.label"
               @click="selectTableInfoTab(tab.id)"
@@ -5799,7 +5799,7 @@ function getObjectBrowserMenuItems(item: ObjectBrowserRow): ContextMenuItem[] {
             <div v-else class="divide-y">
               <div v-for="row in tableOverviewRows" :key="row.label" class="flex items-baseline gap-3 px-3 py-2 text-xs">
                 <span class="w-24 shrink-0 text-muted-foreground">{{ row.label }}</span>
-                <span class="min-w-0 flex-1 select-text break-words font-mono text-[11px]" :title="row.value">{{ row.value }}</span>
+                <span class="min-w-0 flex-1 select-text break-words font-mono text-xs" :title="row.value">{{ row.value }}</span>
               </div>
             </div>
           </div>
@@ -5837,13 +5837,13 @@ function getObjectBrowserMenuItems(item: ObjectBrowserRow): ContextMenuItem[] {
                         <KeyRound v-if="column.is_primary_key" class="h-3 w-3 text-amber-500" />
                         {{ column.name }}
                       </span>
-                      <div v-if="column.comment" class="mt-0.5 text-[11px] text-muted-foreground truncate">
+                      <div v-if="column.comment" class="mt-0.5 text-xs text-muted-foreground truncate">
                         {{ column.comment }}
                       </div>
                     </td>
-                    <td class="px-3 py-2 font-mono text-[11px] text-muted-foreground">{{ gaussdbMColumnType(column.data_type) }}</td>
+                    <td class="px-3 py-2 font-mono text-xs text-muted-foreground">{{ gaussdbMColumnType(column.data_type) }}</td>
                     <td class="px-3 py-2">{{ column.is_nullable ? "YES" : "NO" }}</td>
-                    <td data-table-info-column-default class="max-w-56 px-3 py-2 font-mono text-[11px]" :class="{ 'text-muted-foreground/70': column.column_default == null }" :title="column.column_default ?? undefined">
+                    <td data-table-info-column-default class="max-w-56 px-3 py-2 font-mono text-xs" :class="{ 'text-muted-foreground/70': column.column_default == null }" :title="column.column_default ?? undefined">
                       <span class="block max-w-56 truncate">{{ tableColumnDefaultDisplayValue(column.column_default) }}</span>
                     </td>
                   </tr>
@@ -5879,7 +5879,7 @@ function getObjectBrowserMenuItems(item: ObjectBrowserRow): ContextMenuItem[] {
                       <span v-if="index.is_unique" class="rounded bg-emerald-500/10 px-1.5 py-0.5 text-emerald-600">UNIQUE</span>
                       <span v-if="index.index_type" class="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">{{ index.index_type }}</span>
                     </div>
-                    <div class="mt-2 font-mono text-[11px] text-muted-foreground break-all">
+                    <div class="mt-2 font-mono text-xs text-muted-foreground break-all">
                       {{ index.columns.join(", ") }}
                     </div>
                   </div>
@@ -5900,7 +5900,7 @@ function getObjectBrowserMenuItems(item: ObjectBrowserRow): ContextMenuItem[] {
             <div v-else class="divide-y">
               <div v-for="fk in filteredTableForeignKeys" :key="`${fk.name}:${fk.column}`" class="p-3 text-xs">
                 <div class="font-medium truncate">{{ fk.name }}</div>
-                <div class="mt-1 font-mono text-[11px] text-muted-foreground break-all">{{ fk.column }} -> {{ fk.ref_table }}.{{ fk.ref_column }}</div>
+                <div class="mt-1 font-mono text-xs text-muted-foreground break-all">{{ fk.column }} -> {{ fk.ref_table }}.{{ fk.ref_column }}</div>
               </div>
             </div>
           </div>
@@ -5921,13 +5921,13 @@ function getObjectBrowserMenuItems(item: ObjectBrowserRow): ContextMenuItem[] {
               <div v-for="constraint in filteredTableConstraints" :key="constraint.name" class="p-3 text-xs" :class="constraint.enabled === false ? 'opacity-60' : ''">
                 <div class="flex flex-wrap items-center gap-1.5">
                   <span class="font-medium truncate">{{ constraint.name }}</span>
-                  <span class="rounded border px-1 py-px text-[10px] text-muted-foreground">{{ constraint.constraint_type }}</span>
-                  <span class="rounded border px-1 py-px text-[10px] text-muted-foreground">{{ t(constraint.enabled === true ? "grid.tableInfoConstraintEnabled" : constraint.enabled === false ? "grid.tableInfoConstraintDisabled" : "grid.tableInfoConstraintEnabledUnknown") }}</span>
-                  <span class="rounded border px-1 py-px text-[10px] text-muted-foreground">{{ t(constraint.valid === true ? "grid.tableInfoConstraintValidated" : constraint.valid === false ? "grid.tableInfoConstraintNotValidated" : "grid.tableInfoConstraintValidationUnknown") }}</span>
+                  <span class="rounded border px-1 py-px text-xs text-muted-foreground">{{ constraint.constraint_type }}</span>
+                  <span class="rounded border px-1 py-px text-xs text-muted-foreground">{{ t(constraint.enabled === true ? "grid.tableInfoConstraintEnabled" : constraint.enabled === false ? "grid.tableInfoConstraintDisabled" : "grid.tableInfoConstraintEnabledUnknown") }}</span>
+                  <span class="rounded border px-1 py-px text-xs text-muted-foreground">{{ t(constraint.valid === true ? "grid.tableInfoConstraintValidated" : constraint.valid === false ? "grid.tableInfoConstraintNotValidated" : "grid.tableInfoConstraintValidationUnknown") }}</span>
                 </div>
-                <div v-if="constraint.columns.length" class="mt-1 font-mono text-[11px] text-muted-foreground break-all">{{ constraint.columns.join(", ") }}</div>
-                <div v-if="constraint.ref_table" class="mt-1 font-mono text-[11px] text-muted-foreground break-all">-> {{ constraint.ref_schema ? `${constraint.ref_schema}.` : "" }}{{ constraint.ref_table }}{{ constraint.ref_columns.length ? `(${constraint.ref_columns.join(", ")})` : "" }}</div>
-                <div v-if="constraint.definition" class="mt-1 font-mono text-[11px] text-muted-foreground break-all whitespace-pre-wrap">{{ constraint.definition }}</div>
+                <div v-if="constraint.columns.length" class="mt-1 font-mono text-xs text-muted-foreground break-all">{{ constraint.columns.join(", ") }}</div>
+                <div v-if="constraint.ref_table" class="mt-1 font-mono text-xs text-muted-foreground break-all">-> {{ constraint.ref_schema ? `${constraint.ref_schema}.` : "" }}{{ constraint.ref_table }}{{ constraint.ref_columns.length ? `(${constraint.ref_columns.join(", ")})` : "" }}</div>
+                <div v-if="constraint.definition" class="mt-1 font-mono text-xs text-muted-foreground break-all whitespace-pre-wrap">{{ constraint.definition }}</div>
               </div>
             </div>
           </div>
@@ -5944,7 +5944,7 @@ function getObjectBrowserMenuItems(item: ObjectBrowserRow): ContextMenuItem[] {
             <div v-else class="divide-y">
               <div v-for="trigger in filteredTableTriggers" :key="trigger.name" class="p-3 text-xs">
                 <div class="font-medium truncate">{{ trigger.name }}</div>
-                <div class="mt-1 text-[11px] text-muted-foreground">{{ trigger.timing }} {{ trigger.event }}</div>
+                <div class="mt-1 text-xs text-muted-foreground">{{ trigger.timing }} {{ trigger.event }}</div>
               </div>
             </div>
           </div>
@@ -5975,7 +5975,7 @@ function getObjectBrowserMenuItems(item: ObjectBrowserRow): ContextMenuItem[] {
           <div class="flex h-8 shrink-0 items-center gap-2 border-b bg-muted/20 px-3">
             <Code2 class="h-3.5 w-3.5 text-muted-foreground" />
             <span class="min-w-0 flex-1 truncate text-xs font-medium">{{ sourceTitle(sourceRow) }}</span>
-            <span v-if="sourceRow?.valid != null" class="shrink-0 rounded border px-1 py-px text-[10px] font-medium" :class="sourceRow.valid ? 'border-emerald-500/30 text-emerald-600' : 'border-destructive/30 text-destructive'">
+            <span v-if="sourceRow?.valid != null" class="shrink-0 rounded border px-1 py-px text-xs font-medium" :class="sourceRow.valid ? 'border-emerald-500/30 text-emerald-600' : 'border-destructive/30 text-destructive'">
               {{ t(sourceRow.valid ? "objects.validStatus" : "objects.invalidStatus") }}
             </span>
             <template v-if="sourceSection === 'source'">

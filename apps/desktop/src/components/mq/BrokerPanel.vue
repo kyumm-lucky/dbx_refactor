@@ -246,7 +246,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   cursor: pointer;
 }
 
@@ -254,7 +254,7 @@ onUnmounted(() => {
   padding: 4px 8px;
   border: 1px solid var(--color-border);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   background: var(--color-background);
   cursor: pointer;
 }
@@ -288,7 +288,7 @@ onUnmounted(() => {
 
 .stats-section h4 {
   margin: 0 0 12px 0;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
   color: var(--color-text-secondary);
 }
@@ -326,7 +326,7 @@ onUnmounted(() => {
 }
 
 .stat-label {
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-tertiary);
   margin-bottom: 4px;
 }
@@ -360,7 +360,7 @@ onUnmounted(() => {
   padding: 10px 12px;
   border-bottom: 1px solid var(--color-border-light);
   text-align: left;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .broker-table th {
@@ -385,7 +385,7 @@ onUnmounted(() => {
   display: inline-block;
   padding: 2px 10px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
 }
 

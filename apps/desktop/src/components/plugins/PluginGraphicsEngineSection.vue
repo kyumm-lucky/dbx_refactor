@@ -47,6 +47,6 @@ async function setEnabled(next: boolean) {
       </div>
       <Switch :model-value="enabled" :disabled="saving" :aria-label="t('pluginPlatform.graphicsEngine.title')" @update:model-value="setEnabled($event === true)" />
     </div>
-    <div class="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-[11px] leading-4 text-muted-foreground">{{ t("pluginPlatform.graphicsEngine.securityNote") }}</div>
+    <div class="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs leading-4 text-muted-foreground">{{ t("pluginPlatform.graphicsEngine.securityNote") }}</div>
   </section>
 </template>

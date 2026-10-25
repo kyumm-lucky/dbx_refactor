@@ -50,7 +50,7 @@ function selectErrorText(event: FocusEvent) {
           <div class="font-medium text-foreground">
             {{ t("connection.lastError") }}
           </div>
-          <textarea class="mt-1 max-h-40 min-h-20 w-full resize-none overflow-auto rounded border bg-muted/30 p-2 font-mono text-[11px] leading-4 text-muted-foreground outline-none" :value="errorMessage" readonly @focus="selectErrorText" />
+          <textarea class="mt-1 max-h-40 min-h-20 w-full resize-none overflow-auto rounded border bg-muted/30 p-2 font-mono text-xs leading-4 text-muted-foreground outline-none" :value="errorMessage" readonly @focus="selectErrorText" />
         </div>
         <button type="button" class="shrink-0 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground" @click="clearError">{{ t("connection.clearError") }}</button>
       </div>

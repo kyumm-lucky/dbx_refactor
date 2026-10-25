@@ -140,6 +140,7 @@ const DatabaseSearchPanel = defineAsyncComponent(() => import("@/components/sear
 const DatabaseBrowser = defineAsyncComponent(() => import("@/components/objects/DatabaseBrowser.vue"));
 const ObjectBrowser = defineAsyncComponent(() => import("@/components/objects/ObjectBrowser.vue"));
 const TableStructureEditor = defineAsyncComponent(() => import("@/components/structure/TableStructureEditor.vue"));
+const RenameTableDialog = defineAsyncComponent(() => import("@/components/structure/RenameTableDialog.vue"));
 const DatabaseUserAdmin = defineAsyncComponent(() => import("@/components/admin/DatabaseUserAdmin.vue"));
 const XuguUserPermissions = defineAsyncComponent(() => import("@/components/admin/XuguUserPermissions.vue"));
 const ProcessListPanel = defineAsyncComponent(() => import("@/components/admin/ProcessListPanel.vue"));
@@ -188,7 +189,7 @@ import { tableMetaForDataTab } from "@/lib/table/tableDataTabMeta";
 import { dataTabExecutionDatabase } from "@/lib/table/dataTabExecutionDatabase";
 import { formatShortcut } from "@/lib/editor/shortcutRegistry";
 import type { CodeMirrorSqlDialectName } from "@/lib/editor/codemirrorSqlDialect";
-import { codeMirrorSqlDialect, codeMirrorSqlDialectForConnection, effectiveDatabaseTypeForConnection, kingbaseSqlDatabaseType } from "@/lib/database/jdbcDialect";
+import { codeMirrorSqlDialect, codeMirrorSqlDialectForConnection, connectionObjectTreeNodeSchema, effectiveDatabaseTypeForConnection, kingbaseSqlDatabaseType } from "@/lib/database/jdbcDialect";
 import { supportsTableImport } from "@/lib/database/databaseFeatureSupport";
 import { chartableColumnIndexes } from "@/lib/dataGrid/chartData";
 import { elasticsearchJsonResponseForResult } from "@/lib/elasticsearch/elasticsearchJsonResponse";
@@ -401,6 +402,64 @@ const structureViewDensityLabel = computed(() => structureViewDensityOptions.val
 const structureViewTableName = computed(() => activeDataTabTableMeta.value?.tableName?.trim() || "");
 function refreshStructureView() {
   void structureViewRef.value?.refreshStructure();
+}
+
+// ── Table rename (structure view top bar) ──
+// The structure editor only raises the intent: the dialog owns the SQL preview
+// and the production-guarded execution, while this tab-level handler keeps the
+// tab identity (title / tableMeta / structureTableName) in sync with the new
+// name and hands the sidebar refresh to the existing `structureEditorSaved`
+// contract.
+const renameTableOpen = ref(false);
+// The dialog is bound to the tab/target that opened it, so a tab switch while
+// it is open cannot retarget the rename at another object.
+const renameTableTarget = ref<{ tabId: string; connectionId: string; database: string; tableName: string; schema?: string }>();
+const renameTableDatabaseType = computed(() => effectiveDatabaseTypeForConnection(props.activeConnection) ?? props.activeConnection?.db_type);
+
+function onRequestRenameTable() {
+  const tab = props.activeTab;
+  const structureMode = tab.mode === "structure";
+  const tableName = (structureMode ? tab.structureTableName : activeDataTabTableMeta.value?.tableName)?.trim();
+  if (!tableName) return;
+  renameTableTarget.value = {
+    tabId: tab.id,
+    connectionId: tab.connectionId,
+    database: tab.database,
+    tableName,
+    schema: structureMode ? tab.schema : (activeDataTabTableMeta.value?.schema ?? tab.schema),
+  };
+  renameTableOpen.value = true;
+}
+
+/** Keeps the tab's existing label shape (`catalog.schema.table` / `schema.table` / `table`). */
+function renamedDataTabTitle(tab: QueryTab, oldName: string, newName: string): string {
+  const title = tab.title.trim();
+  if (title === oldName) return newName;
+  if (title.endsWith(`.${oldName}`)) return `${title.slice(0, title.length - oldName.length)}${newName}`;
+  const tableSchema = connectionObjectTreeNodeSchema(props.activeConnection, tab.database, tab.schema);
+  return tableSchema ? `${tableSchema}.${newName}` : newName;
+}
+
+async function onTableRenamed(payload: { oldName: string; newName: string }) {
+  const target = renameTableTarget.value;
+  const tab = (target && queryStore.tabs.find((candidate) => candidate.id === target.tabId)) ?? props.activeTab;
+  const { oldName, newName } = payload;
+  if (tab.mode === "structure") {
+    tab.structureTableName = newName;
+    tab.title = t("structureEditor.editTabTitle", { tableName: newName });
+  } else if (tab.mode === "data" && tab.tableMeta) {
+    queryStore.setTableMeta(tab.id, { ...tab.tableMeta, tableName: newName });
+    tab.title = renamedDataTabTitle(tab, oldName, newName);
+  }
+  // Drafts are keyed by the old identity and must not be restored onto the
+  // renamed table.
+  tab.structureDraft = undefined;
+  // Reuse the existing saved contract: App refreshes the object tree, drops the
+  // stale metadata/DDL caches and reloads an open data tab for the new name.
+  emit("structureEditorSaved", tab.id, true);
+  toast(t("contextMenu.renameObjectSuccess", { oldName, newName }), 3000);
+  await nextTick();
+  if (tab.id === props.activeTab.id && tab.mode === "data") void structureViewRef.value?.refreshStructure();
 }
 const dataToolbarCompact = computed(() => dataToolbarTier.value >= 1);
 const dataGridRenderMode = computed(() => settingsStore.editorSettings.dataGridRenderMode);
@@ -2828,7 +2887,7 @@ defineExpose({
                       <div class="pointer-events-none relative z-[1] font-mono text-muted-foreground">#{{ item.statementIndex + 1 }}</div>
                       <div class="relative z-[1] min-w-0 cursor-pointer" @click="previewExecutionSummaryItem(item)" @dblclick="locateExecutionSummaryError(item)">
                         <div class="truncate font-mono text-[11px] text-foreground">{{ item.sql || t("executionSummary.noSql") }}</div>
-                        <div v-if="item.error" class="mt-0.5 flex min-w-0 items-center gap-1 text-[11px] text-destructive">
+                        <div v-if="item.error" class="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-destructive">
                           <span v-if="item.errorPosition" class="shrink-0 rounded border border-destructive/30 bg-destructive/5 px-1 tabular-nums">{{ t("executionSummary.lineColumn", { line: item.errorPosition.line, column: item.errorPosition.column }) }}</span>
                           <span data-native-clipboard class="min-w-0 flex-1 cursor-text select-text truncate" :title="item.error" @mousedown.stop @click.stop @dblclick.stop>{{ item.error }}</span>
                           <LightTooltip v-if="item.errorPosition" :text="t('editor.locateError', { line: item.errorPosition.line, column: item.errorPosition.column })" side="bottom" :delay="0" :close-delay="0" nowrap>
@@ -2851,7 +2910,7 @@ defineExpose({
                       </div>
                       <div class="pointer-events-none relative z-[1]">
                         <span
-                          class="inline-flex h-5 items-center gap-1 rounded-full border px-2 text-[10px]"
+                          class="inline-flex h-5 items-center gap-1 rounded-full border px-2 text-xs leading-none"
                           :class="{
                             'border-primary/35 bg-primary/10 text-primary': item.status === 'running',
                             'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300': item.status === 'success',
@@ -2872,7 +2931,7 @@ defineExpose({
                     </div>
                   </DynamicScrollerItem>
                 </DynamicScroller>
-                <div class="shrink-0 px-3 py-2 text-[11px] text-muted-foreground">{{ t("executionSummary.navigationHint") }}</div>
+                <div class="shrink-0 px-3 py-2 text-xs text-muted-foreground">{{ t("executionSummary.navigationHint") }}</div>
               </div>
             </div>
 
@@ -3201,6 +3260,7 @@ defineExpose({
             :draft="activeTab.structureDraft"
             @update:draft="(draft) => (activeTab.structureDraft = draft)"
             @saved="(commentChanged) => emit('structureEditorSaved', activeTab.id, commentChanged)"
+            @request-rename="onRequestRenameTable"
             @open-settings="(initialTab, initialSection) => emit('openSettings', initialTab, initialSection)"
           />
           <div v-else class="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -3470,6 +3530,7 @@ defineExpose({
           :draft="activeTab.structureDraft"
           @update:draft="(draft) => (activeTab.structureDraft = draft)"
           @saved="(commentChanged, createdTableName) => emit('structureEditorSaved', activeTab.id, commentChanged, createdTableName)"
+          @request-rename="onRequestRenameTable"
           @close="emit('structureEditorClose', activeTab.id)"
           @open-settings="(initialTab, initialSection) => emit('openSettings', initialTab, initialSection)"
           @view-data="onHandleStructureViewData"
@@ -3566,6 +3627,15 @@ defineExpose({
       :result="activeTab.result"
       :load-result="loadQueryResultForTransfer"
       :load-source-ddl="loadQueryResultSourceDdl"
+    />
+    <RenameTableDialog
+      v-model:open="renameTableOpen"
+      :connection-id="renameTableTarget?.connectionId ?? activeTab.connectionId"
+      :database="renameTableTarget?.database ?? activeTab.database"
+      :schema="renameTableTarget?.schema"
+      :table-name="renameTableTarget?.tableName ?? ''"
+      :database-type="renameTableDatabaseType"
+      @renamed="onTableRenamed"
     />
   </div>
 </template>

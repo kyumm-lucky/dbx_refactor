@@ -449,12 +449,12 @@ defineExpose({ refresh: () => (void load(), true) });
         <div class="space-y-1.5">
           <Label class="text-xs">{{ t("consul.ui.ttlOptional") }}</Label
           ><Input v-model="createForm.ttl" class="h-9" placeholder="30s" />
-          <p class="text-[11px] text-muted-foreground">{{ t("consul.ui.ttlRangeHint") }}</p>
+          <p class="text-xs text-muted-foreground">{{ t("consul.ui.ttlRangeHint") }}</p>
         </div>
         <div class="space-y-1.5">
           <Label class="text-xs">{{ t("consul.ui.lockDelay") }}</Label
           ><Input v-model="createForm.lockDelay" class="h-9" placeholder="15s" />
-          <p class="text-[11px] text-muted-foreground">{{ t("consul.ui.lockDelayHint") }}</p>
+          <p class="text-xs text-muted-foreground">{{ t("consul.ui.lockDelayHint") }}</p>
         </div>
         <div class="space-y-1.5">
           <Label class="text-xs">{{ t("consul.ui.behavior") }}</Label
@@ -462,7 +462,7 @@ defineExpose({ refresh: () => (void load(), true) });
             <option value="release">{{ t("consul.ui.releaseLocks") }}</option>
             <option value="delete">{{ t("consul.ui.deleteKeys") }}</option>
           </select>
-          <p class="text-[11px] text-muted-foreground">{{ t("consul.ui.behaviorHint") }}</p>
+          <p class="text-xs text-muted-foreground">{{ t("consul.ui.behaviorHint") }}</p>
         </div>
         <div class="space-y-1.5">
           <Label class="text-xs">{{ t("consul.ui.nodeChecks") }}</Label
@@ -471,7 +471,7 @@ defineExpose({ refresh: () => (void load(), true) });
         <div class="space-y-1.5 md:col-span-2 xl:col-span-3">
           <Label class="text-xs">{{ t("consul.ui.serviceChecks") }}</Label
           ><Input v-model="createForm.serviceChecks" class="h-9" :placeholder="t('consul.ui.serviceChecksPlaceholder')" />
-          <p class="text-[11px] text-muted-foreground">{{ t("consul.ui.serviceChecksHint") }}</p>
+          <p class="text-xs text-muted-foreground">{{ t("consul.ui.serviceChecksHint") }}</p>
         </div>
       </div>
       <div class="flex justify-end gap-2 border-t bg-muted/20 px-4 py-3">
@@ -563,7 +563,7 @@ defineExpose({ refresh: () => (void load(), true) });
             <Button size="icon" variant="ghost" class="h-7 w-7 shrink-0" tabindex="-1"><ChevronUp v-if="expandedSessionId === session.ID" class="h-3.5 w-3.5" /><ChevronDown v-else class="h-3.5 w-3.5" /></Button>
             <div class="min-w-0">
               <div class="truncate text-sm font-medium">{{ session.Name || t("consul.ui.unnamedSession") }}</div>
-              <div class="truncate font-mono text-[11px] text-muted-foreground">{{ session.ID }}</div>
+              <div class="truncate font-mono text-xs text-muted-foreground">{{ session.ID }}</div>
             </div>
           </div>
           <div class="min-w-0">
@@ -582,7 +582,7 @@ defineExpose({ refresh: () => (void load(), true) });
             <Button v-if="isTtlSession(session)" size="sm" variant="ghost" class="h-7 gap-1" :disabled="readOnly || !connectionActive" :title="t('consul.ui.autoRenewPageHint')" @click="autoRenewId === session.ID ? stopAutoRenew() : startAutoRenew(session.ID)"
               ><RotateCw class="h-3.5 w-3.5" :class="autoRenewId === session.ID && 'animate-spin'" />{{ autoRenewId === session.ID ? t("consul.ui.stop") : t("consul.ui.autoRenew") }}</Button
             >
-            <span v-else class="px-2 text-[11px] text-muted-foreground">{{ t("consul.ui.noRenewRequired") }}</span>
+            <span v-else class="px-2 text-xs text-muted-foreground">{{ t("consul.ui.noRenewRequired") }}</span>
             <Button size="icon" variant="ghost" class="h-7 w-7 text-destructive" :disabled="readOnly" :title="t('consul.ui.destroy')" @click="destroy(session.ID)"><Trash2 class="h-3.5 w-3.5" /></Button>
           </div>
         </div>
@@ -590,31 +590,31 @@ defineExpose({ refresh: () => (void load(), true) });
         <div v-if="expandedSessionId === session.ID" class="border-t bg-muted/10 p-3">
           <dl class="grid overflow-hidden rounded-md border bg-background sm:grid-cols-2 lg:grid-cols-4">
             <div class="border-b p-3 lg:border-r">
-              <dt class="text-[11px] text-muted-foreground">{{ t("consul.ui.node") }}</dt>
+              <dt class="text-xs text-muted-foreground">{{ t("consul.ui.node") }}</dt>
               <dd class="mt-1 text-xs font-medium">{{ session.Node || "—" }}</dd>
             </div>
             <div class="border-b p-3 lg:border-r">
-              <dt class="text-[11px] text-muted-foreground">{{ t("consul.ui.lockDelay") }}</dt>
+              <dt class="text-xs text-muted-foreground">{{ t("consul.ui.lockDelay") }}</dt>
               <dd class="mt-1 font-mono text-xs">{{ formatLockDelay(session.LockDelay) }}</dd>
             </div>
             <div class="border-b p-3 lg:border-r">
-              <dt class="text-[11px] text-muted-foreground">TTL</dt>
+              <dt class="text-xs text-muted-foreground">TTL</dt>
               <dd class="mt-1 font-mono text-xs">{{ session.TTL || t("consul.ui.noTtl") }}</dd>
             </div>
             <div class="border-b p-3">
-              <dt class="text-[11px] text-muted-foreground">{{ t("consul.ui.behavior") }}</dt>
+              <dt class="text-xs text-muted-foreground">{{ t("consul.ui.behavior") }}</dt>
               <dd class="mt-1 text-xs font-medium">{{ behaviorLabel(session.Behavior) }}</dd>
             </div>
             <div class="border-b p-3 lg:border-r">
-              <dt class="text-[11px] text-muted-foreground">{{ t("consul.ui.createIndex") }}</dt>
+              <dt class="text-xs text-muted-foreground">{{ t("consul.ui.createIndex") }}</dt>
               <dd class="mt-1 font-mono text-xs">{{ session.CreateIndex }}</dd>
             </div>
             <div class="border-b p-3 lg:border-r">
-              <dt class="text-[11px] text-muted-foreground">{{ t("consul.ui.modifyIndexLabel") }}</dt>
+              <dt class="text-xs text-muted-foreground">{{ t("consul.ui.modifyIndexLabel") }}</dt>
               <dd class="mt-1 font-mono text-xs">{{ session.ModifyIndex }}</dd>
             </div>
             <div class="border-b p-3 lg:col-span-2">
-              <dt class="text-[11px] text-muted-foreground">{{ t("consul.ui.checks") }}</dt>
+              <dt class="text-xs text-muted-foreground">{{ t("consul.ui.checks") }}</dt>
               <dd class="mt-1 flex flex-wrap gap-1">
                 <Badge v-for="check in sessionChecks(session)" :key="check" variant="outline">{{ check }}</Badge
                 ><span v-if="!sessionChecks(session).length" class="text-xs text-muted-foreground">—</span>
@@ -627,8 +627,8 @@ defineExpose({ refresh: () => (void load(), true) });
               <div class="flex items-center gap-2 text-xs font-medium">
                 <KeyRound class="h-3.5 w-3.5" />{{ t("consul.ui.heldKeys") }}<Badge v-if="heldKeys[session.ID]" variant="secondary">{{ heldKeys[session.ID].items.length }}</Badge>
               </div>
-              <span v-if="heldKeys[session.ID] && !heldKeys[session.ID].complete" class="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300"><AlertTriangle class="h-3.5 w-3.5" />{{ t("consul.ui.heldKeysIncomplete") }}</span
-              ><span v-else-if="heldKeys[session.ID]?.complete" class="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300"><ShieldCheck class="h-3.5 w-3.5" />{{ t("consul.ui.complete") }}</span>
+              <span v-if="heldKeys[session.ID] && !heldKeys[session.ID].complete" class="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300"><AlertTriangle class="h-3.5 w-3.5" />{{ t("consul.ui.heldKeysIncomplete") }}</span
+              ><span v-else-if="heldKeys[session.ID]?.complete" class="inline-flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-300"><ShieldCheck class="h-3.5 w-3.5" />{{ t("consul.ui.complete") }}</span>
             </div>
             <div v-if="heldKeysLoading === session.ID" class="flex items-center justify-center gap-2 p-4 text-xs text-muted-foreground"><Loader2 class="h-4 w-4 animate-spin" />{{ t("consul.ui.loading") }}</div>
             <template v-else

@@ -1186,11 +1186,11 @@ watch(
                   <div v-for="target in selectedTargets" :key="targetKey(target)" class="flex min-w-0 items-start gap-2 rounded-md border px-2 py-1.5">
                     <div class="min-w-0 flex-1">
                       <div class="truncate text-xs font-medium">{{ targetLabel(target) }}</div>
-                      <div v-if="validationFor(target)?.state === 'invalid'" class="mt-0.5 flex items-start gap-1 text-[11px] text-destructive">
+                      <div v-if="validationFor(target)?.state === 'invalid'" class="mt-0.5 flex items-start gap-1 text-xs text-destructive">
                         <AlertTriangle class="mt-0.5 h-3 w-3 shrink-0" /><span>{{ validationReasonLabel(validationFor(target)?.reason) }}</span>
                       </div>
-                      <div v-else-if="validationFor(target)?.state === 'needsRecheck'" class="mt-0.5 text-[11px] text-muted-foreground">{{ t("multiDbExecute.needsRecheck") }}</div>
-                      <div v-else class="mt-0.5 text-[11px] text-emerald-600 dark:text-emerald-300">{{ t("multiDbExecute.validTarget") }}</div>
+                      <div v-else-if="validationFor(target)?.state === 'needsRecheck'" class="mt-0.5 text-xs text-muted-foreground">{{ t("multiDbExecute.needsRecheck") }}</div>
+                      <div v-else class="mt-0.5 text-xs text-emerald-600 dark:text-emerald-300">{{ t("multiDbExecute.validTarget") }}</div>
                     </div>
                     <Button variant="ghost" size="icon-sm" :disabled="isExecuting" :title="t('multiDbExecute.removeTarget')" @click="removeSelected(target)"><X class="h-3.5 w-3.5" /></Button>
                   </div>

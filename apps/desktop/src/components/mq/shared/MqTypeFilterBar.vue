@@ -23,7 +23,7 @@ defineProps<{
 }
 
 .mq-type-filter-bar-label {
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
   color: var(--color-text-secondary, #6b7280);
   margin-right: 4px;

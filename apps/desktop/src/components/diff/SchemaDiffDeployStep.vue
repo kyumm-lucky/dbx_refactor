@@ -443,7 +443,7 @@ function getObjectIconColor(kind: DiffObjectKind): string {
         </Button>
         <span class="text-sm font-medium">{{ t("diff.deployReview") }}</span>
         <span class="text-xs text-muted-foreground"> ({{ t("diff.selectedCount", { selected: selectedObjectCount, total: selectedObjectCount }) }}) </span>
-        <span v-if="reviewAlert" class="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium" :class="reviewAlert === 'destructive' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'">
+        <span v-if="reviewAlert" class="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium" :class="reviewAlert === 'destructive' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'">
           <AlertTriangle class="w-3 h-3" />
           {{ reviewAlert === "destructive" ? t("diff.destructiveSqlDetected", { count: destructiveStatementCount }) : t("diff.compatibilityWarningsDetected", { count: compatibilityWarningCount }) }}
         </span>
@@ -493,8 +493,8 @@ function getObjectIconColor(kind: DiffObjectKind): string {
             <component :is="getObjectIcon(obj.objectKind)" class="w-3.5 h-3.5 shrink-0" :class="getObjectIconColor(obj.objectKind)" />
             <span class="truncate">{{ obj.name }}</span>
             <span v-if="obj.routineType === 'PACKAGE' || obj.routineType === 'PACKAGE_BODY'" class="text-muted-foreground">{{ obj.routineType.replaceAll("_", " ") }}</span>
-            <span v-if="obj.children?.length" class="text-[10px] text-muted-foreground shrink-0">{{ schemaDiffSelectionTargets(obj).filter((child) => child.selected).length }}/{{ schemaDiffSelectionTargets(obj).length }}</span>
-            <span class="text-[10px] text-muted-foreground shrink-0 ml-auto">
+            <span v-if="obj.children?.length" class="text-xs text-muted-foreground shrink-0">{{ schemaDiffSelectionTargets(obj).filter((child) => child.selected).length }}/{{ schemaDiffSelectionTargets(obj).length }}</span>
+            <span class="text-xs text-muted-foreground shrink-0 ml-auto">
               {{ getOperationLabel(obj.operationType) }}
             </span>
             <span v-if="routineDeployment" class="basis-full pl-5 text-xs text-muted-foreground">{{ routineStatus(routineEntries.find((entry) => entry.objectId === obj.id)?.operation, true) }}</span>

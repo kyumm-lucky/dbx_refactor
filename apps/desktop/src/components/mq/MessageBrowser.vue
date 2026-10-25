@@ -359,7 +359,7 @@ watch(kafkaStartPosition, () => {
 .message-browser-header h4 {
   margin: 0;
   color: var(--color-text);
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
 }
 
@@ -376,7 +376,7 @@ watch(kafkaStartPosition, () => {
   border-radius: var(--dbx-radius-fixed-6);
   background: color-mix(in srgb, var(--color-primary) 8%, transparent);
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1.5;
 }
 
@@ -387,7 +387,7 @@ watch(kafkaStartPosition, () => {
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-warning-background, #fff6df);
   color: var(--color-warning-text, #7a4a00);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .peek-controls {
@@ -402,7 +402,7 @@ watch(kafkaStartPosition, () => {
   flex-direction: column;
   gap: 5px;
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
 }
 
@@ -416,7 +416,7 @@ watch(kafkaStartPosition, () => {
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-background);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .peek-controls input:focus,
@@ -450,7 +450,7 @@ watch(kafkaStartPosition, () => {
   border: none;
   background: none;
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
   cursor: pointer;
   user-select: none;
@@ -462,7 +462,7 @@ watch(kafkaStartPosition, () => {
 
 .collapse-arrow {
   display: inline-block;
-  font-size: 10px;
+  font-size: var(--dbx-ui-font-size);
   transition: transform 0.15s;
 }
 
@@ -480,7 +480,7 @@ watch(kafkaStartPosition, () => {
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-error-bg);
   color: var(--color-error);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .message-empty {
@@ -489,7 +489,7 @@ watch(kafkaStartPosition, () => {
   border-radius: var(--dbx-radius-fixed-6);
   color: var(--color-text-tertiary);
   text-align: center;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .message-list {
@@ -519,7 +519,7 @@ watch(kafkaStartPosition, () => {
   gap: 10px;
   flex-wrap: wrap;
   color: var(--color-text-tertiary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .message-meta span:first-child {
@@ -548,7 +548,7 @@ watch(kafkaStartPosition, () => {
 .message-payload-heading,
 .message-headers-heading {
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
 }
 
@@ -582,7 +582,7 @@ watch(kafkaStartPosition, () => {
   border-radius: var(--dbx-radius-fixed-4);
   color: var(--color-text-secondary);
   background: var(--color-background-secondary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 @media (max-width: 720px) {

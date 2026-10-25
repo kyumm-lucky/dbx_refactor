@@ -112,7 +112,7 @@ watch(
     <footer class="flex min-w-0 items-center gap-2 border-t bg-background/35 px-2 py-1">
       <Button variant="ghost" size="sm" class="h-7 shrink-0 px-2 text-xs" :disabled="disabled || !columns.length" @click="emit('addRule')"><Plus class="mr-1 h-3.5 w-3.5" />{{ t("grid.filterBuilderAddRule") }}</Button>
       <div class="flex min-w-0 flex-1 items-center gap-1.5 border-l pl-2">
-        <span class="shrink-0 text-[11px] font-medium text-muted-foreground">{{ t("grid.filterSqlPreview") }}</span>
+        <span class="shrink-0 text-xs font-medium text-muted-foreground">{{ t("grid.filterSqlPreview") }}</span>
         <code class="min-w-0 flex-1 truncate rounded bg-muted/35 px-1.5 py-0.5 text-[11px]" :class="sqlPreview ? 'text-foreground' : 'text-muted-foreground'" :title="previewText">{{ previewText }}</code>
         <Button variant="ghost" size="icon" class="h-6 w-6 shrink-0" :disabled="!sqlPreview" :aria-label="t('grid.copyFilterSql')" @click="emit('copySql')"><Copy class="h-3 w-3" /></Button>
       </div>

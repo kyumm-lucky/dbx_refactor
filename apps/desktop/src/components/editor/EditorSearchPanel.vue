@@ -559,7 +559,7 @@ defineExpose({
         >
           <TextSelect class="h-4 w-4" />
         </button>
-        <span v-if="inSelectionScope" class="shrink-0 rounded bg-accent px-1 py-0.5 text-[10px] font-medium text-muted-foreground" :title="t('editor.search.inSelection')">
+        <span v-if="inSelectionScope" class="shrink-0 rounded bg-accent px-1 py-0.5 text-xs font-medium text-muted-foreground" :title="t('editor.search.inSelection')">
           {{ t("editor.search.inSelection") }}
         </span>
         <button class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" :title="t('editor.search.prevMatch')" @click="prevMatch">
@@ -636,7 +636,7 @@ defineExpose({
 }
 
 .editor-search-panel--editor :deep(button) {
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .editor-search-panel--editor :deep(button.px-2) {
@@ -662,7 +662,7 @@ defineExpose({
 
 .editor-search-panel--editor :deep(input) {
   color: var(--foreground);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .editor-search-panel--editor :deep(input::placeholder) {

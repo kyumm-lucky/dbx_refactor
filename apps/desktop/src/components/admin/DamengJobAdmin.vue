@@ -273,7 +273,7 @@ onMounted(() => void loadJobs());
       <CalendarClock class="h-4 w-4 text-primary" />
       <div class="min-w-0 flex-1">
         <div class="truncate text-sm font-semibold">{{ t("damengJobAdmin.title") }}</div>
-        <div class="truncate text-[11px] text-muted-foreground">{{ connection.name }}</div>
+        <div class="truncate text-xs text-muted-foreground">{{ connection.name }}</div>
       </div>
       <Button size="sm" variant="outline" class="h-8 gap-1.5" :disabled="loadingJobs" @click="loadJobs">
         <Loader2 v-if="loadingJobs" class="h-3.5 w-3.5 animate-spin" />
@@ -311,10 +311,10 @@ onMounted(() => void loadJobs());
           <button v-for="job in filteredJobs" :key="job.name" type="button" class="mb-1 w-full rounded border px-2 py-2 text-left text-xs transition hover:bg-accent" :class="selectedJobName === job.name ? 'border-primary bg-primary/10' : 'border-transparent'" @click="selectJob(job)">
             <div class="flex items-center gap-2">
               <span class="min-w-0 flex-1 truncate font-medium">{{ job.name }}</span>
-              <Badge v-if="job.running" variant="outline" class="h-5 border-amber-500/50 px-1.5 text-[10px] text-amber-700 dark:text-amber-300">{{ t("damengJobAdmin.running") }}</Badge>
-              <Badge :variant="job.enabled ? 'default' : 'secondary'" class="h-5 px-1.5 text-[10px]">{{ job.enabled ? t("damengJobAdmin.enabled") : t("damengJobAdmin.disabled") }}</Badge>
+              <Badge v-if="job.running" variant="outline" class="h-5 border-amber-500/50 px-1.5 text-xs text-amber-700 dark:text-amber-300">{{ t("damengJobAdmin.running") }}</Badge>
+              <Badge :variant="job.enabled ? 'default' : 'secondary'" class="h-5 px-1.5 text-xs">{{ job.enabled ? t("damengJobAdmin.enabled") : t("damengJobAdmin.disabled") }}</Badge>
             </div>
-            <div class="mt-1 truncate text-[11px] text-muted-foreground">{{ job.owner || "-" }} · {{ job.valid || "-" }}</div>
+            <div class="mt-1 truncate text-xs text-muted-foreground">{{ job.owner || "-" }} · {{ job.valid || "-" }}</div>
           </button>
           <div v-if="!loadingJobs && filteredJobs.length === 0" class="p-6 text-center text-xs text-muted-foreground">
             {{ t("damengJobAdmin.emptyJobs") }}
@@ -327,7 +327,7 @@ onMounted(() => void loadJobs());
           <div class="min-w-0 flex-1">
             <div class="truncate text-sm font-semibold">{{ selectedJob.name }}</div>
             <div class="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-              <Badge v-if="selectedJob.running" variant="outline" class="h-5 border-amber-500/50 px-1.5 text-[10px] text-amber-700 dark:text-amber-300">{{ t("damengJobAdmin.running") }}</Badge>
+              <Badge v-if="selectedJob.running" variant="outline" class="h-5 border-amber-500/50 px-1.5 text-xs text-amber-700 dark:text-amber-300">{{ t("damengJobAdmin.running") }}</Badge>
               <span class="truncate">{{ selectedJob.description || t("damengJobAdmin.noDescription") }}</span>
             </div>
           </div>

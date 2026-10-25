@@ -1347,7 +1347,7 @@ onUnmounted(() => {
               <div class="flex h-8 shrink-0 items-center gap-1.5 border-b px-2 text-xs font-medium">
                 <FileDiff class="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                 <span class="truncate">{{ t("doltVersionControl.changedTables") }}</span>
-                <span v-if="changes.length" class="ml-auto text-[11px] text-muted-foreground">{{ changes.length }}</span>
+                <span v-if="changes.length" class="ml-auto text-xs text-muted-foreground">{{ changes.length }}</span>
               </div>
               <VirtualScrollArea class="min-h-0 flex-1">
                 <div v-if="comparisonLoading && changes.length === 0" class="flex h-24 items-center justify-center gap-2 text-xs text-muted-foreground"><Loader2 class="h-4 w-4 animate-spin" />{{ t("doltVersionControl.loadingDiff") }}</div>
@@ -1372,7 +1372,7 @@ onUnmounted(() => {
                 <span class="truncate">{{ selectedChange?.tableName || t("doltVersionControl.rowDiff") }}</span>
                 <Loader2 v-if="tableDiffLoading && tableDiff" class="ml-auto h-3.5 w-3.5 animate-spin text-muted-foreground" />
               </div>
-              <div v-if="tableDiffError && tableDiff" class="shrink-0 border-b border-destructive/30 bg-destructive/10 px-2 py-1 text-[11px] text-destructive">{{ tableDiffError }}</div>
+              <div v-if="tableDiffError && tableDiff" class="shrink-0 border-b border-destructive/30 bg-destructive/10 px-2 py-1 text-xs text-destructive">{{ tableDiffError }}</div>
               <div class="min-h-0 flex-1 overflow-hidden">
                 <div v-if="tableDiffLoading && !tableDiff" class="flex h-24 items-center justify-center gap-2 text-xs text-muted-foreground"><Loader2 class="h-4 w-4 animate-spin" />{{ t("doltVersionControl.loadingRows") }}</div>
                 <div v-else-if="tableDiffError && !tableDiff" class="p-3 text-xs text-destructive">{{ tableDiffError }}</div>
@@ -1453,10 +1453,10 @@ onUnmounted(() => {
                 <div class="shrink-0 border-b px-2 pt-1">
                   <TabsList variant="line" class="h-7 w-full justify-start rounded-none bg-transparent p-0">
                     <TabsTrigger value="branches" class="h-7 gap-1 px-2 text-xs"
-                      ><GitBranch class="h-3.5 w-3.5" />{{ t("doltVersionControl.branches") }}<span class="text-[10px] text-muted-foreground">{{ visibleBranches.length }}</span></TabsTrigger
+                      ><GitBranch class="h-3.5 w-3.5" />{{ t("doltVersionControl.branches") }}<span class="text-xs text-muted-foreground">{{ visibleBranches.length }}</span></TabsTrigger
                     >
                     <TabsTrigger value="tags" class="h-7 gap-1 px-2 text-xs"
-                      ><Tag class="h-3.5 w-3.5" />{{ t("doltVersionControl.tags") }}<span class="text-[10px] text-muted-foreground">{{ visibleTags.length }}</span></TabsTrigger
+                      ><Tag class="h-3.5 w-3.5" />{{ t("doltVersionControl.tags") }}<span class="text-xs text-muted-foreground">{{ visibleTags.length }}</span></TabsTrigger
                     >
                   </TabsList>
                 </div>
@@ -1529,7 +1529,7 @@ onUnmounted(() => {
 
           <Pane :size="100 - doltLeftPaneSize" :min-size="100 - DOLT_LEFT_PANE_MAX_SIZE">
             <VirtualScrollArea class="relative h-full min-h-0">
-              <div class="dolt-commit-header sticky top-0 z-20 grid h-7 items-center border-b bg-muted/80 text-[11px] font-medium text-muted-foreground backdrop-blur" :style="{ gridTemplateColumns: `${graphWidth}px minmax(240px, 1fr) 150px 155px` }">
+              <div class="dolt-commit-header sticky top-0 z-20 grid h-7 items-center border-b bg-muted/80 text-xs font-medium text-muted-foreground backdrop-blur" :style="{ gridTemplateColumns: `${graphWidth}px minmax(240px, 1fr) 150px 155px` }">
                 <span class="px-2">{{ t("doltVersionControl.graph") }}</span>
                 <span class="px-2">{{ t("doltVersionControl.commit") }}</span>
                 <span class="px-2">{{ t("doltVersionControl.author") }}</span>
@@ -1590,7 +1590,7 @@ onUnmounted(() => {
                       <span v-for="refItem in refsByCommit.get(commitItem.hash)" :key="`${commitItem.hash}-${refItem.kind}-${refItem.name}`" class="dolt-ref-badge" :class="refItem.kind === 'branch' ? 'dolt-ref-badge-branch' : 'dolt-ref-badge-tag'" :style="refBadgeStyle(refItem)">{{
                         refItem.name
                       }}</span>
-                      <span class="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">{{ shortHash(commitItem.hash) }}</span>
+                      <span class="ml-auto shrink-0 font-mono text-xs text-muted-foreground">{{ shortHash(commitItem.hash) }}</span>
                     </span>
                     <span class="truncate px-2 text-muted-foreground" :title="commitItem.email">{{ commitItem.committer }}</span>
                     <span class="truncate px-2 text-muted-foreground">{{ formatDate(commitItem.date) }}</span>
@@ -1804,7 +1804,7 @@ onUnmounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--muted-foreground);
 }
 
@@ -1922,7 +1922,7 @@ onUnmounted(() => {
   border: 1px solid;
   border-radius: var(--dbx-radius-2xs);
   padding: 0 4px;
-  font-size: 10px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
   line-height: 16px;
 }
@@ -1949,7 +1949,7 @@ onUnmounted(() => {
   border: 1px solid var(--border);
   border-radius: var(--dbx-radius-2xs);
   padding: 1px 5px;
-  font-size: 10px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 15px;
   color: var(--muted-foreground);
 }
@@ -1971,7 +1971,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 3px;
   color: var(--muted-foreground);
-  font-size: 10px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
   line-height: 15px;
 }

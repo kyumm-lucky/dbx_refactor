@@ -372,7 +372,7 @@ watch(
   padding: 40px 24px;
   text-align: center;
   color: var(--color-text-secondary);
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .send-form {
@@ -389,7 +389,7 @@ watch(
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-warning-alpha);
   color: var(--color-warning);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .panel-error {
@@ -397,7 +397,7 @@ watch(
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-error-bg);
   color: var(--color-error);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .panel-success {
@@ -410,7 +410,7 @@ watch(
   border-radius: var(--dbx-radius-fixed-6);
   background: color-mix(in srgb, var(--color-success) 13%, var(--color-background));
   color: var(--color-success);
-  font-size: 15px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 700;
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
 }
@@ -449,7 +449,7 @@ watch(
 
 .form-group label {
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
 }
 
@@ -470,7 +470,7 @@ watch(
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-background);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   min-width: 0;
 }
 
@@ -501,7 +501,7 @@ input[type="number"] {
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-background);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   box-sizing: border-box;
 }
 
@@ -521,7 +521,7 @@ input[type="number"]:focus {
   background: var(--color-background);
   color: var(--color-text);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   resize: vertical;
   box-sizing: border-box;
   line-height: 1.5;
@@ -539,7 +539,7 @@ input[type="number"]:focus {
 }
 
 .form-hint {
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-tertiary);
   line-height: 1.4;
 }
@@ -552,14 +552,14 @@ input[type="number"]:focus {
   border: none;
   background: none;
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
   cursor: pointer;
   user-select: none;
 }
 
 .collapse-arrow {
-  font-size: 10px;
+  font-size: var(--dbx-ui-font-size);
   transition: transform 0.15s;
   display: inline-block;
 }

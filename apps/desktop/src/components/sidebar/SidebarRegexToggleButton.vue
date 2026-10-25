@@ -23,7 +23,7 @@ function toggle() {
   <button
     type="button"
     data-sidebar-regex-toggle
-    class="sidebar-regex-toggle relative flex h-5 min-w-5 items-center justify-center overflow-hidden rounded-sm px-0.5 font-mono text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground"
+    class="sidebar-regex-toggle relative flex h-5 min-w-5 items-center justify-center overflow-hidden rounded-sm px-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
     :class="{ 'sidebar-regex-toggle--pressed text-primary bg-primary/10': pressed, 'text-destructive': invalid }"
     :aria-label="label"
     :aria-pressed="pressed"

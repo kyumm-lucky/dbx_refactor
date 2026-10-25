@@ -762,7 +762,7 @@ watch(
 
 .panel-hint {
   padding: 10px 16px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
   border-bottom: 1px solid var(--color-border-light);
   background: var(--color-background-secondary);
@@ -777,7 +777,7 @@ watch(
 .topic-picker label {
   display: block;
   margin-bottom: 6px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
 }
 
@@ -796,7 +796,7 @@ watch(
   border-radius: var(--dbx-radius-fixed-4);
   background: var(--color-background);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   padding: 0 10px;
 }
 
@@ -826,14 +826,14 @@ watch(
 
 .section-heading h4 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
   color: var(--color-text-secondary);
 }
 
 .section-heading span {
   color: var(--color-text-tertiary);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .heading-meta {
@@ -872,14 +872,14 @@ watch(
   border-radius: var(--dbx-radius-fixed-4);
   background: var(--color-background);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .runtime-table {
   width: 100%;
   border-collapse: collapse;
   border: 1px solid var(--color-border);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .runtime-table th,

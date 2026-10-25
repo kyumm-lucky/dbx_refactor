@@ -8433,7 +8433,7 @@ onUnmounted(() => {
                           readonly
                           :aria-invalid="shortcutConflicts.includes(definition.id)"
                           :placeholder="t('settings.shortcutPressShortcut')"
-                          class="h-7 w-auto min-w-12 max-w-64 shrink-0 cursor-default rounded-[6px] border border-transparent bg-background px-2.5 text-center font-mono text-[13px] font-semibold text-foreground/75 shadow-inner outline-none selection:bg-transparent placeholder:text-muted-foreground aria-invalid:border-destructive/70 aria-invalid:text-destructive aria-invalid:ring-destructive/20"
+                          class="h-7 w-auto min-w-12 max-w-64 shrink-0 cursor-default rounded-[6px] border border-transparent bg-background px-2.5 text-center font-mono text-xs font-semibold text-foreground/75 shadow-inner outline-none selection:bg-transparent placeholder:text-muted-foreground aria-invalid:border-destructive/70 aria-invalid:text-destructive aria-invalid:ring-destructive/20"
                           :class="editingShortcutId === definition.id ? 'max-w-64 cursor-text border-border/80 bg-background text-left text-foreground shadow-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/35' : ''"
                           @keydown="(event: KeyboardEvent) => onShortcutKeydown(definition.id, event)"
                           @keyup="(event: KeyboardEvent) => onShortcutKeyup(definition.id, event)"
@@ -9765,7 +9765,7 @@ onUnmounted(() => {
                 </div>
 
                 <div v-if="dataGridFilterViewPreviewExpanded" class="pointer-events-none select-none overflow-hidden border-t bg-background" data-data-grid-filter-view-preview>
-                  <div class="flex h-8 min-w-0 items-center border-b bg-muted/20 text-[11px]">
+                  <div class="flex h-8 min-w-0 items-center border-b bg-muted/20 text-xs">
                     <div class="flex h-full shrink-0 items-center border-r px-2">
                       <span class="flex h-5 w-5 items-center justify-center rounded border" :class="editDataGridFilterEditorView === 'quick' ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border/70 text-muted-foreground'">
                         <Filter class="h-3 w-3" />
@@ -9787,7 +9787,7 @@ onUnmounted(() => {
                         <span>{{ t("grid.filter") }}</span>
                         <Trash2 class="h-3.5 w-3.5 text-muted-foreground" />
                       </div>
-                      <div class="grid grid-cols-[minmax(0,1fr)_72px_minmax(0,1fr)] gap-1.5 text-[11px]">
+                      <div class="grid grid-cols-[minmax(0,1fr)_72px_minmax(0,1fr)] gap-1.5 text-xs">
                         <span class="truncate rounded border px-2 py-1">status</span>
                         <span class="truncate rounded border px-2 py-1">=</span>
                         <span class="truncate rounded border px-2 py-1">ACTIVE</span>
@@ -9797,7 +9797,7 @@ onUnmounted(() => {
 
                   <div v-else-if="editDataGridFilterEditorView === 'conditions'" class="flex h-[104px] flex-col bg-muted/5" data-data-grid-filter-preview-conditions>
                     <div class="flex-1 p-2">
-                      <div class="grid grid-cols-[18px_minmax(0,1fr)_92px_minmax(0,1.2fr)_24px] items-center gap-1.5 text-[11px]">
+                      <div class="grid grid-cols-[18px_minmax(0,1fr)_92px_minmax(0,1.2fr)_24px] items-center gap-1.5 text-xs">
                         <GripVertical class="h-3.5 w-3.5 text-muted-foreground" />
                         <span class="truncate rounded border bg-background px-2 py-1">status</span>
                         <span class="truncate rounded border bg-background px-2 py-1">=</span>
@@ -9805,7 +9805,7 @@ onUnmounted(() => {
                         <X class="h-3.5 w-3.5 justify-self-center text-muted-foreground" />
                       </div>
                     </div>
-                    <div class="flex h-8 min-w-0 items-center gap-2 border-t bg-background/35 px-2 text-[11px]">
+                    <div class="flex h-8 min-w-0 items-center gap-2 border-t bg-background/35 px-2 text-xs">
                       <span class="shrink-0 text-muted-foreground">{{ t("grid.filterSqlPreview") }}</span>
                       <code class="min-w-0 flex-1 truncate rounded bg-muted/35 px-1.5 py-0.5">WHERE status = 'ACTIVE'</code>
                       <span class="shrink-0 text-muted-foreground/70">{{ t("grid.applyFilter") }}</span>
@@ -9813,7 +9813,7 @@ onUnmounted(() => {
                   </div>
 
                   <div v-else class="flex h-[104px] flex-col bg-muted/5" data-data-grid-filter-preview-text>
-                    <div class="flex-1 px-2 py-1.5 text-[11px]">
+                    <div class="flex-1 px-2 py-1.5 text-xs">
                       <div class="grid min-h-7 grid-cols-[18px_18px_minmax(0,1fr)_72px_minmax(0,1.2fr)_36px] items-center gap-1 border-b border-border/45">
                         <GripVertical class="h-3.5 w-3.5 text-muted-foreground" />
                         <span class="flex h-3.5 w-3.5 items-center justify-center border border-primary bg-primary/10 text-primary"><Check class="h-3 w-3" /></span>
@@ -9823,7 +9823,7 @@ onUnmounted(() => {
                         <Plus class="h-3.5 w-3.5 justify-self-center text-muted-foreground" />
                       </div>
                     </div>
-                    <div class="flex h-8 min-w-0 items-center gap-2 border-t bg-background/45 px-2 text-[11px]">
+                    <div class="flex h-8 min-w-0 items-center gap-2 border-t bg-background/45 px-2 text-xs">
                       <span class="shrink-0 text-muted-foreground">{{ t("grid.filterSqlPreview") }}</span>
                       <code class="min-w-0 flex-1 truncate">WHERE status = 'ACTIVE'</code>
                       <span class="shrink-0 text-muted-foreground/70">{{ t("grid.applyFilter") }}</span>
@@ -10216,7 +10216,7 @@ onUnmounted(() => {
                           :value="editDataGridCrosshairRowBg || (isDark ? '#4b5462' : '#aec3e0')"
                           @input="editDataGridCrosshairRowBg = ($event.target as HTMLInputElement).value"
                         />
-                        <Button v-if="editDataGridCrosshairRowBg" type="button" variant="ghost" size="sm" class="h-6 px-1 text-[11px] text-muted-foreground hover:text-foreground" @click="editDataGridCrosshairRowBg = ''">
+                        <Button v-if="editDataGridCrosshairRowBg" type="button" variant="ghost" size="sm" class="h-6 px-1 text-xs text-muted-foreground hover:text-foreground" @click="editDataGridCrosshairRowBg = ''">
                           {{ t("settings.reset") }}
                         </Button>
                       </div>
@@ -10229,7 +10229,7 @@ onUnmounted(() => {
                           :value="editDataGridCrosshairColBg || (isDark ? '#626f82' : '#8eaad2')"
                           @input="editDataGridCrosshairColBg = ($event.target as HTMLInputElement).value"
                         />
-                        <Button v-if="editDataGridCrosshairColBg" type="button" variant="ghost" size="sm" class="h-6 px-1 text-[11px] text-muted-foreground hover:text-foreground" @click="editDataGridCrosshairColBg = ''">
+                        <Button v-if="editDataGridCrosshairColBg" type="button" variant="ghost" size="sm" class="h-6 px-1 text-xs text-muted-foreground hover:text-foreground" @click="editDataGridCrosshairColBg = ''">
                           {{ t("settings.reset") }}
                         </Button>
                       </div>
@@ -10256,7 +10256,7 @@ onUnmounted(() => {
                         :value="editDataGridZebraRowBg || (isDark ? '#28282b' : '#f0f0f0')"
                         @input="editDataGridZebraRowBg = ($event.target as HTMLInputElement).value"
                       />
-                      <Button v-if="editDataGridZebraRowBg" type="button" variant="ghost" size="sm" class="h-6 px-1 text-[11px] text-muted-foreground hover:text-foreground" @click="editDataGridZebraRowBg = ''">
+                      <Button v-if="editDataGridZebraRowBg" type="button" variant="ghost" size="sm" class="h-6 px-1 text-xs text-muted-foreground hover:text-foreground" @click="editDataGridZebraRowBg = ''">
                         {{ t("settings.reset") }}
                       </Button>
                     </div>
@@ -10776,13 +10776,13 @@ onUnmounted(() => {
                      计数随搜索同口径（见 visibleShortcutConflict* computeds）；
                      页脚的应用门禁保持全局，不受搜索影响。 -->
                 <LightTooltip v-if="visibleShortcutConflictIds.length > 0" :text="t('settings.shortcutConflictSummaryTooltip', { count: visibleShortcutConflictIds.length, pairs: visibleShortcutConflictPairCount })">
-                  <span class="inline-flex h-9 shrink-0 cursor-help items-center gap-1.5 rounded-md border border-destructive/25 bg-destructive/10 px-2 text-[11.5px] font-medium tabular-nums text-destructive">
+                  <span class="inline-flex h-9 shrink-0 cursor-help items-center gap-1.5 rounded-md border border-destructive/25 bg-destructive/10 px-2 text-xs font-medium tabular-nums text-destructive">
                     <span class="size-1.5 rounded-full bg-current" aria-hidden="true" />
                     {{ t("settings.shortcutConflictBadge", { count: visibleShortcutConflictIds.length }) }}
                   </span>
                 </LightTooltip>
                 <LightTooltip v-if="visibleCrossScopeShortcutConflictIds.length > 0" :text="t('settings.shortcutCrossScopeSummaryTooltip', { count: visibleCrossScopeShortcutConflictIds.length, pairs: visibleCrossScopeShortcutPairCount })">
-                  <span class="inline-flex h-9 shrink-0 cursor-help items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2 text-[11.5px] font-medium tabular-nums text-warning">
+                  <span class="inline-flex h-9 shrink-0 cursor-help items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2 text-xs font-medium tabular-nums text-warning">
                     <span class="size-1.5 rounded-full bg-current" aria-hidden="true" />
                     <!-- 黄色徽章按“组”（pairs）计数，避免与行级绑定条目数混淆。 -->
                     {{ t("settings.shortcutCrossScopeBadge", { count: visibleCrossScopeShortcutPairCount }) }}
@@ -10818,21 +10818,21 @@ onUnmounted(() => {
                     @keydown.space.prevent="toggleShortcutScope(group.scope)"
                   >
                     <component :is="shortcutScopeIcon(group.scope)" class="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                    <h3 class="shrink-0 text-[13px] leading-none font-semibold">{{ group.label }}</h3>
-                    <span class="shrink-0 rounded-sm border border-border/80 px-1 font-mono text-[10px] leading-4 text-muted-foreground/75">{{ group.scope }}</span>
-                    <span class="shrink-0 text-[11px] tabular-nums text-muted-foreground">{{ t("settings.shortcutGroupCount", { count: group.definitions.length }) }}</span>
+                    <h3 class="shrink-0 text-xs leading-none font-semibold">{{ group.label }}</h3>
+                    <span class="shrink-0 rounded-sm border border-border/80 px-1 font-mono text-xs leading-4 text-muted-foreground/75">{{ group.scope }}</span>
+                    <span class="shrink-0 text-xs tabular-nums text-muted-foreground">{{ t("settings.shortcutGroupCount", { count: group.definitions.length }) }}</span>
                     <LightTooltip v-if="group.unboundCount > 0" :text="t('settings.shortcutGroupUnboundTooltip')">
-                      <span class="shrink-0 cursor-help text-[11px] tabular-nums text-muted-foreground/70">
+                      <span class="shrink-0 cursor-help text-xs tabular-nums text-muted-foreground/70">
                         {{ t("settings.shortcutGroupUnbound", { count: group.unboundCount }) }}
                       </span>
                     </LightTooltip>
                     <LightTooltip v-if="group.conflictCount > 0" :text="t('settings.shortcutConflictSummaryTooltip', { count: group.conflictCount, pairs: group.conflictPairCount })">
-                      <span class="inline-flex shrink-0 cursor-help items-center gap-1 text-[11px] font-medium tabular-nums text-destructive"> <span class="size-[5px] rounded-full bg-current" aria-hidden="true" />{{ group.conflictCount }} </span>
+                      <span class="inline-flex shrink-0 cursor-help items-center gap-1 text-xs font-medium tabular-nums text-destructive"> <span class="size-[5px] rounded-full bg-current" aria-hidden="true" />{{ group.conflictCount }} </span>
                     </LightTooltip>
                     <LightTooltip v-if="group.crossScopeCount > 0" :text="t('settings.shortcutCrossScopeSummaryTooltip', { count: group.crossScopeCount, pairs: group.crossScopePairCount })">
-                      <span class="inline-flex shrink-0 cursor-help items-center gap-1 text-[11px] font-medium tabular-nums text-warning"> <span class="size-[5px] rounded-full bg-current" aria-hidden="true" />{{ group.crossScopeCount }} </span>
+                      <span class="inline-flex shrink-0 cursor-help items-center gap-1 text-xs font-medium tabular-nums text-warning"> <span class="size-[5px] rounded-full bg-current" aria-hidden="true" />{{ group.crossScopeCount }} </span>
                     </LightTooltip>
-                    <span class="ml-auto hidden truncate text-[11px] text-muted-foreground xl:block">{{ group.hint }}</span>
+                    <span class="ml-auto hidden truncate text-xs text-muted-foreground xl:block">{{ group.hint }}</span>
                     <ChevronDown class="settings-shortcut-chevron h-3.5 w-3.5 shrink-0 text-muted-foreground" :class="{ 'settings-shortcut-chevron--expanded': isShortcutScopeExpanded(group) }" aria-hidden="true" />
                   </header>
                   <div :id="shortcutScopeContentId(group.scope)" class="settings-shortcut-drawer" :class="{ 'settings-shortcut-drawer--expanded': isShortcutScopeExpanded(group) }" :aria-hidden="!isShortcutScopeExpanded(group)" :inert="!isShortcutScopeExpanded(group)">
@@ -10851,7 +10851,7 @@ onUnmounted(() => {
                             <Label class="min-w-0 truncate leading-none">{{ t(definition.labelKey) }}</Label>
                             <!-- scope 已由分组标题承载，行内不再重复散章 -->
                             <LightTooltip v-if="isShortcutModified(definition)" :text="t('settings.shortcutModifiedTagTooltip')">
-                              <span class="shrink-0 cursor-help rounded-sm border border-border/90 px-1 text-[10px] leading-4 text-muted-foreground">
+                              <span class="shrink-0 cursor-help rounded-sm border border-border/90 px-1 text-xs leading-4 text-muted-foreground">
                                 {{ t("settings.shortcutModifiedTag") }}
                               </span>
                             </LightTooltip>
@@ -10870,7 +10870,7 @@ onUnmounted(() => {
                                 readonly
                                 :aria-invalid="shortcutConflicts.includes(definition.id)"
                                 :placeholder="t('settings.shortcutPressShortcut')"
-                                class="settings-shortcut-pill h-7 w-auto min-w-12 max-w-64 shrink-0 cursor-default rounded-[6px] border border-transparent bg-muted px-2.5 text-center font-mono text-[13px] font-semibold text-foreground/75 shadow-inner outline-none selection:bg-transparent placeholder:text-muted-foreground aria-invalid:border-destructive/55 aria-invalid:text-destructive"
+                                class="settings-shortcut-pill h-7 w-auto min-w-12 max-w-64 shrink-0 cursor-default rounded-[6px] border border-transparent bg-muted px-2.5 text-center font-mono text-xs font-semibold text-foreground/75 shadow-inner outline-none selection:bg-transparent placeholder:text-muted-foreground aria-invalid:border-destructive/55 aria-invalid:text-destructive"
                                 :class="editingShortcutId === definition.id ? 'max-w-64 cursor-text border-border/80 bg-background text-left text-foreground shadow-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/35' : ''"
                                 @keydown="(event: KeyboardEvent) => onShortcutKeydown(definition.id, event)"
                                 @keyup="(event: KeyboardEvent) => onShortcutKeyup(definition.id, event)"
@@ -10958,12 +10958,12 @@ onUnmounted(() => {
                       <tr v-for="action in editSqlShortcuts" :key="action.id" class="border-b last:border-b-0 hover:bg-muted/30" :class="action.enabled === false ? 'text-muted-foreground' : ''">
                         <td class="px-3 py-2">{{ sqlShortcutDisplayLabel(action) }}</td>
                         <td class="px-3 py-2">
-                          <Badge variant="outline" class="h-5 rounded-md px-1.5 text-[11px]" :class="isBuiltinSqlShortcut(action.id) ? 'border-primary/40 text-primary' : 'text-muted-foreground'">
+                          <Badge variant="outline" class="h-5 rounded-md px-1.5 text-xs" :class="isBuiltinSqlShortcut(action.id) ? 'border-primary/40 text-primary' : 'text-muted-foreground'">
                             {{ isBuiltinSqlShortcut(action.id) ? t("settings.sqlShortcutsSourceBuiltin") : t("settings.sqlShortcutsSourceCustom") }}
                           </Badge>
                         </td>
                         <td class="px-3 py-2">
-                          <Badge variant="outline" class="h-5 rounded-md px-1.5 font-mono text-[11px] text-muted-foreground">
+                          <Badge variant="outline" class="h-5 rounded-md px-1.5 font-mono text-xs text-muted-foreground">
                             {{ action.shortcut ? formatShortcutPill(action.shortcut) : t("settings.sqlShortcutsUnbound") }}
                           </Badge>
                         </td>
@@ -11062,7 +11062,7 @@ LIMIT 100;</pre>
                     <tr v-for="snippet in editSnippets" :key="snippet.id" class="border-b last:border-b-0 hover:bg-muted/30" :class="snippet.enabled === false ? 'text-muted-foreground' : ''">
                       <td class="px-3 py-2">{{ snippet.label }}</td>
                       <td class="px-3 py-2">
-                        <Badge variant="outline" class="h-5 rounded-md px-1.5 text-[11px] font-mono text-muted-foreground">
+                        <Badge variant="outline" class="h-5 rounded-md px-1.5 text-xs font-mono text-muted-foreground">
                           {{ snippet.prefix }}
                         </Badge>
                       </td>
@@ -11489,7 +11489,7 @@ LIMIT 100;</pre>
                       <div>
                         <div class="flex items-center gap-2">
                           <span class="text-sm font-medium">{{ config.name }}</span>
-                          <Badge v-if="config.isDefault" variant="default" class="h-5 text-[10px]">
+                          <Badge v-if="config.isDefault" variant="default" class="h-5 text-xs">
                             {{ t("ai.default") }}
                           </Badge>
                         </div>
@@ -11579,7 +11579,7 @@ LIMIT 100;</pre>
                         />
                         <span class="text-xs text-muted-foreground">px</span>
                       </div>
-                      <p class="text-[11px] text-muted-foreground">
+                      <p class="text-xs text-muted-foreground">
                         {{ t("ai.conversationFontSizeRange", { min: AI_CONVERSATION_FONT_SIZE_MIN, max: AI_CONVERSATION_FONT_SIZE_MAX }) }}
                       </p>
                     </div>
@@ -11848,7 +11848,7 @@ LIMIT 100;</pre>
                       </div>
                       <div class="text-xs text-muted-foreground truncate">{{ tpl.content.slice(0, 100) }}{{ tpl.content.length > 100 ? "..." : "" }}</div>
                       <div v-if="defaultDbTypesForTemplate(tpl.id).length > 0" class="mt-1 flex flex-wrap gap-1">
-                        <Badge v-for="dbType in defaultDbTypesForTemplate(tpl.id)" :key="dbType" variant="secondary" class="px-1.5 py-0 text-[10px]">
+                        <Badge v-for="dbType in defaultDbTypesForTemplate(tpl.id)" :key="dbType" variant="secondary" class="px-1.5 py-0 text-xs">
                           {{ dbTypeLabel(dbType) }}
                         </Badge>
                       </div>
@@ -11870,7 +11870,7 @@ LIMIT 100;</pre>
                               {{ dbTypeLabel(dbType) }}
                             </button>
                           </div>
-                          <p v-if="defaultDbTypesForTemplate(tpl.id).length === 0" class="mt-1 px-1 text-[10px] text-muted-foreground">
+                          <p v-if="defaultDbTypesForTemplate(tpl.id).length === 0" class="mt-1 px-1 text-xs text-muted-foreground">
                             {{ t("ai.templateDefaultsEmpty") }}
                           </p>
                         </PopoverContent>
@@ -11998,7 +11998,7 @@ LIMIT 100;</pre>
                               <span class="flex w-full min-w-0 items-center gap-2">
                                 <AiProviderLogo :provider="provider.provider" :label="provider.label" :icon-slug="provider.iconSlug" :icon-path="provider.iconPath" />
                                 <span class="min-w-0 flex-1 truncate">{{ provider.label }}</span>
-                                <Badge v-if="provider.badgeKey" variant="outline" class="h-5 shrink-0 px-1.5 text-[10px] font-normal">{{ t(provider.badgeKey) }}</Badge>
+                                <Badge v-if="provider.badgeKey" variant="outline" class="h-5 shrink-0 px-1.5 text-xs font-normal">{{ t(provider.badgeKey) }}</Badge>
                               </span>
                             </SelectItem>
                           </SelectGroup>
@@ -12007,7 +12007,7 @@ LIMIT 100;</pre>
                     </Select>
                     <div v-if="selectedAiPartnerPreset" class="flex items-center gap-3 rounded-md border border-primary/20 bg-primary/5 px-3 py-2">
                       <div class="min-w-0 flex-1">
-                        <p class="whitespace-pre-line text-[11px] leading-4 text-muted-foreground [&_a]:text-primary [&_a]:underline" @click="handleAiMarkdownLinkClick($event, openExternalUrl)" v-html="selectedAiPartnerDescriptionHtml"></p>
+                        <p class="whitespace-pre-line text-xs leading-4 text-muted-foreground [&_a]:text-primary [&_a]:underline" @click="handleAiMarkdownLinkClick($event, openExternalUrl)" v-html="selectedAiPartnerDescriptionHtml"></p>
                       </div>
                       <Button type="button" variant="ghost" size="icon" class="h-7 w-7 shrink-0" :title="t('ai.visitPartner')" :aria-label="t('ai.visitPartner')" @click="openExternalUrl(selectedAiPartnerPreset.websiteUrl)">
                         <ExternalLink class="h-3.5 w-3.5" />
@@ -12022,7 +12022,7 @@ LIMIT 100;</pre>
                     <div class="min-w-0 space-y-1">
                       <div class="flex flex-wrap items-center gap-2">
                         <p class="text-sm font-medium">{{ t("ai.ccSwitchProvider") }}</p>
-                        <Badge variant="outline" class="h-5 px-1.5 text-[10px]">v{{ aiCcSwitchPluginVersion || "—" }}</Badge>
+                        <Badge variant="outline" class="h-5 px-1.5 text-xs">v{{ aiCcSwitchPluginVersion || "—" }}</Badge>
                       </div>
                       <p class="text-xs leading-relaxed text-muted-foreground">{{ t("ai.ccSwitchProviderDescription") }}</p>
                     </div>
@@ -12075,7 +12075,7 @@ LIMIT 100;</pre>
                         <AlertTriangle v-else-if="aiCliMcpNeedsInstall || mcpStatus?.error || mcpStatusError" class="h-3.5 w-3.5 shrink-0" />
                         <CheckCircle2 v-else class="h-3.5 w-3.5 shrink-0" />
                         <span>{{ t("ai.cliMcpRequiredTitle") }}</span>
-                        <Badge variant="outline" class="h-5 shrink-0 rounded-md border-current/30 px-1.5 text-[11px] font-normal">
+                        <Badge variant="outline" class="h-5 shrink-0 rounded-md border-current/30 px-1.5 text-xs font-normal">
                           {{ mcpStatusLabel }}
                         </Badge>
                       </div>
@@ -12135,7 +12135,7 @@ LIMIT 100;</pre>
                   <Label class="pt-2 text-right text-xs">Endpoint</Label>
                   <div class="col-span-2 space-y-1.5">
                     <Input v-model="aiEditEndpoint" :placeholder="aiEndpointPlaceholder" autocomplete="off" class="h-8 text-xs" />
-                    <p v-if="aiEndpointHint" class="text-[11px] text-muted-foreground">
+                    <p v-if="aiEndpointHint" class="text-xs text-muted-foreground">
                       {{ aiEndpointHint }}
                     </p>
                   </div>
@@ -12158,8 +12158,8 @@ LIMIT 100;</pre>
                       <Plus class="mr-1 h-3.5 w-3.5" />
                       {{ t("ai.customHeadersAdd") }}
                     </Button>
-                    <p v-if="aiHeadersValidationError" class="text-[11px] text-destructive">{{ aiHeadersValidationError }}</p>
-                    <p v-else class="text-[11px] text-muted-foreground">{{ t("ai.customHeadersHint") }}</p>
+                    <p v-if="aiHeadersValidationError" class="text-xs text-destructive">{{ aiHeadersValidationError }}</p>
+                    <p v-else class="text-xs text-muted-foreground">{{ t("ai.customHeadersHint") }}</p>
                   </div>
                 </div>
 
@@ -12168,7 +12168,7 @@ LIMIT 100;</pre>
                   <Label class="pt-2 text-right text-xs">{{ t("ai.cliPath", { provider: aiCliProviderLabel }) }}</Label>
                   <div class="col-span-2 space-y-1.5">
                     <Input v-model="aiEditCliPath" autocomplete="off" class="h-8 text-xs" :placeholder="aiCliCommandName" />
-                    <p class="text-[11px] text-muted-foreground">
+                    <p class="text-xs text-muted-foreground">
                       {{
                         t("ai.cliPathHint", {
                           command: aiCliCommandName,
@@ -12176,7 +12176,7 @@ LIMIT 100;</pre>
                         })
                       }}
                     </p>
-                    <p v-if="aiCliPathError" class="text-[11px] text-destructive">
+                    <p v-if="aiCliPathError" class="text-xs text-destructive">
                       {{ aiCliPathError }}
                     </p>
                   </div>
@@ -12196,7 +12196,7 @@ LIMIT 100;</pre>
                         <SelectItem value="v1">{{ t("ai.openCodeCliVersionV1") }}</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p class="text-[11px] text-muted-foreground">
+                    <p class="text-xs text-muted-foreground">
                       {{ t("ai.openCodeCliVersionHint") }}
                     </p>
                   </div>
@@ -12219,10 +12219,10 @@ LIMIT 100;</pre>
                       <Plus class="mr-1 h-3.5 w-3.5" />
                       {{ t("ai.cliEnvAdd") }}
                     </Button>
-                    <p v-if="aiCliEnvError" class="text-[11px] text-destructive">
+                    <p v-if="aiCliEnvError" class="text-xs text-destructive">
                       {{ aiCliEnvError }}
                     </p>
-                    <p v-else class="text-[11px] text-muted-foreground">
+                    <p v-else class="text-xs text-muted-foreground">
                       {{ t("ai.cliEnvHint", { provider: aiCliProviderLabel }) }}
                     </p>
                   </div>
@@ -12378,7 +12378,7 @@ LIMIT 100;</pre>
                             <template v-if="webMcpHttpStatus">
                               <p v-if="!webMcpHttpStatus.enabled" class="text-xs text-muted-foreground">{{ t("settings.mcpHttpWebDisabledHint") }}</p>
                               <code v-else class="block overflow-x-auto rounded border bg-background px-2 py-1.5 text-xs">{{ webMcpEndpoint }}</code>
-                              <p class="text-[11px] text-muted-foreground">
+                              <p class="text-xs text-muted-foreground">
                                 {{
                                   t("settings.mcpHttpWebTokenSourceAndHosts", {
                                     tokenSource: webMcpHttpStatus.tokenSource === "managed" ? t("settings.mcpHttpWebManagedTokenSource") : webMcpHttpStatus.tokenSource || t("settings.mcpHttpNotConfigured"),
@@ -12386,7 +12386,7 @@ LIMIT 100;</pre>
                                   })
                                 }}
                               </p>
-                              <p v-if="webMcpHttpStatus.allowedOrigins.length" class="text-[11px] text-muted-foreground">{{ t("settings.mcpHttpWebAllowedOrigins", { origins: webMcpHttpStatus.allowedOrigins.join(", ") }) }}</p>
+                              <p v-if="webMcpHttpStatus.allowedOrigins.length" class="text-xs text-muted-foreground">{{ t("settings.mcpHttpWebAllowedOrigins", { origins: webMcpHttpStatus.allowedOrigins.join(", ") }) }}</p>
                               <p v-if="webMcpHttpStatus.deploymentManaged" class="text-xs text-muted-foreground">{{ t("settings.mcpHttpWebDeploymentManaged") }}</p>
                               <p v-else-if="!webMcpHttpStatus.managementAvailable" class="text-xs text-muted-foreground">{{ t("settings.mcpHttpWebPasswordRequired") }}</p>
                               <template v-else>
@@ -12397,12 +12397,12 @@ LIMIT 100;</pre>
                                 <div class="space-y-1.5">
                                   <Label for="web-mcp-hosts">{{ t("settings.mcpHttpAllowedHostsLabel") }}</Label>
                                   <textarea id="web-mcp-hosts" v-model="webMcpAllowedHostsText" rows="2" :disabled="webMcpSaving" class="min-h-16 w-full rounded-md border bg-background px-3 py-2 font-mono text-xs" placeholder="192.168.0.77:4224" />
-                                  <p class="text-[11px] text-muted-foreground">{{ t("settings.mcpHttpHostsHint") }}</p>
+                                  <p class="text-xs text-muted-foreground">{{ t("settings.mcpHttpHostsHint") }}</p>
                                 </div>
                                 <div class="space-y-1.5">
                                   <Label for="web-mcp-origins">{{ t("settings.mcpHttpAllowedOriginsLabel") }}</Label>
                                   <textarea id="web-mcp-origins" v-model="webMcpAllowedOriginsText" rows="2" :disabled="webMcpSaving" class="min-h-16 w-full rounded-md border bg-background px-3 py-2 font-mono text-xs" placeholder="https://mcp-client.example.com" />
-                                  <p class="text-[11px] text-muted-foreground">{{ t("settings.mcpHttpWebOriginsHint") }}</p>
+                                  <p class="text-xs text-muted-foreground">{{ t("settings.mcpHttpWebOriginsHint") }}</p>
                                 </div>
                                 <div v-if="webMcpHttpStatus.enabled && webMcpHttpStatus.accessToken" class="space-y-1.5">
                                   <div class="flex items-center justify-between gap-2">
@@ -12478,7 +12478,7 @@ LIMIT 100;</pre>
                                 <div class="space-y-1.5">
                                   <Label for="mcp-http-hosts">{{ t("settings.mcpHttpAllowedHostsLabel") }}</Label>
                                   <textarea id="mcp-http-hosts" v-model="mcpHttpAllowedHostsText" :disabled="mcpHttpSaving" class="min-h-20 w-full rounded-md border bg-background px-3 py-2 font-mono text-xs" placeholder="mcp.example.com&#10;10.0.0.10" />
-                                  <p class="text-[11px] text-muted-foreground">{{ t("settings.mcpHttpHostsHint") }}</p>
+                                  <p class="text-xs text-muted-foreground">{{ t("settings.mcpHttpHostsHint") }}</p>
                                 </div>
                                 <div class="space-y-1.5">
                                   <Label for="mcp-http-origins">{{ t("settings.mcpHttpAllowedOriginsLabel") }}</Label>
@@ -12567,7 +12567,7 @@ LIMIT 100;</pre>
                                   </Button>
                                 </div>
                                 <pre class="max-h-48 overflow-auto rounded border bg-background p-2 text-[11px] whitespace-pre-wrap">{{ mcpHttpClientConfig }}</pre>
-                                <p class="text-[11px] text-muted-foreground">{{ t("settings.mcpHttpClientConfigHint") }}</p>
+                                <p class="text-xs text-muted-foreground">{{ t("settings.mcpHttpClientConfigHint") }}</p>
                               </div>
                             </details>
                             <details v-if="mcpHttpStatus.recentLogs.length" class="text-xs">
@@ -12595,7 +12595,7 @@ LIMIT 100;</pre>
                                 <Loader2 v-if="mcpKeychainAuthorizing" class="mr-1 h-3 w-3 animate-spin" />
                                 {{ mcpKeychainAuthorizing ? t("settings.mcpKeychainAuthorizing") : t("settings.mcpKeychainAuthorizeButton") }}
                               </Button>
-                              <span class="text-[11px] opacity-80">{{ t("settings.mcpKeychainAlwaysAllowHint") }}</span>
+                              <span class="text-xs opacity-80">{{ t("settings.mcpKeychainAlwaysAllowHint") }}</span>
                             </div>
                           </template>
                           <p v-if="mcpKeychainMessage" class="select-text leading-relaxed">{{ mcpKeychainMessage }}</p>
@@ -12767,7 +12767,7 @@ LIMIT 100;</pre>
                               {{ mcpExecutionModeLabel(mode) }}
                             </Button>
                           </div>
-                          <p class="text-[11px] text-muted-foreground">{{ t("settings.mcpPermissionGlobalDefaultHint") }}</p>
+                          <p class="text-xs text-muted-foreground">{{ t("settings.mcpPermissionGlobalDefaultHint") }}</p>
                           <label class="flex items-center gap-2 text-xs">
                             <input type="checkbox" :checked="mcpPolicyDraft.promptHighRiskSql" :disabled="mcpPolicyControlsDisabled || mcpExecutionMode !== 'safe_write'" @change="stageMcpPolicy({ promptHighRiskSql: ($event.target as HTMLInputElement).checked })" />
                             {{ t("settings.mcpPromptHighRiskSql") }}
@@ -12775,7 +12775,7 @@ LIMIT 100;</pre>
                           <div class="space-y-2 border-t border-border/60 pt-3">
                             <div>
                               <p class="text-xs font-medium">{{ t("settings.mcpCapabilityTitle") }}</p>
-                              <p class="mt-1 text-[11px] text-muted-foreground">{{ t("settings.mcpCapabilityDescription") }}</p>
+                              <p class="mt-1 text-xs text-muted-foreground">{{ t("settings.mcpCapabilityDescription") }}</p>
                             </div>
                             <div class="overflow-x-auto rounded border bg-background">
                               <table class="w-full min-w-[34rem] table-fixed text-xs">
@@ -12799,7 +12799,7 @@ LIMIT 100;</pre>
                                 </tbody>
                               </table>
                             </div>
-                            <p class="text-[11px] leading-relaxed text-muted-foreground">{{ t("settings.mcpCapabilityAlwaysEnforced") }}</p>
+                            <p class="text-xs leading-relaxed text-muted-foreground">{{ t("settings.mcpCapabilityAlwaysEnforced") }}</p>
                           </div>
                         </section>
                       </div>
@@ -13640,7 +13640,7 @@ LIMIT 100;</pre>
                 :style="{ width: editingSqlShortcutInputId === 'dialog' ? shortcutPressShortcutInputWidth : `${Math.max(4, formatShortcutPill(sqlShortcutForm.shortcut).length + 3)}ch` }"
                 readonly
                 :placeholder="t('settings.shortcutPressShortcut')"
-                class="h-8 w-auto min-w-12 max-w-64 shrink-0 cursor-default rounded-[6px] border border-input bg-muted px-2.5 text-center font-mono text-[13px] font-semibold text-foreground/75 shadow-inner outline-none selection:bg-transparent placeholder:text-muted-foreground"
+                class="h-8 w-auto min-w-12 max-w-64 shrink-0 cursor-default rounded-[6px] border border-input bg-muted px-2.5 text-center font-mono text-xs font-semibold text-foreground/75 shadow-inner outline-none selection:bg-transparent placeholder:text-muted-foreground"
                 :class="editingSqlShortcutInputId === 'dialog' ? 'max-w-64 cursor-text border-border/80 bg-background text-left text-foreground shadow-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/35' : ''"
                 @keydown="(event: KeyboardEvent) => onSqlShortcutBindingKeydown('dialog', event)"
               />
@@ -13801,9 +13801,9 @@ LIMIT 100;</pre>
             <div class="min-w-0 flex-1 space-y-2">
               <div class="flex flex-wrap items-center gap-2">
                 <span class="break-all text-sm font-medium">{{ draft.config.name }}</span>
-                <Badge variant="outline" class="h-5 px-1.5 text-[10px]">{{ draft.config.provider }}</Badge>
-                <Badge variant="outline" class="h-5 px-1.5 text-[10px]">{{ draft.config.apiStyle }}</Badge>
-                <Badge v-if="draft.disabledReason === 'alreadyImported'" variant="outline" class="h-5 border-emerald-600/30 bg-emerald-500/10 px-1.5 text-[10px] text-emerald-700 dark:text-emerald-400">
+                <Badge variant="outline" class="h-5 px-1.5 text-xs">{{ draft.config.provider }}</Badge>
+                <Badge variant="outline" class="h-5 px-1.5 text-xs">{{ draft.config.apiStyle }}</Badge>
+                <Badge v-if="draft.disabledReason === 'alreadyImported'" variant="outline" class="h-5 border-emerald-600/30 bg-emerald-500/10 px-1.5 text-xs text-emerald-700 dark:text-emerald-400">
                   {{ t("ai.aiImportAlreadyImported") }}
                 </Badge>
               </div>
@@ -13830,8 +13830,8 @@ LIMIT 100;</pre>
             <div class="min-w-0 flex-1 space-y-1">
               <div class="flex flex-wrap items-center gap-2">
                 <span class="break-all text-sm font-medium">{{ skipped.name }}</span>
-                <Badge variant="outline" class="h-5 px-1.5 text-[10px]">{{ skipped.appType }}</Badge>
-                <Badge variant="outline" class="h-5 px-1.5 text-[10px]">{{ t("ai.aiImportUnsupported") }}</Badge>
+                <Badge variant="outline" class="h-5 px-1.5 text-xs">{{ skipped.appType }}</Badge>
+                <Badge variant="outline" class="h-5 px-1.5 text-xs">{{ t("ai.aiImportUnsupported") }}</Badge>
               </div>
               <p class="text-xs text-muted-foreground">{{ aiImportSkippedReason(skipped.reason) }}</p>
             </div>
@@ -13860,10 +13860,10 @@ LIMIT 100;</pre>
 
     <!-- Hidden mirror of the shortcut-capture placeholder: measured to size
          the capture inputs (#9144). Carries the same box + typography classes
-         as those inputs (font-mono text-[13px] font-semibold px-2.5 border) so
+         as those inputs (font-mono text-xs font-semibold px-2.5 border) so
          its border-box width is exactly what they need, including font-fallback
          advances and letter-spacing that char-count arithmetic cannot predict. -->
-    <span ref="shortcutPlaceholderMirrorRef" aria-hidden="true" class="invisible pointer-events-none absolute top-0 left-0 h-0 max-w-64 overflow-hidden whitespace-pre rounded-[6px] border px-2.5 font-mono text-[13px] font-semibold">{{ shortcutPressShortcutLabel }}</span>
+    <span ref="shortcutPlaceholderMirrorRef" aria-hidden="true" class="invisible pointer-events-none absolute top-0 left-0 h-0 max-w-64 overflow-hidden whitespace-pre rounded-[6px] border px-2.5 font-mono text-xs font-semibold">{{ shortcutPressShortcutLabel }}</span>
   </component>
 </template>
 

@@ -621,7 +621,7 @@ defineExpose({ refresh: () => loadSnapshot() });
           <button v-for="user in pagedUsers" :key="user.username" class="mb-0.5 flex h-10 w-full items-center gap-2 rounded px-2 text-left text-sm hover:bg-accent" :class="selectedUserName === user.username ? 'bg-accent text-accent-foreground' : ''" @click="selectedUserName = user.username">
             <UserRound class="h-4 w-4 shrink-0 text-muted-foreground" />
             <span class="min-w-0 flex-1 truncate font-medium">{{ user.username }}</span>
-            <Badge v-if="user.roles.includes('ROLE_ADMIN')" variant="secondary" class="h-5 px-1.5 text-[10px]">Admin</Badge>
+            <Badge v-if="user.roles.includes('ROLE_ADMIN')" variant="secondary" class="h-5 px-1.5 text-xs">Admin</Badge>
           </button>
         </template>
         <template v-else>
@@ -629,7 +629,7 @@ defineExpose({ refresh: () => loadSnapshot() });
             <ShieldCheck class="h-4 w-4 shrink-0" :class="role.complete ? 'text-emerald-600' : 'text-amber-600'" />
             <span class="min-w-0 flex-1">
               <span class="block truncate font-medium">{{ role.role }}</span>
-              <span class="block text-[11px] text-muted-foreground">{{ t("nacos.accessRoleCounts", { members: role.memberCount, permissions: role.permissionCount }) }}</span>
+              <span class="block text-xs text-muted-foreground">{{ t("nacos.accessRoleCounts", { members: role.memberCount, permissions: role.permissionCount }) }}</span>
             </span>
           </button>
         </template>

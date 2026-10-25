@@ -222,10 +222,10 @@ watch(databasePageCount, () => setDatabasePage(databasePage.value));
       <div class="border-b p-2 md:border-b-0 md:border-r">
         <div class="flex items-center justify-between gap-2 px-2 pb-2">
           <p class="text-xs font-medium text-muted-foreground">{{ t("settings.mcpDatabaseScopeAllowedConnections") }}</p>
-          <div class="flex items-center gap-1 text-[11px] text-muted-foreground">
+          <div class="flex items-center gap-1 text-xs text-muted-foreground">
             <span>{{ t("settings.mcpPerPage") }}</span>
             <Select :model-value="String(pageSize)" :disabled="disabled" @update:model-value="(value) => (pageSize = Number(value))">
-              <SelectTrigger size="sm" class="h-7 w-14 px-1.5 text-[11px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger size="sm" class="h-7 w-14 px-1.5 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem v-for="size in PAGE_SIZE_OPTIONS" :key="size" :value="String(size)">{{ size }}</SelectItem>
               </SelectContent>
@@ -245,9 +245,9 @@ watch(databasePageCount, () => setDatabasePage(databasePage.value));
           >
             <div class="pointer-events-none flex items-center justify-between gap-2">
               <span class="min-w-0 truncate text-sm font-medium">{{ connection.name }}</span>
-              <Badge variant="outline" class="shrink-0 text-[10px] font-normal">{{ scopeSummary(connection) }}</Badge>
+              <Badge variant="outline" class="shrink-0 text-xs font-normal">{{ scopeSummary(connection) }}</Badge>
             </div>
-            <p class="pointer-events-none mt-0.5 truncate font-mono text-[10px] text-muted-foreground">{{ connection.db_type }} · {{ connection.host || connection.database || connection.id }}</p>
+            <p class="pointer-events-none mt-0.5 truncate font-mono text-xs text-muted-foreground">{{ connection.db_type }} · {{ connection.host || connection.database || connection.id }}</p>
           </button>
         </div>
         <div v-if="connectionPageCount > 1" class="mt-2 flex items-center justify-center gap-2 border-t pt-2 text-xs text-muted-foreground">
@@ -286,7 +286,7 @@ watch(databasePageCount, () => setDatabasePage(databasePage.value));
           >
             <span
               ><span class="block text-sm">{{ t("settings.mcpDatabaseScopeAllTitle") }}</span
-              ><span class="block text-[11px] font-normal text-muted-foreground">{{ t("settings.mcpDatabaseScopeAllDescription") }}</span></span
+              ><span class="block text-xs font-normal text-muted-foreground">{{ t("settings.mcpDatabaseScopeAllDescription") }}</span></span
             >
           </Button>
           <Button
@@ -304,7 +304,7 @@ watch(databasePageCount, () => setDatabasePage(databasePage.value));
           >
             <span
               ><span class="block text-sm">{{ t("settings.mcpDatabaseScopeSelectedTitle") }}</span
-              ><span class="block text-[11px] font-normal text-muted-foreground">{{ t("settings.mcpDatabaseScopeSelectedDescription") }}</span></span
+              ><span class="block text-xs font-normal text-muted-foreground">{{ t("settings.mcpDatabaseScopeSelectedDescription") }}</span></span
             >
           </Button>
           <Button
@@ -322,7 +322,7 @@ watch(databasePageCount, () => setDatabasePage(databasePage.value));
           >
             <span
               ><span class="block text-sm">{{ t("settings.mcpDatabaseScopeNoneTitle") }}</span
-              ><span class="block text-[11px] font-normal text-muted-foreground">{{ t("settings.mcpDatabaseScopeNoneDescription") }}</span></span
+              ><span class="block text-xs font-normal text-muted-foreground">{{ t("settings.mcpDatabaseScopeNoneDescription") }}</span></span
             >
           </Button>
         </div>
@@ -341,7 +341,7 @@ watch(databasePageCount, () => setDatabasePage(databasePage.value));
               <span class="min-w-0 flex-1 truncate font-mono">{{ database }}</span>
               <Check v-if="selectedDatabases.includes(database)" class="h-3.5 w-3.5 text-green-600" />
               <Select v-if="selectedDatabases.includes(database)" :model-value="databasePolicyMode(database)" :disabled="disabled || busy" @update:model-value="(value) => $emit('set:database-policy', selectedConnectionId, database, value as ExecutionMode | 'inherit')">
-                <SelectTrigger size="sm" class="h-7 w-44 shrink-0 text-[11px]" @click.stop><SelectValue /></SelectTrigger>
+                <SelectTrigger size="sm" class="h-7 w-44 shrink-0 text-xs" @click.stop><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="inherit">{{ t("settings.mcpConnectionPolicyInherit") }}</SelectItem>
                   <SelectItem value="read_only">{{ t("settings.mcpConnectionPolicyReadOnly") }}</SelectItem>

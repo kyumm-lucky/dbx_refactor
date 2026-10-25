@@ -258,7 +258,7 @@ defineExpose({ focusSearch });
           </button>
         </div>
       </div>
-      <span class="shrink-0 rounded-full border px-2 py-0.5 font-mono text-[11px] font-medium tabular-nums" :class="statusClass" role="status" :aria-label="statusLabel">
+      <span class="shrink-0 rounded-full border px-2 py-0.5 font-mono text-xs font-medium tabular-nums" :class="statusClass" role="status" :aria-label="statusLabel">
         {{ statusLabel }}
       </span>
       <Button variant="ghost" size="icon" class="h-7 w-7 shrink-0" :title="t('grid.copyJson')" :aria-label="t('grid.copyJson')" @click="copyResponse">

@@ -81,18 +81,18 @@ const handleOffsetStyle = computed(() =>
       <div class="flex h-11 cursor-grab items-center gap-2 border-b bg-muted/40 px-3 active:cursor-grabbing">
         <Table2 class="h-4 w-4 shrink-0 text-muted-foreground" />
         <div class="min-w-0 flex-1 flex flex-col justify-center">
-          <span v-if="data.isMultiSchema && data.table.schema" class="truncate text-[10px] text-muted-foreground font-mono leading-none mb-0.5" :title="data.table.schema">
+          <span v-if="data.isMultiSchema && data.table.schema" class="truncate text-xs text-muted-foreground font-mono leading-none mb-0.5" :title="data.table.schema">
             {{ data.table.schema }}
           </span>
           <span class="min-w-0 truncate text-sm font-medium leading-tight" :title="data.isMultiSchema && data.table.schema ? `${data.table.schema}.${data.table.name}` : data.table.name">
             {{ truncateLabel(data.table.name, TABLE_NAME_MAX_CHARS) }}
           </span>
         </div>
-        <Badge v-if="isDraft" variant="outline" class="h-5 shrink-0 px-1.5 text-[10px] border-amber-500/50 text-amber-700 dark:text-amber-400">Draft</Badge>
-        <Badge variant="outline" class="h-5 px-1.5 text-[10px]">{{ visibleColumns(data.table).length }}</Badge>
+        <Badge v-if="isDraft" variant="outline" class="h-5 shrink-0 px-1.5 text-xs border-amber-500/50 text-amber-700 dark:text-amber-400">Draft</Badge>
+        <Badge variant="outline" class="h-5 px-1.5 text-xs">{{ visibleColumns(data.table).length }}</Badge>
       </div>
       <div v-if="commentText(data.table.comment)" class="flex h-4 items-center gap-1.5 border-b border-border/40 bg-muted/20 px-3">
-        <span class="min-w-0 flex-1 truncate text-[10px] leading-none text-muted-foreground" :title="commentText(data.table.comment)">{{ commentText(data.table.comment) }}</span>
+        <span class="min-w-0 flex-1 truncate text-xs leading-none text-muted-foreground" :title="commentText(data.table.comment)">{{ commentText(data.table.comment) }}</span>
       </div>
       <div>
         <div v-for="column in visibleColumns(data.table)" :key="column.name" class="border-b border-border/40 last:border-b-0">
@@ -104,12 +104,12 @@ const handleOffsetStyle = computed(() =>
             <span class="min-w-0 flex-1 truncate font-mono" :title="column.name">
               {{ truncateLabel(column.name, COLUMN_NAME_MAX_CHARS) }}
             </span>
-            <span class="shrink-0 truncate text-right text-[10px] text-muted-foreground" :style="{ width: `${COLUMN_TYPE_WIDTH}px` }" :title="column.data_type">
+            <span class="shrink-0 truncate text-right text-xs text-muted-foreground" :style="{ width: `${COLUMN_TYPE_WIDTH}px` }" :title="column.data_type">
               {{ truncateLabel(column.data_type, COLUMN_TYPE_MAX_CHARS) }}
             </span>
           </div>
           <div v-if="commentText(column.comment)" class="flex h-4 items-center pb-0.5 pl-[18px] pr-3">
-            <span class="min-w-0 flex-1 truncate text-[10px] leading-none text-muted-foreground" :title="commentText(column.comment)">{{ commentText(column.comment) }}</span>
+            <span class="min-w-0 flex-1 truncate text-xs leading-none text-muted-foreground" :title="commentText(column.comment)">{{ commentText(column.comment) }}</span>
           </div>
         </div>
       </div>

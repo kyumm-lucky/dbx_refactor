@@ -90,10 +90,10 @@ function clearAll() {
           <span class="truncate">{{ triggerLabel }}</span>
         </div>
         <div class="flex items-center gap-1 shrink-0">
-          <Badge v-if="isAllSelected" variant="secondary" class="h-4 px-1 text-[10px] font-normal">
+          <Badge v-if="isAllSelected" variant="secondary" class="h-5 px-1 text-xs font-normal">
             {{ schemas.length }}
           </Badge>
-          <Badge v-else-if="selectedSchemas.length > 1" variant="secondary" class="h-4 px-1 text-[10px] font-normal">
+          <Badge v-else-if="selectedSchemas.length > 1" variant="secondary" class="h-5 px-1 text-xs font-normal">
             {{ selectedSchemas.length }}
           </Badge>
           <ChevronDown class="h-3.5 w-3.5 shrink-0 opacity-50" />
@@ -109,7 +109,7 @@ function clearAll() {
           <Square v-else class="h-3.5 w-3.5 text-muted-foreground" />
           <span>{{ t("diagram.allSchemas") }}</span>
         </button>
-        <button v-if="selectedSchemas.length > 0" type="button" class="text-[11px] text-muted-foreground hover:text-foreground transition-colors" @click="clearAll">
+        <button v-if="selectedSchemas.length > 0" type="button" class="text-xs text-muted-foreground hover:text-foreground transition-colors" @click="clearAll">
           {{ t("diagram.deselectAllSchemas") }}
         </button>
       </div>
@@ -129,15 +129,15 @@ function clearAll() {
           <div class="flex min-w-0 items-center gap-2">
             <CheckSquare v-if="selectedSet.has(name)" class="h-3.5 w-3.5 shrink-0 text-primary" />
             <Square v-else class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span class="truncate font-mono text-[11px]" :title="name">{{ name }}</span>
+            <span class="truncate font-mono text-xs" :title="name">{{ name }}</span>
           </div>
 
-          <button type="button" class="opacity-0 group-hover:opacity-100 text-[10px] text-primary/80 hover:text-primary px-1 py-0.5 rounded hover:bg-primary/10 transition-opacity" :title="t('diagram.onlyThisSchema')" @click="selectOnly(name, $event)">
+          <button type="button" class="opacity-0 group-hover:opacity-100 text-xs text-primary/80 hover:text-primary px-1 py-0.5 rounded hover:bg-primary/10 transition-opacity" :title="t('diagram.onlyThisSchema')" @click="selectOnly(name, $event)">
             {{ t("diagram.onlyThisSchema") }}
           </button>
         </div>
 
-        <div v-if="filteredSchemas.length === 0" class="py-3 text-center text-muted-foreground text-[11px]">
+        <div v-if="filteredSchemas.length === 0" class="py-3 text-center text-muted-foreground text-xs">
           {{ t("common.noMatches") || "No matches" }}
         </div>
       </div>

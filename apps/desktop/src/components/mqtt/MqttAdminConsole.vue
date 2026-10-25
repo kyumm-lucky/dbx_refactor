@@ -588,7 +588,7 @@ onUnmounted(stopPolling);
             <input class="h-7 min-w-0 flex-1 rounded border bg-transparent px-2 text-xs" :placeholder="t('connection.mqttSubscribePlaceholder')" />
             <Button size="sm" variant="ghost" class="h-7 px-2 text-xs" type="submit">{{ t("connection.mqttQuickSubscribe") }}</Button>
           </form>
-          <label class="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground"><input v-model="noLocalSubscribe" type="checkbox" :disabled="!mqtt5" />{{ t("connection.mqttNoLocal") }}</label>
+          <label class="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><input v-model="noLocalSubscribe" type="checkbox" :disabled="!mqtt5" />{{ t("connection.mqttNoLocal") }}</label>
         </div>
       </div>
 
@@ -602,7 +602,7 @@ onUnmounted(stopPolling);
                 <button
                   type="button"
                   data-testid="mqtt-direction-filter-all"
-                  class="h-5 rounded px-1.5 text-[10px] font-normal transition-colors"
+                  class="h-5 rounded px-1.5 text-xs font-normal transition-colors"
                   :class="messageDirectionFilter === 'all' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'"
                   :aria-pressed="messageDirectionFilter === 'all'"
                   @click="messageDirectionFilter = 'all'"
@@ -612,7 +612,7 @@ onUnmounted(stopPolling);
                 <button
                   type="button"
                   data-testid="mqtt-direction-filter-received"
-                  class="h-5 rounded px-1.5 text-[10px] font-normal transition-colors"
+                  class="h-5 rounded px-1.5 text-xs font-normal transition-colors"
                   :class="messageDirectionFilter === 'received' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'"
                   :aria-pressed="messageDirectionFilter === 'received'"
                   @click="messageDirectionFilter = 'received'"
@@ -622,7 +622,7 @@ onUnmounted(stopPolling);
                 <button
                   type="button"
                   data-testid="mqtt-direction-filter-sent"
-                  class="h-5 rounded px-1.5 text-[10px] font-normal transition-colors"
+                  class="h-5 rounded px-1.5 text-xs font-normal transition-colors"
                   :class="messageDirectionFilter === 'sent' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'"
                   :aria-pressed="messageDirectionFilter === 'sent'"
                   @click="messageDirectionFilter = 'sent'"
@@ -633,7 +633,7 @@ onUnmounted(stopPolling);
               <input
                 v-model="payloadSearch"
                 data-testid="mqtt-payload-search"
-                class="h-6 min-w-[10rem] flex-1 rounded border bg-transparent px-1.5 text-[11px] font-normal normal-case outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                class="h-6 min-w-[10rem] flex-1 rounded border bg-transparent px-1.5 text-xs font-normal normal-case outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 :placeholder="t('connection.mqttSearchPayloadPlaceholder')"
                 :aria-label="t('connection.mqttSearchPayloadPlaceholder')"
               />
@@ -641,13 +641,13 @@ onUnmounted(stopPolling);
                 <template v-if="payloadSearch.trim() || messageDirectionFilter !== 'all'">{{ filteredMessages.length }} / {{ messages.length }}</template>
                 <template v-else>{{ messages.length }}</template>
               </span>
-              <select v-model="displayEncoding" class="h-6 rounded border bg-transparent px-1.5 text-[11px] text-muted-foreground outline-none">
+              <select v-model="displayEncoding" class="h-6 rounded border bg-transparent px-1.5 text-xs text-muted-foreground outline-none">
                 <option v-for="enc in PAYLOAD_ENCODINGS" :key="enc" :value="enc">{{ PAYLOAD_ENCODING_LABELS[enc] }}</option>
               </select>
               <select
                 v-model.number="pollingIntervalMs"
                 data-testid="mqtt-refresh-interval"
-                class="h-6 rounded border bg-transparent px-1.5 text-[11px] text-muted-foreground outline-none"
+                class="h-6 rounded border bg-transparent px-1.5 text-xs text-muted-foreground outline-none"
                 :aria-label="t('connection.mqttRefreshInterval')"
                 :title="t('connection.mqttRefreshInterval')"
                 @change="handlePollingIntervalChange"
@@ -656,23 +656,23 @@ onUnmounted(stopPolling);
                   {{ option.label }}
                 </option>
               </select>
-              <Button size="sm" variant="ghost" class="h-6 gap-1 px-2 text-[11px] font-normal normal-case" :title="messagesPaused ? t('connection.mqttResumeMessages') : t('connection.mqttPauseMessages')" @click="toggleMessagesPaused">
+              <Button size="sm" variant="ghost" class="h-6 gap-1 px-2 text-xs font-normal normal-case" :title="messagesPaused ? t('connection.mqttResumeMessages') : t('connection.mqttPauseMessages')" @click="toggleMessagesPaused">
                 <Play v-if="messagesPaused" class="h-3.5 w-3.5" />
                 <Pause v-else class="h-3.5 w-3.5" />
                 <span>{{ messagesPaused ? t("connection.mqttResumeMessages") : t("connection.mqttPauseMessages") }}</span>
               </Button>
-              <Button type="button" size="sm" variant="ghost" data-testid="mqtt-message-payload-collapse-all" class="h-6 gap-1 px-2 text-[11px] font-normal normal-case" :disabled="filteredMessages.length === 0" :title="t('connection.mqttCollapseAllPayloads')" @click="collapseAllMessagePayloads">
+              <Button type="button" size="sm" variant="ghost" data-testid="mqtt-message-payload-collapse-all" class="h-6 gap-1 px-2 text-xs font-normal normal-case" :disabled="filteredMessages.length === 0" :title="t('connection.mqttCollapseAllPayloads')" @click="collapseAllMessagePayloads">
                 <ChevronUp class="h-3.5 w-3.5" />
                 <span>{{ t("connection.mqttCollapseAllPayloads") }}</span>
               </Button>
-              <Button type="button" size="sm" variant="ghost" data-testid="mqtt-message-payload-expand-all" class="h-6 gap-1 px-2 text-[11px] font-normal normal-case" :disabled="filteredMessages.length === 0" :title="t('connection.mqttExpandAllPayloads')" @click="expandAllMessagePayloads">
+              <Button type="button" size="sm" variant="ghost" data-testid="mqtt-message-payload-expand-all" class="h-6 gap-1 px-2 text-xs font-normal normal-case" :disabled="filteredMessages.length === 0" :title="t('connection.mqttExpandAllPayloads')" @click="expandAllMessagePayloads">
                 <ChevronDown class="h-3.5 w-3.5" />
                 <span>{{ t("connection.mqttExpandAllPayloads") }}</span>
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
-                class="h-6 gap-1 px-2 text-[11px] font-normal normal-case"
+                class="h-6 gap-1 px-2 text-xs font-normal normal-case"
                 :disabled="!connected"
                 :aria-expanded="!publishPanelCollapsed"
                 :title="publishPanelCollapsed ? t('connection.mqttShowPublishPanel') : t('connection.mqttHidePublishPanel')"
@@ -702,17 +702,17 @@ onUnmounted(stopPolling);
                 @contextmenu="openMessageContextMenu($event, msg, onContextMenu)"
               >
                 <div class="mb-0.5 flex items-center gap-2">
-                  <span v-if="msg.direction === 'sent'" class="shrink-0 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">{{ t("connection.mqttSent") }}</span>
-                  <span v-else class="shrink-0 text-[10px] font-bold text-blue-600 dark:text-blue-400">{{ t("connection.mqttReceived") }}</span>
+                  <span v-if="msg.direction === 'sent'" class="shrink-0 text-xs font-bold text-emerald-600 dark:text-emerald-400">{{ t("connection.mqttSent") }}</span>
+                  <span v-else class="shrink-0 text-xs font-bold text-blue-600 dark:text-blue-400">{{ t("connection.mqttReceived") }}</span>
                   <span class="truncate font-mono font-medium text-blue-700 dark:text-blue-300">{{ msg.topic }}</span>
                   <span class="shrink-0 text-muted-foreground">QoS{{ msg.qos }}</span>
-                  <span v-if="msg.retain" class="shrink-0 text-[10px] font-medium text-amber-600 dark:text-amber-400">{{ t("connection.mqttRetained") }}</span>
+                  <span v-if="msg.retain" class="shrink-0 text-xs font-medium text-amber-600 dark:text-amber-400">{{ t("connection.mqttRetained") }}</span>
                   <Button
                     type="button"
                     size="xs"
                     variant="ghost"
                     data-testid="mqtt-message-payload-toggle"
-                    class="ml-auto h-5 gap-0.5 px-1.5 text-[10px] font-normal"
+                    class="ml-auto h-5 gap-0.5 px-1.5 text-xs font-normal"
                     :title="isMessagePayloadCollapsed(msg.previewKey) ? t('connection.mqttExpandPayload') : t('connection.mqttCollapsePayload')"
                     :aria-expanded="!isMessagePayloadCollapsed(msg.previewKey)"
                     :aria-controls="msg.payloadElementId"
@@ -727,7 +727,7 @@ onUnmounted(stopPolling);
                 <div :id="msg.payloadElementId" data-testid="mqtt-message-payload" class="break-all whitespace-pre-wrap font-mono text-muted-foreground" :hidden="isMessagePayloadCollapsed(msg.previewKey)">
                   <template v-if="!isMessagePayloadCollapsed(msg.previewKey)">{{ formatMessagePayload(msg) }}</template>
                 </div>
-                <time class="mt-1 block text-[10px] tabular-nums text-muted-foreground/70">{{ formatMessageTimestamp(msg.receivedAtMs) }}</time>
+                <time class="mt-1 block text-xs tabular-nums text-muted-foreground/70">{{ formatMessageTimestamp(msg.receivedAtMs) }}</time>
               </div>
             </div>
           </CustomContextMenu>
@@ -745,7 +745,7 @@ onUnmounted(stopPolling);
           <label class="grid gap-1.5 text-xs font-medium">
             <span>{{ t("connection.mqttTopicFilter") }}</span>
             <input v-model="formTopic" class="h-8 rounded border bg-transparent px-2 font-mono text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring" :placeholder="t('connection.mqttTopicFilterPlaceholder')" :disabled="savingSubscription" @keydown.enter.prevent="saveSubscription" />
-            <span class="text-[11px] font-normal text-muted-foreground">{{ t("connection.mqttTopicFilterHint") }}</span>
+            <span class="text-xs font-normal text-muted-foreground">{{ t("connection.mqttTopicFilterHint") }}</span>
           </label>
           <label class="grid gap-1.5 text-xs font-medium">
             <span>QoS</span>

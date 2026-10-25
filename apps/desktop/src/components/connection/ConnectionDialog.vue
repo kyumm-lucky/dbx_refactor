@@ -7893,7 +7893,7 @@ function openExternalUrl(url: string) {
                         <div class="flex items-center justify-between gap-3 rounded-md border bg-muted/20 px-3 py-2">
                           <div class="flex min-w-0 items-center gap-2">
                             <div class="truncate text-xs font-medium">{{ t("connection.jdbcManualClasspath") }}</div>
-                            <Badge variant="outline" class="h-5 shrink-0 rounded-full px-2 text-[10px] font-medium">
+                            <Badge variant="outline" class="h-5 shrink-0 rounded-full px-2 text-xs font-medium">
                               {{ t("connection.jdbcManualClasspathCount", { count: jdbcManualClasspathCount }) }}
                             </Badge>
                           </div>
@@ -7992,15 +7992,15 @@ function openExternalUrl(url: string) {
                               <label class="flex cursor-pointer items-center gap-1.5 text-sm">
                                 <input type="radio" name="sqlite-worker-placement" class="h-3.5 w-3.5 accent-primary" :value="option.value" v-model="sqliteWorkerPlacement" />
                                 <span>{{ t(option.labelKey) }}</span>
-                                <Badge v-if="option.recommended" class="h-4 rounded-full px-1.5 text-[10px] leading-none">{{ t("connection.sqliteWorkerPlacementDefault") }}</Badge>
+                                <Badge v-if="option.recommended" class="h-5 rounded-full px-1.5 text-xs leading-none">{{ t("connection.sqliteWorkerPlacementDefault") }}</Badge>
                               </label>
                             </TooltipTrigger>
                             <TooltipContent side="bottom" class="max-w-[18rem] flex-col items-start gap-1 py-2 text-left">
                               <div class="flex items-center gap-1.5 font-medium">
                                 <span>{{ t(option.labelKey) }}</span>
-                                <Badge v-if="option.recommended" class="h-4 rounded-full px-1.5 text-[10px] leading-none">{{ t("connection.sqliteWorkerPlacementDefault") }}</Badge>
+                                <Badge v-if="option.recommended" class="h-5 rounded-full px-1.5 text-xs leading-none">{{ t("connection.sqliteWorkerPlacementDefault") }}</Badge>
                               </div>
-                              <p class="text-[11px] leading-relaxed text-background-solid/80">{{ t(option.hintKey) }}</p>
+                              <p class="text-xs leading-relaxed text-background-solid/80">{{ t(option.hintKey) }}</p>
                             </TooltipContent>
                           </Tooltip>
                         </div>
@@ -9892,7 +9892,7 @@ function openExternalUrl(url: string) {
                           <div class="flex items-center justify-between gap-3 rounded-md border bg-muted/20 px-3 py-2">
                             <div class="flex min-w-0 items-center gap-2">
                               <div class="truncate text-xs font-medium">{{ t("connection.jdbcManualClasspath") }}</div>
-                              <Badge variant="outline" class="h-5 shrink-0 rounded-full px-2 text-[10px] font-medium">
+                              <Badge variant="outline" class="h-5 shrink-0 rounded-full px-2 text-xs font-medium">
                                 {{ t("connection.jdbcManualClasspathCount", { count: jdbcManualClasspathCount }) }}
                               </Badge>
                             </div>
@@ -9951,7 +9951,7 @@ function openExternalUrl(url: string) {
                           :aria-label="t('connection.databaseInfo.open', { database: databaseInfoCompactLabel })"
                         >
                           <DatabaseLucide class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                          <span class="rounded-full bg-background px-1.5 py-0.5 text-[11px] text-muted-foreground">{{ databaseInfoStatusLabel }}</span>
+                          <span class="rounded-full bg-background px-1.5 py-0.5 text-xs text-muted-foreground">{{ databaseInfoStatusLabel }}</span>
                           <span class="min-w-0 flex-1 truncate text-muted-foreground">{{ databaseInfoCompactLabel }}</span>
                         </button>
                       </PopoverTrigger>
@@ -10036,7 +10036,7 @@ function openExternalUrl(url: string) {
                           <TooltipContent>{{ t("connection.damengSslFilesPathBrowse") }}</TooltipContent>
                         </Tooltip>
                       </div>
-                      <p class="text-[11px] leading-4 text-muted-foreground">{{ t("connection.damengSslHint") }}</p>
+                      <p class="text-xs leading-4 text-muted-foreground">{{ t("connection.damengSslHint") }}</p>
                     </div>
                   </div>
 
@@ -10052,7 +10052,7 @@ function openExternalUrl(url: string) {
 
                   <div class="grid grid-cols-4 items-start gap-4">
                     <span />
-                    <p class="col-span-3 text-[11px] leading-4 text-muted-foreground">{{ t("connection.damengSslVerificationHint") }}</p>
+                    <p class="col-span-3 text-xs leading-4 text-muted-foreground">{{ t("connection.damengSslVerificationHint") }}</p>
                   </div>
                 </template>
 
@@ -10077,7 +10077,7 @@ function openExternalUrl(url: string) {
                         </Tooltip>
                       </div>
                       <PasswordInput v-model="cassandraTls.truststore_password" :placeholder="t('connection.cassandraTruststorePassword')" :disabled="!tlsEnabled" />
-                      <p class="text-[11px] leading-4 text-muted-foreground">{{ t("connection.cassandraTruststoreHint") }}</p>
+                      <p class="text-xs leading-4 text-muted-foreground">{{ t("connection.cassandraTruststoreHint") }}</p>
                     </div>
                   </div>
 
@@ -10101,7 +10101,7 @@ function openExternalUrl(url: string) {
                         </Tooltip>
                       </div>
                       <PasswordInput v-model="cassandraTls.keystore_password" :placeholder="t('connection.cassandraKeystorePassword')" :disabled="!tlsEnabled" />
-                      <p class="text-[11px] leading-4 text-muted-foreground">{{ t("connection.cassandraKeystoreHint") }}</p>
+                      <p class="text-xs leading-4 text-muted-foreground">{{ t("connection.cassandraKeystoreHint") }}</p>
                     </div>
                   </div>
                 </template>
@@ -10218,7 +10218,7 @@ function openExternalUrl(url: string) {
                           <TooltipContent>{{ t("connection.etcdClientKeyBrowse") }}</TooltipContent>
                         </Tooltip>
                       </div>
-                      <p v-if="form.db_type !== 'nebula'" class="text-[11px] leading-4 text-muted-foreground">
+                      <p v-if="form.db_type !== 'nebula'" class="text-xs leading-4 text-muted-foreground">
                         {{ t("connection.etcdClientCertHint") }}
                       </p>
                     </div>
@@ -10229,7 +10229,7 @@ function openExternalUrl(url: string) {
                   <div v-if="supportsMysqlCleartextPasswordAuth" class="grid grid-cols-4 items-start gap-4">
                     <Label :class="[connectionLabelSmallPaddedClass, 'min-w-0 break-words']">{{ t("connection.mysqlCleartextPasswordAuth") }}</Label>
                     <div class="col-span-3 flex min-w-0 items-start justify-between gap-4">
-                      <p class="min-w-0 text-[11px] leading-4 text-muted-foreground break-words">
+                      <p class="min-w-0 text-xs leading-4 text-muted-foreground break-words">
                         {{ t("connection.mysqlCleartextPasswordAuthHint") }}
                       </p>
                       <Switch v-model="mysqlCleartextPasswordAuth" class="mt-0.5 shrink-0" />
@@ -10271,7 +10271,7 @@ function openExternalUrl(url: string) {
                           <TooltipContent>{{ t("connection.caCertPathBrowse") }}</TooltipContent>
                         </Tooltip>
                       </div>
-                      <p class="text-[11px] leading-4 text-muted-foreground">
+                      <p class="text-xs leading-4 text-muted-foreground">
                         {{ t("connection.mysqlCaCertHint") }}
                       </p>
                     </div>
@@ -10307,7 +10307,7 @@ function openExternalUrl(url: string) {
                           <TooltipContent>{{ t("connection.mysqlClientKeyBrowse") }}</TooltipContent>
                         </Tooltip>
                       </div>
-                      <p class="text-[11px] leading-4 text-muted-foreground">
+                      <p class="text-xs leading-4 text-muted-foreground">
                         {{ t("connection.mysqlClientCertHint") }}
                       </p>
                     </div>
@@ -10360,7 +10360,7 @@ function openExternalUrl(url: string) {
                           <TooltipContent>{{ t("connection.postgresRootCertBrowse") }}</TooltipContent>
                         </Tooltip>
                       </div>
-                      <p class="text-[11px] leading-4 text-muted-foreground">
+                      <p class="text-xs leading-4 text-muted-foreground">
                         {{ t("connection.postgresRootCertHint") }}
                       </p>
                     </div>
@@ -10396,7 +10396,7 @@ function openExternalUrl(url: string) {
                           <TooltipContent>{{ t("connection.postgresClientKeyBrowse") }}</TooltipContent>
                         </Tooltip>
                       </div>
-                      <p class="text-[11px] leading-4 text-muted-foreground">
+                      <p class="text-xs leading-4 text-muted-foreground">
                         {{ t("connection.postgresClientCertHint") }}
                       </p>
                     </div>
@@ -10453,19 +10453,19 @@ function openExternalUrl(url: string) {
                         </Button>
                       </div>
                       <Input v-model="nacosContextPath" :placeholder="t('connection.nacosContextPathPlaceholder')" />
-                      <p class="text-[11px] leading-4 text-muted-foreground">{{ t("nacos.nacosContextPathHint") }}</p>
+                      <p class="text-xs leading-4 text-muted-foreground">{{ t("nacos.nacosContextPathHint") }}</p>
                     </div>
 
                     <div class="grid gap-1.5">
                       <Label>{{ t("connection.nacosPageSize") }}</Label>
                       <Input v-model.number="nacosPageSize" type="number" min="1" max="500" />
-                      <p class="text-[11px] leading-4 text-muted-foreground">{{ t("nacos.nacosPageSizeHint") }}</p>
+                      <p class="text-xs leading-4 text-muted-foreground">{{ t("nacos.nacosPageSizeHint") }}</p>
                     </div>
 
                     <div v-if="isNacosV3AdminPlane" class="grid gap-1.5 border-t pt-4">
                       <div>
                         <Label>{{ t("connection.nacosWebConsoleUrl") }}</Label>
-                        <p class="mt-1 text-[11px] leading-4 text-muted-foreground">{{ t("connection.nacosWebConsoleUrlHint") }}</p>
+                        <p class="mt-1 text-xs leading-4 text-muted-foreground">{{ t("connection.nacosWebConsoleUrlHint") }}</p>
                       </div>
                       <Input v-model="nacosConsoleUrl" :placeholder="nacosWebConsoleUrlPlaceholder" />
                     </div>
@@ -10474,7 +10474,7 @@ function openExternalUrl(url: string) {
                       <div class="grid gap-1.5 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-center">
                         <div>
                           <Label>{{ t("connection.nacosMetrics") }}</Label>
-                          <p class="mt-1 text-[11px] leading-4 text-muted-foreground">{{ t("nacos.nacosMetricsHint") }}</p>
+                          <p class="mt-1 text-xs leading-4 text-muted-foreground">{{ t("nacos.nacosMetricsHint") }}</p>
                         </div>
                         <Select v-model="nacosMetricsMode">
                           <SelectTrigger class="h-9">
@@ -10498,7 +10498,7 @@ function openExternalUrl(url: string) {
                       <div class="flex items-start justify-between gap-4">
                         <div>
                           <Label>{{ t("nacos.nacosRnacosExtension") }}</Label>
-                          <p class="mt-1 text-[11px] leading-4 text-muted-foreground">{{ t("nacos.nacosRnacosExtensionHint") }}</p>
+                          <p class="mt-1 text-xs leading-4 text-muted-foreground">{{ t("nacos.nacosRnacosExtensionHint") }}</p>
                         </div>
                         <label class="inline-flex shrink-0 items-center gap-2">
                           <Switch v-model="nacosHistoryEnabled" />
@@ -10508,7 +10508,7 @@ function openExternalUrl(url: string) {
                       <div class="grid gap-1.5">
                         <Label>{{ t("connection.nacosRNacosConsoleUrl") }}</Label>
                         <Input v-model="nacosRNacosConsoleAddr" :placeholder="t('connection.nacosRNacosConsoleUrlPlaceholder')" />
-                        <p class="text-[11px] leading-4 text-muted-foreground">{{ t("nacos.nacosRnacosConsoleUrlHint") }}</p>
+                        <p class="text-xs leading-4 text-muted-foreground">{{ t("nacos.nacosRnacosConsoleUrlHint") }}</p>
                       </div>
                       <template v-if="nacosRNacosConsoleAddr.trim()">
                         <div class="grid gap-1.5">
@@ -10539,7 +10539,7 @@ function openExternalUrl(url: string) {
                     <label class="flex items-start justify-between gap-4 border-t pt-4">
                       <div>
                         <div class="text-sm font-medium">{{ t("connection.nacosTls") }}</div>
-                        <p class="mt-1 text-[11px] leading-4 text-muted-foreground">{{ t("nacos.nacosTlsHint") }}</p>
+                        <p class="mt-1 text-xs leading-4 text-muted-foreground">{{ t("nacos.nacosTlsHint") }}</p>
                       </div>
                       <span class="inline-flex shrink-0 items-center gap-2">
                         <input v-model="nacosTlsSkipVerify" type="checkbox" class="mr-0" />
@@ -10895,7 +10895,7 @@ function openExternalUrl(url: string) {
                 <div class="connection-label-wide-grid grid w-full min-w-0 grid-cols-4 items-start gap-4">
                   <Label :class="connectionLabelSmallPaddedClass">{{ t("connection.sshHops") }}</Label>
                   <div class="col-span-3 grid w-full min-w-0 gap-3">
-                    <div class="flex min-w-0 flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                    <div class="flex min-w-0 flex-wrap items-center gap-1 text-xs text-muted-foreground">
                       <template v-for="(segment, index) in transportPathSegments" :key="`${segment}-${index}`">
                         <span class="inline-block max-w-full truncate rounded border bg-muted/40 px-2 py-1">{{ segment }}</span>
                         <ChevronRight v-if="index < transportPathSegments.length - 1" class="h-3 w-3" />
@@ -11411,7 +11411,7 @@ function openExternalUrl(url: string) {
           <div class="grid gap-1.5">
             <div class="flex items-center justify-between gap-3">
               <Label>{{ t(nacosManualNamespaceLabelKey) }}</Label>
-              <span class="text-[11px] text-muted-foreground">{{ t("nacos.nacosManagedNamespacesSeparator") }}</span>
+              <span class="text-xs text-muted-foreground">{{ t("nacos.nacosManagedNamespacesSeparator") }}</span>
             </div>
             <textarea
               v-model="nacosManagedNamespacesText"
@@ -11420,7 +11420,7 @@ function openExternalUrl(url: string) {
               class="min-h-32 resize-y rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
               :placeholder="t(nacosManualNamespacePlaceholderKey)"
             />
-            <p class="text-[11px] leading-4 text-muted-foreground">{{ t(nacosManualNamespaceHintKey) }}</p>
+            <p class="text-xs leading-4 text-muted-foreground">{{ t(nacosManualNamespaceHintKey) }}</p>
           </div>
           <p v-if="!visibleNacosNamespaceCanSave" class="text-xs text-destructive">{{ t("nacos.nacosOrdinaryNamespacesRequired") }}</p>
         </TabsContent>

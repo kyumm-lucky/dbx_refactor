@@ -53,12 +53,12 @@ watch(open, (isOpen) => {
 
       <div class="flex h-9 shrink-0 items-center gap-3 border-b px-3">
         <div class="inline-flex h-7 items-center rounded border bg-muted/20 p-0.5" role="group" :aria-label="t('grid.valueDiffFormat')">
-          <Button type="button" size="sm" :variant="formatMode === 'json' ? 'secondary' : 'ghost'" class="h-6 rounded-sm px-2 text-[11px] shadow-none" @click="formatMode = 'json'">JSON</Button>
-          <Button type="button" size="sm" :variant="formatMode === 'raw' ? 'secondary' : 'ghost'" class="h-6 rounded-sm px-2 text-[11px] shadow-none" @click="formatMode = 'raw'">{{ t("grid.valueDiffRaw") }}</Button>
+          <Button type="button" size="sm" :variant="formatMode === 'json' ? 'secondary' : 'ghost'" class="h-6 rounded-sm px-2 text-xs shadow-none" @click="formatMode = 'json'">JSON</Button>
+          <Button type="button" size="sm" :variant="formatMode === 'raw' ? 'secondary' : 'ghost'" class="h-6 rounded-sm px-2 text-xs shadow-none" @click="formatMode = 'raw'">{{ t("grid.valueDiffRaw") }}</Button>
         </div>
       </div>
 
-      <div v-if="originalFormatted.error || currentFormatted.error" class="grid shrink-0 grid-cols-2 border-b bg-amber-500/10 text-[11px] text-amber-700 dark:text-amber-300">
+      <div v-if="originalFormatted.error || currentFormatted.error" class="grid shrink-0 grid-cols-2 border-b bg-amber-500/10 text-xs text-amber-700 dark:text-amber-300">
         <div class="flex min-w-0 items-start gap-1.5 border-r px-2 py-1">
           <template v-if="originalFormatted.error"
             ><AlertCircle class="mt-0.5 h-3 w-3 shrink-0" /><span class="min-w-0 break-words">{{ formatError(originalFormatted.error) }}</span></template

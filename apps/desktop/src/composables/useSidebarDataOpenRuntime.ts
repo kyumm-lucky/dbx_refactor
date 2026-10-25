@@ -187,6 +187,8 @@ export function useSidebarDataOpenRuntime() {
       tab.title = node.label;
       tab.schema = tableSchema;
       tab.whereInput = undefined;
+      // 复用标签打开另一张表时回到默认的数据视图，不继承上一张表停留的结构视图。
+      tab.tableView = undefined;
       tab.orderByInput = undefined;
       tab.structuredOrderByInput = undefined;
       tab.previewSql = undefined;

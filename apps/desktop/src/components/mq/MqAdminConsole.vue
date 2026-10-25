@@ -719,7 +719,7 @@ onUnmounted(() => {
 .mq-breadcrumb {
   display: flex;
   align-items: center;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
 }
 
@@ -757,7 +757,7 @@ onUnmounted(() => {
 
 .toolbar-error {
   color: var(--color-error);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .toolbar-status {
@@ -771,7 +771,7 @@ onUnmounted(() => {
   border: 1px solid var(--color-warning);
   border-radius: var(--dbx-radius-fixed-4);
   color: var(--color-warning);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
 }
 
@@ -780,7 +780,7 @@ onUnmounted(() => {
   border: 1px solid rgb(220 38 38 / 0.55);
   border-radius: var(--dbx-radius-fixed-4);
   color: rgb(185 28 28);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
 }
 
@@ -805,7 +805,7 @@ onUnmounted(() => {
   cursor: pointer;
   color: var(--color-text-secondary);
   border-bottom: 2px solid transparent;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
   transition: all 0.2s;
 }
@@ -904,7 +904,7 @@ onUnmounted(() => {
   display: block;
   margin-bottom: 6px;
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .form-group input[type="text"] {
@@ -912,7 +912,7 @@ onUnmounted(() => {
   padding: 8px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   box-sizing: border-box;
   background: var(--color-background);
   color: var(--color-text);
@@ -920,7 +920,7 @@ onUnmounted(() => {
 
 .form-error {
   color: var(--color-error);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 button:disabled {

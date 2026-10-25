@@ -1807,7 +1807,7 @@ const targetConnectionInfo = computed(() => {
                         <td class="py-1 pr-4 font-mono">{{ rc.targetName }}</td>
                         <td class="py-1 pr-4">
                           <span
-                            class="rounded px-1.5 py-0.5 text-[10px] font-medium"
+                            class="rounded px-1.5 py-0.5 text-xs font-medium"
                             :class="rc.score >= 0.8 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : rc.score >= 0.5 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'"
                             >{{ (rc.score * 100).toFixed(0) }}%</span
                           >
@@ -1964,7 +1964,7 @@ const targetConnectionInfo = computed(() => {
         <div v-else></div>
 
         <div v-if="step === 'result'" class="flex items-center gap-2">
-          <p v-if="showRoutineDeployDeferredHint" class="max-w-md text-right text-[11px] text-muted-foreground">
+          <p v-if="showRoutineDeployDeferredHint" class="max-w-md text-right text-xs text-muted-foreground">
             {{ t("diff.routineSyncDeferredHint") }}
           </p>
           <Button v-else size="sm" :disabled="!canDeploy || deployIsBusy" @click="handleDeployReview">

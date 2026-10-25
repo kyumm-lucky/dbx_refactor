@@ -334,7 +334,7 @@ onBeforeUnmount(() => {
             <SelectItem v-for="index in indexOptions" :key="index" :value="index">{{ index }}</SelectItem>
           </SelectContent>
         </Select>
-        <span v-if="indexLoadError" class="text-[11px] text-destructive" :title="indexLoadError">{{ t("meilisearch.indexListUnavailable") }}</span>
+        <span v-if="indexLoadError" class="text-xs text-destructive" :title="indexLoadError">{{ t("meilisearch.indexListUnavailable") }}</span>
       </div>
       <div class="w-[200px] shrink-0">
         <Select :model-value="filters.status" @update:model-value="updateStatusFilter">

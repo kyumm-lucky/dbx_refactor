@@ -276,7 +276,7 @@ watch(
   display: grid;
   grid-template-columns: 140px 1fr;
   gap: 8px 12px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .detail-grid > span:nth-child(odd) {
@@ -297,7 +297,7 @@ watch(
   padding: 24px;
   text-align: center;
   color: var(--color-text-secondary);
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .panel-error {
@@ -305,7 +305,7 @@ watch(
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-error-bg);
   color: var(--color-error);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   white-space: pre-wrap;
 }
 
@@ -327,7 +327,7 @@ watch(
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 10px;
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-tertiary);
 }
 
@@ -337,7 +337,7 @@ watch(
   align-items: center;
   padding: 1px 8px;
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
   line-height: 1.4;
 }
@@ -397,7 +397,7 @@ watch(
   padding: 2px 6px;
   border: 1px solid var(--color-border);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
   word-break: break-all;
 }
@@ -411,7 +411,7 @@ watch(
   padding: 4px 6px;
   border: 1px solid var(--color-border);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
 }
 
@@ -432,7 +432,7 @@ watch(
   border: 1px solid var(--color-border);
   border-radius: var(--dbx-radius-fixed-4);
   background: var(--color-background);
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
 }
 
@@ -457,7 +457,7 @@ watch(
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-background);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   cursor: pointer;
 }
 </style>

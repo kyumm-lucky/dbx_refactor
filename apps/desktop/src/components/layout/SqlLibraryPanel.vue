@@ -1423,7 +1423,7 @@ function createDragGhost(sourceEl: HTMLElement, x: number, y: number) {
     max-width: 220px;
     height: 24px;
     padding: 0 8px;
-    font-size: 13px;
+    font-size: var(--dbx-ui-font-size);
     line-height: 24px;
     white-space: nowrap;
     overflow: hidden;
@@ -1587,11 +1587,11 @@ function showDropInside(targetId: string) {
 <template>
   <div class="h-full flex flex-col overflow-hidden border-l bg-background select-none">
     <div class="h-9 flex items-center gap-1 px-2 border-b shrink-0 bg-muted/20">
-      <span class="text-[13px] font-medium">{{ t("sqlLibrary.title") }}</span>
+      <span class="text-xs font-medium">{{ t("sqlLibrary.title") }}</span>
       <HelpTooltip :label="t('sqlLibrary.storageHelp')" side="bottom" :side-offset="4" trigger-class="h-4 w-4" content-class="max-w-[320px] whitespace-pre-line">
         {{ t("sqlLibrary.storageHelp") }}
       </HelpTooltip>
-      <span v-if="hasSelection" class="text-[12px] text-muted-foreground ml-1">({{ selectedCount }})</span>
+      <span v-if="hasSelection" class="text-xs text-muted-foreground ml-1">({{ selectedCount }})</span>
       <span class="flex-1" />
       <LightTooltip :text="t('sqlLibrary.collapseAll')" side="bottom" :delay="0" :close-delay="0" nowrap :disabled="!hasAnyFolder()">
         <Button variant="ghost" size="icon" class="h-5 w-5" :disabled="!hasAnyFolder()" @click="collapseAllFolders">
@@ -1648,7 +1648,7 @@ function showDropInside(targetId: string) {
           >
             <div
               v-if="dragState.draggedType === 'file'"
-              class="relative px-2 py-1 text-[10px] font-medium uppercase text-muted-foreground"
+              class="relative px-2 py-1 text-xs font-medium uppercase text-muted-foreground"
               :class="showDropInside(UNFILED_DROP_TARGET_ID) ? 'ring-1 ring-primary/50 bg-primary/5' : ''"
               @mousemove="updateDropTarget($event, UNFILED_DROP_TARGET_ID, 'unfiled')"
               @mouseleave="clearDropTarget(UNFILED_DROP_TARGET_ID)"
@@ -1659,7 +1659,7 @@ function showDropInside(targetId: string) {
             <div v-for="row in treeRows" :key="row.type + '-' + (row.type === 'folder' ? row.folder.id : row.file.id)">
               <div
                 v-if="row.type === 'folder'"
-                class="relative flex cursor-default items-center gap-1 py-1.5 pr-2 text-[13px] group"
+                class="relative flex cursor-default items-center gap-1 py-1.5 pr-2 text-xs group"
                 :style="{ paddingLeft: `${8 + row.depth * 16}px` }"
                 :class="[showDropInside(row.folder.id) ? 'ring-1 ring-primary/50 bg-primary/5' : folderRowClass(row.folder.id), isDraggingItem(row.folder.id) ? 'opacity-50' : '']"
                 @mousedown="handleDragMouseDown($event, row.folder.id, 'folder')"
@@ -1681,7 +1681,7 @@ function showDropInside(targetId: string) {
                     v-model="renameValue"
                     data-preserve-editor-focus
                     data-no-drag="true"
-                    class="min-w-0 flex-1 rounded border border-primary/50 bg-transparent px-1 text-[13px] outline-none"
+                    class="min-w-0 flex-1 rounded border border-primary/50 bg-transparent px-1 text-xs outline-none"
                     @keydown.enter.prevent="confirmRename"
                     @keydown.escape.prevent="cancelRename"
                     @focus="handleRenameInputFocus"
@@ -1710,7 +1710,7 @@ function showDropInside(targetId: string) {
 
               <template v-else>
                 <div
-                  class="relative flex cursor-default items-center gap-1 py-1.5 pr-2 text-[13px] group"
+                  class="relative flex cursor-default items-center gap-1 py-1.5 pr-2 text-xs group"
                   :style="{ paddingLeft: `${8 + row.depth * 16}px` }"
                   :data-sql-library-file="row.file.id"
                   :class="[fileRowClass(row.file.id), isDraggingItem(row.file.id) ? 'opacity-50' : '']"
@@ -1734,7 +1734,7 @@ function showDropInside(targetId: string) {
                       v-model="renameValue"
                       data-preserve-editor-focus
                       data-no-drag="true"
-                      class="min-w-0 flex-1 rounded border border-primary/50 bg-transparent px-1 text-[13px] outline-none"
+                      class="min-w-0 flex-1 rounded border border-primary/50 bg-transparent px-1 text-xs outline-none"
                       @keydown.enter.prevent="confirmRename"
                       @keydown.escape.prevent="cancelRename"
                       @focus="handleRenameInputFocus"
@@ -1744,7 +1744,7 @@ function showDropInside(targetId: string) {
                     />
                   </template>
                   <span v-else class="dbx-sql-library-drag-label min-w-0 flex-1 truncate" :title="fileTitleLabel(row.file)" :style="fileTitleStyle(row.file)">{{ row.file.name }}</span>
-                  <span class="min-w-0 max-w-[45%] shrink truncate text-[13px]" :class="fileMetaClass(row.file.id)" :title="getConnectionLabel(row.file.connectionId)">[{{ getConnectionLabel(row.file.connectionId) }}]</span>
+                  <span class="min-w-0 max-w-[45%] shrink truncate text-xs" :class="fileMetaClass(row.file.id)" :title="getConnectionLabel(row.file.connectionId)">[{{ getConnectionLabel(row.file.connectionId) }}]</span>
                 </div>
                 <SqlLibrarySearchSnippet v-if="contentSearchActive" :file="row.file" :query="searchQuery" :depth="row.depth" @select-match="(match) => handleMatchClick(row.file, match)" />
               </template>
@@ -1752,12 +1752,12 @@ function showDropInside(targetId: string) {
 
             <div v-if="savedSqlStore.loadState === 'idle' || savedSqlStore.loadState === 'loading'" class="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground" role="status" aria-live="polite">
               <Loader2 class="h-6 w-6 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-              <p class="text-[13px]">{{ t("common.loading") }}</p>
+              <p class="text-xs">{{ t("common.loading") }}</p>
             </div>
 
             <div v-else-if="!hasAnyVisibleItem && !(searchInputPending || (contentSearchActive && (loadingSearchContent || unloadedSearchFiles.length)))" class="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
               <Library class="h-8 w-8 opacity-30" />
-              <p class="text-[13px]">{{ t(searchQuery ? "grid.noSearchResults" : "sqlLibrary.empty") }}</p>
+              <p class="text-xs">{{ t(searchQuery ? "grid.noSearchResults" : "sqlLibrary.empty") }}</p>
             </div>
           </div>
         </template>

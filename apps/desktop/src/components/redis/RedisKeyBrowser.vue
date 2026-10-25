@@ -3739,7 +3739,7 @@ defineExpose({ focusSearch, insertCommand, executeCommand: executeAiCommand });
               <CustomContextMenu :items="redisKeyContextMenuItems(row.node)" v-slot="{ onContextMenu, isOpen }">
                 <div
                   :data-redis-key-raw="row.node.kind === 'leaf' ? row.node.keyRaw : undefined"
-                  class="flex items-center gap-2 border-b px-1.5 text-[13px] cursor-pointer select-none group"
+                  class="flex items-center gap-2 border-b px-1.5 text-xs cursor-pointer select-none group"
                   :class="[
                     isOpen || (row.node.kind === 'leaf' && selectedKeyRaw === row.node.keyRaw) ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/40',
                     row.node.kind === 'leaf' ? (isLeafChecked(row.node.keyRaw) && selectedKeyRaw !== row.node.keyRaw ? 'bg-primary/10' : undefined) : groupSelectedCount(row.node) > 0 ? 'bg-primary/10' : undefined,
@@ -3806,7 +3806,7 @@ defineExpose({ focusSearch, insertCommand, executeCommand: executeAiCommand });
                     <!-- TTL 徽标：与类型徽标保持一致的胶囊样式，永不过期为琥珀色、临近过期/已过期为红色警示 -->
                     <span
                       v-if="row.node.kind === 'leaf' && redisTtlBadgeText(redisRowTtl(row.node), redisRowDisplayTtl(redisRowTtl(row.node), row.node.keyRaw))"
-                      class="inline-flex shrink-0 items-center whitespace-nowrap rounded border px-1.5 py-0.5 text-[11px] leading-none"
+                      class="inline-flex shrink-0 items-center whitespace-nowrap rounded border px-1.5 py-0.5 text-xs leading-none"
                       :class="redisTtlBadgeClass(redisRowTtl(row.node), redisRowDisplayTtl(redisRowTtl(row.node), row.node.keyRaw))"
                       :title="redisRowTtl(row.node) === -1 ? t('redis.noExpiry') : t('redis.ttlCountdownTitle')"
                       >{{ redisTtlBadgeText(redisRowTtl(row.node), redisRowDisplayTtl(redisRowTtl(row.node), row.node.keyRaw)) }}</span
@@ -3956,8 +3956,8 @@ defineExpose({ focusSearch, insertCommand, executeCommand: executeAiCommand });
                         >
                           <span class="min-w-0 flex-1">
                             <span class="block truncate font-mono">{{ item.label }}</span>
-                            <span v-if="item.summary" class="block truncate text-[11px] text-slate-400">{{ item.summary }}</span>
-                            <span v-if="item.apply && item.apply !== item.label" class="block truncate text-[11px] text-slate-500">{{ item.apply }}</span>
+                            <span v-if="item.summary" class="block truncate text-xs text-slate-400">{{ item.summary }}</span>
+                            <span v-if="item.apply && item.apply !== item.label" class="block truncate text-xs text-slate-500">{{ item.apply }}</span>
                           </span>
                           <span v-if="item.detail" class="shrink-0 text-slate-400">{{ item.detail }}</span>
                         </button>

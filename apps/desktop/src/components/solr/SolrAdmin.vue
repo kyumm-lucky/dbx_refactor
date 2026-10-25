@@ -661,7 +661,7 @@ onMounted(async () => {
                       </tr>
                       <tr v-if="systemInfo.args.length" class="border-b last:border-0">
                         <td class="w-32 px-3 py-1.5 align-top text-xs text-muted-foreground">{{ t("solrAdmin.dashboard.args") }}</td>
-                        <td class="break-all px-3 py-1.5 font-mono text-[11px] leading-relaxed">{{ systemInfo.args.join(" ") }}</td>
+                        <td class="break-all px-3 py-1.5 font-mono text-xs leading-relaxed">{{ systemInfo.args.join(" ") }}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -678,7 +678,7 @@ onMounted(async () => {
                       ><span>{{ barPct(systemInfo.physMemUsedPct) }}</span>
                     </div>
                     <div class="h-2 overflow-hidden rounded bg-muted"><div class="h-full rounded bg-primary" :style="{ width: barPct(systemInfo.physMemUsedPct) }" /></div>
-                    <div class="mt-0.5 text-right font-mono text-[10px] text-muted-foreground">{{ formatBytes(systemInfo.physMemUsed) }} / {{ formatBytes(systemInfo.physMemTotal) }}</div>
+                    <div class="mt-0.5 text-right font-mono text-xs text-muted-foreground">{{ formatBytes(systemInfo.physMemUsed) }} / {{ formatBytes(systemInfo.physMemTotal) }}</div>
                   </div>
                   <div v-if="systemInfo.swapUsedPct != null" class="mb-3">
                     <div class="mb-1 flex justify-between text-xs">
@@ -686,7 +686,7 @@ onMounted(async () => {
                       ><span>{{ barPct(systemInfo.swapUsedPct) }}</span>
                     </div>
                     <div class="h-2 overflow-hidden rounded bg-muted"><div class="h-full rounded bg-primary" :style="{ width: barPct(systemInfo.swapUsedPct) }" /></div>
-                    <div class="mt-0.5 text-right font-mono text-[10px] text-muted-foreground">{{ formatBytes(systemInfo.swapUsed) }} / {{ formatBytes(systemInfo.swapTotal) }}</div>
+                    <div class="mt-0.5 text-right font-mono text-xs text-muted-foreground">{{ formatBytes(systemInfo.swapUsed) }} / {{ formatBytes(systemInfo.swapTotal) }}</div>
                   </div>
                   <div v-if="systemInfo.fdMax">
                     <div class="mb-1 flex justify-between text-xs">
@@ -694,7 +694,7 @@ onMounted(async () => {
                       ><span>{{ barPct((systemInfo.fdUsed! / systemInfo.fdMax) * 100) }}</span>
                     </div>
                     <div class="h-2 overflow-hidden rounded bg-muted"><div class="h-full rounded bg-primary" :style="{ width: barPct((systemInfo.fdUsed! / systemInfo.fdMax) * 100) }" /></div>
-                    <div class="mt-0.5 text-right font-mono text-[10px] text-muted-foreground">{{ systemInfo.fdUsed ?? "-" }} / {{ systemInfo.fdMax }}</div>
+                    <div class="mt-0.5 text-right font-mono text-xs text-muted-foreground">{{ systemInfo.fdUsed ?? "-" }} / {{ systemInfo.fdMax }}</div>
                   </div>
                 </div>
 
@@ -705,7 +705,7 @@ onMounted(async () => {
                     ><span>{{ barPct(systemInfo.jvmMemUsedPct) }}</span>
                   </div>
                   <div class="h-2 overflow-hidden rounded bg-muted"><div class="h-full rounded bg-primary" :style="{ width: barPct(systemInfo.jvmMemUsedPct) }" /></div>
-                  <div class="mt-0.5 text-right font-mono text-[10px] text-muted-foreground">{{ systemInfo.jvmMemUsed ?? "-" }} / {{ systemInfo.jvmMemTotal ?? "-" }}</div>
+                  <div class="mt-0.5 text-right font-mono text-xs text-muted-foreground">{{ systemInfo.jvmMemUsed ?? "-" }} / {{ systemInfo.jvmMemTotal ?? "-" }}</div>
                 </div>
               </div>
             </div>
@@ -915,10 +915,10 @@ onMounted(async () => {
                 <tr v-for="field in schemaInfo.fields" :key="field.name" class="border-b last:border-0">
                   <td class="py-1 pr-3 font-mono text-xs">
                     {{ field.name }}
-                    <Badge v-if="field.name === schemaInfo.uniqueKey" variant="default" class="ml-1 px-1 text-[10px]">PK</Badge>
+                    <Badge v-if="field.name === schemaInfo.uniqueKey" variant="default" class="ml-1 px-1 text-xs">PK</Badge>
                   </td>
                   <td class="py-1 pr-3 font-mono text-xs">{{ field.type }}</td>
-                  <td class="py-1 font-mono text-[10px] text-muted-foreground">
+                  <td class="py-1 font-mono text-xs text-muted-foreground">
                     {{ [field.indexed ? "I" : "", field.stored ? "S" : "", field.required ? "R" : "", field.multiValued ? "M" : "", field.docValues ? "D" : ""].filter(Boolean).join(" ") }}
                   </td>
                 </tr>
@@ -960,7 +960,7 @@ onMounted(async () => {
                   <div class="mb-1 text-xs font-medium uppercase text-muted-foreground">{{ t(`solrAdmin.analysis.${section}`) }}</div>
                   <div class="space-y-1">
                     <div v-for="(stage, i) in analysisResult[section]" :key="i" class="flex items-start gap-3 rounded border p-2">
-                      <div class="w-64 shrink-0 break-all font-mono text-[10px] text-muted-foreground" :title="stage.name">{{ stage.name.split(".").pop() }}</div>
+                      <div class="w-64 shrink-0 break-all font-mono text-xs text-muted-foreground" :title="stage.name">{{ stage.name.split(".").pop() }}</div>
                       <div class="flex flex-wrap gap-1">
                         <Badge v-for="(token, j) in stage.tokens" :key="j" variant="secondary" class="font-mono text-xs">{{ token }}</Badge>
                       </div>
@@ -1171,7 +1171,7 @@ onMounted(async () => {
               </div>
 
               <!-- 预览 + 执行 -->
-              <div class="rounded border bg-muted/40 p-2 font-mono text-[11px] break-all">{{ builtQuery.text }}</div>
+              <div class="rounded border bg-muted/40 p-2 font-mono text-xs break-all">{{ builtQuery.text }}</div>
               <div class="flex items-center gap-2">
                 <Button size="sm" class="h-8" :disabled="queryRunning || !selectedCore" @click="runQueryForm">
                   <Loader2 v-if="queryRunning" class="mr-1.5 h-3.5 w-3.5 animate-spin" />

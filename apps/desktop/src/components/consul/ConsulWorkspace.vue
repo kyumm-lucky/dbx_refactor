@@ -191,8 +191,8 @@ defineExpose({ focusSearch, refresh });
         </TabsList>
       </div>
       <div class="flex shrink-0 items-center gap-1">
-        <Button v-if="canChangeScope" variant="ghost" size="sm" class="h-7 max-w-64 truncate px-2 font-mono text-[11px]" :title="t('consul.ui.scope')" @click="openScopeSwitcher">{{ scopeLabel }}</Button>
-        <span v-else class="max-w-64 truncate px-2 font-mono text-[11px]" :title="t('consul.ui.datacenter')">{{ scopeLabel }}</span>
+        <Button v-if="canChangeScope" variant="ghost" size="sm" class="h-7 max-w-64 truncate px-2 font-mono text-xs" :title="t('consul.ui.scope')" @click="openScopeSwitcher">{{ scopeLabel }}</Button>
+        <span v-else class="max-w-64 truncate px-2 font-mono text-xs" :title="t('consul.ui.datacenter')">{{ scopeLabel }}</span>
         <Button variant="ghost" size="icon" class="h-7 w-7" :title="t('consul.ui.refresh')" @click="refresh"><RefreshCcw class="h-3.5 w-3.5" /></Button>
       </div>
     </div>

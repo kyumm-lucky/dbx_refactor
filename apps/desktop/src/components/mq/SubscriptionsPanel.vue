@@ -881,7 +881,7 @@ onBeforeUnmount(() => {
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-background);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .topic-search:focus {
@@ -893,7 +893,7 @@ onBeforeUnmount(() => {
 .topic-count {
   flex: 0 0 auto;
   color: var(--color-text-tertiary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .subscription-type-filters {
@@ -907,14 +907,14 @@ onBeforeUnmount(() => {
 }
 
 .subscription-type-filters-label {
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
   color: var(--color-text-secondary, #6b7280);
   margin-right: 4px;
 }
 
 .checkbox-label.compact {
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   gap: 6px;
 }
 
@@ -956,7 +956,7 @@ onBeforeUnmount(() => {
   padding: 6px 10px;
   border: 1px solid var(--color-border);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   background: var(--color-background);
 }
 
@@ -981,7 +981,7 @@ onBeforeUnmount(() => {
 .panel-hint {
   padding: 8px 16px;
   text-align: left;
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .subscriptions-table {
@@ -1005,7 +1005,7 @@ th {
   padding: 10px 12px;
   text-align: left;
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
   border-bottom: 1px solid var(--color-border);
 }
@@ -1036,7 +1036,7 @@ td {
   display: inline-block;
   padding: 2px 8px;
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
   background: var(--color-background-secondary);
   color: var(--color-text-secondary);
@@ -1115,7 +1115,7 @@ button:disabled {
   display: block;
   margin-bottom: 6px;
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .form-group input[type="text"],
@@ -1125,7 +1125,7 @@ button:disabled {
   padding: 8px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   box-sizing: border-box;
   background: var(--color-background);
   color: var(--color-text);
@@ -1162,7 +1162,7 @@ button:disabled {
 
 .form-hint {
   margin-top: 4px;
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-tertiary);
 }
 
@@ -1172,7 +1172,7 @@ button:disabled {
   background: var(--color-error-bg);
   color: var(--color-error);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .form-warning {
@@ -1182,7 +1182,7 @@ button:disabled {
   border-radius: var(--dbx-radius-fixed-4);
   background: var(--color-warning-background, #fff6df);
   color: var(--color-warning-text, #7a4a00);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .peek-toolbar {
@@ -1195,7 +1195,7 @@ button:disabled {
 .peek-toolbar label {
   display: grid;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .peek-toolbar input {
@@ -1225,7 +1225,7 @@ button:disabled {
   flex-wrap: wrap;
   gap: 8px;
   padding: 8px 10px;
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
 }
 

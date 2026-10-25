@@ -186,7 +186,7 @@ watch(selectedTopic, (topic) => emit("topicSelected", topic));
   flex-direction: column;
   gap: 6px;
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
 }
 
@@ -200,7 +200,7 @@ watch(selectedTopic, (topic) => emit("topicSelected", topic));
 
 .section-heading h4 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .partition-table-wrap {
@@ -210,7 +210,7 @@ watch(selectedTopic, (topic) => emit("topicSelected", topic));
 .partition-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .partition-table th,
@@ -229,6 +229,6 @@ watch(selectedTopic, (topic) => emit("topicSelected", topic));
   padding: 14px;
   color: var(--color-text-tertiary);
   text-align: center;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 </style>

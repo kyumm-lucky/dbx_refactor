@@ -273,7 +273,7 @@ onUnmounted(() => {
   min-width: 100%;
   border-bottom: 1px solid var(--border);
   background: var(--background);
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
 }
 .dolt-diff-table-row {

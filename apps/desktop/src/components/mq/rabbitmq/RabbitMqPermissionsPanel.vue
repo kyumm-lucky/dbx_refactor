@@ -494,7 +494,7 @@ watch(
 
 .section-title {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 600;
   color: var(--color-text);
 }
@@ -527,7 +527,7 @@ watch(
   border-radius: var(--dbx-radius-fixed-6);
   background: var(--color-background);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .user-search:focus {
@@ -539,7 +539,7 @@ watch(
 .row-count {
   flex: 0 0 auto;
   color: var(--color-text-tertiary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .filter-chip {
@@ -550,7 +550,7 @@ watch(
   border-radius: var(--dbx-radius-fixed-4);
   background: var(--color-primary-alpha);
   color: var(--color-primary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
 }
 
@@ -559,7 +559,7 @@ watch(
   background: none;
   color: inherit;
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   line-height: 1;
   padding: 0;
 }
@@ -592,7 +592,7 @@ th {
   padding: 10px 12px;
   text-align: left;
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
   color: var(--color-text-secondary);
   background: var(--color-background-secondary);
   border-bottom: 1px solid var(--color-border);
@@ -601,7 +601,7 @@ th {
 td {
   padding: 10px 12px;
   border-bottom: 1px solid var(--color-border);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .data-table tbody tr {
@@ -626,7 +626,7 @@ td {
 
 .pattern-cell {
   font-family: var(--font-mono, monospace);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -643,7 +643,7 @@ td {
   display: inline-block;
   padding: 2px 8px;
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 11px;
+  font-size: var(--dbx-ui-font-size);
   font-weight: 500;
 }
 
@@ -719,7 +719,7 @@ button:disabled {
   display: block;
   margin-bottom: 6px;
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .form-group input[type="text"],
@@ -729,7 +729,7 @@ button:disabled {
   padding: 8px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--dbx-radius-fixed-4);
-  font-size: 14px;
+  font-size: var(--dbx-ui-font-size);
   box-sizing: border-box;
   background: var(--color-background);
   color: var(--color-text);
@@ -737,12 +737,12 @@ button:disabled {
 
 .form-hint {
   color: var(--color-text-tertiary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
   margin-top: -8px;
 }
 
 .form-error {
   color: var(--color-error);
-  font-size: 13px;
+  font-size: var(--dbx-ui-font-size);
 }
 </style>

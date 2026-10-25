@@ -52,7 +52,7 @@ function changePageSize(event: Event) {
   gap: 8px;
   min-height: 30px;
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--dbx-ui-font-size);
 }
 
 .mq-list-range,
