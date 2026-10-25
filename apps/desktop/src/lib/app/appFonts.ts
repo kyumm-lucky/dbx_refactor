@@ -56,14 +56,23 @@ export const FONT_FAMILIES: { value: string; label: string }[] = [
   { value: DEFAULT_MONO_FALLBACK_FONTS, label: "System Monospace" },
 ];
 
+const LEGACY_MONO_CJK_FALLBACK_FONTS = `"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", monospace`;
+
 export const LEGACY_PRESET_FONT_MAP: Record<string, string> = {
   "'Fira Code', 'Cascadia Code', 'Cascadia Mono', 'JetBrains Mono', monospace": DEFAULT_MONO_FONT_FAMILY,
+  [`'Fira Code', 'Cascadia Code', 'Cascadia Mono', 'JetBrains Mono', ${LEGACY_MONO_CJK_FALLBACK_FONTS}`]: DEFAULT_MONO_FONT_FAMILY,
   "'JetBrains Mono', 'Fira Code', monospace": `'JetBrains Mono', 'Fira Code', ${DEFAULT_MONO_FALLBACK_FONTS}`,
+  [`'JetBrains Mono', 'Fira Code', ${LEGACY_MONO_CJK_FALLBACK_FONTS}`]: `'JetBrains Mono', 'Fira Code', ${DEFAULT_MONO_FALLBACK_FONTS}`,
   "'Cascadia Code', 'Cascadia Mono', monospace": `'Cascadia Code', 'Cascadia Mono', ${DEFAULT_MONO_FALLBACK_FONTS}`,
+  [`'Cascadia Code', 'Cascadia Mono', ${LEGACY_MONO_CJK_FALLBACK_FONTS}`]: `'Cascadia Code', 'Cascadia Mono', ${DEFAULT_MONO_FALLBACK_FONTS}`,
   "'Source Code Pro', monospace": `'Source Code Pro', ${DEFAULT_MONO_FALLBACK_FONTS}`,
+  [`'Source Code Pro', ${LEGACY_MONO_CJK_FALLBACK_FONTS}`]: `'Source Code Pro', ${DEFAULT_MONO_FALLBACK_FONTS}`,
   "'SF Mono', 'Menlo', monospace": `'SF Mono', 'Menlo', ${DEFAULT_MONO_FALLBACK_FONTS}`,
+  [`'SF Mono', 'Menlo', ${LEGACY_MONO_CJK_FALLBACK_FONTS}`]: `'SF Mono', 'Menlo', ${DEFAULT_MONO_FALLBACK_FONTS}`,
   "'Consolas', 'Courier New', monospace": `'Consolas', 'Courier New', ${DEFAULT_MONO_FALLBACK_FONTS}`,
+  [`'Consolas', 'Courier New', ${LEGACY_MONO_CJK_FALLBACK_FONTS}`]: `'Consolas', 'Courier New', ${DEFAULT_MONO_FALLBACK_FONTS}`,
   monospace: DEFAULT_MONO_FALLBACK_FONTS,
+  [LEGACY_MONO_CJK_FALLBACK_FONTS]: DEFAULT_MONO_FALLBACK_FONTS,
 };
 
 export function cssFontFamilyForName(name: string): string {

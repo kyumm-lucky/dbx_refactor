@@ -258,6 +258,9 @@ vi.mock("@/stores/connectionStore", () => ({
   useConnectionStore: () => ({
     ensureConnected: mocks.ensureConnected,
     getConfig: (connectionId: string) => (connectionId === mocks.connection.id ? mocks.connection : undefined),
+    connectionStateRevision: () => 0,
+    isCurrentConnectionStateRevision: () => true,
+    connectionIdentifierQuote: () => undefined,
   }),
 }));
 vi.mock("@/stores/productionSafetyStore", () => ({ useProductionSafetyStore: () => ({ requestConfirmation: vi.fn() }) }));

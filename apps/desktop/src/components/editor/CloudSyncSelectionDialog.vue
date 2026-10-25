@@ -71,6 +71,7 @@ const backupSettingsCategoryLabelKeys: Record<BackupSettingsCategoryId, string> 
 const nonSyncableEditorSettingIds = new Set(["updateNotificationsEnabled", "autoDownloadUpdates", "autoUpdateApp", "autoUpdateDrivers", "autoUpdateJdbc", "autoUpdateMcp", "autoUpdatePlugins", "updateDownloadSource", "ignoredUpdateVersion"]);
 const desktopSettingCategories: Record<string, BackupSettingsCategoryId> = {
   show_tray_icon: "appearance",
+  linux_floating_frame_enabled: "appearance",
   icon_theme: "appearance",
   quit_on_close: "appearance",
   close_action_prompted: "appearance",
@@ -101,6 +102,9 @@ const editorSettingCategoryOverrides: Partial<Record<string, BackupSettingsCateg
   tableDdlWordWrap: "editor",
   refreshDdlOnOpen: "editor",
   excludeDdlStorage: "editor",
+  includeDdlStorage: "editor",
+  compactDdlSql: "editor",
+  separateDdlIndexes: "editor",
   sqlSemanticDiagnosticsEnabled: "editor",
   infiniteScrollMaxRows: "data",
   tableFontSize: "data",
@@ -108,6 +112,7 @@ const editorSettingCategoryOverrides: Partial<Record<string, BackupSettingsCateg
   dataGridMultiRowTranspose: "data",
   dataGridHideNullColumns: "data",
   dataGridHideEmptyColumns: "data",
+  dataGridFreezeFirstColumn: "data",
   dataGridBooleanDisplayMode: "data",
   numericColumnRightAlign: "data",
   structureEditorDensity: "data",
@@ -140,6 +145,7 @@ const editorSettingCategoryOverrides: Partial<Record<string, BackupSettingsCateg
   pluginShortcuts: "shortcuts",
   objectBrowserShowCheckbox: "data",
   objectBrowserViewMode: "data",
+  objectBrowserAutoOpenDetailPanel: "navigation",
 };
 
 function editorSettingCategory(id: string): BackupSettingsCategoryId {

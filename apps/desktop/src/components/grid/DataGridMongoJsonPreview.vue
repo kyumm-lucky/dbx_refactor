@@ -9,7 +9,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 
 const { t } = useI18n();
 const settingsStore = useSettingsStore();
-const { isDark } = useTheme();
+const { isDark, themePalette } = useTheme();
 
 const props = defineProps<{
   fullText: string;
@@ -36,6 +36,7 @@ watch(previewContainer, async (element) => {
       readOnly: true,
       editorTheme: () => settingsStore.editorSettings.theme,
       appAppearance: () => (isDark.value ? "dark" : "light") as import("@/lib/app/appTheme").AppThemeAppearance,
+      appPalette: () => themePalette.value,
       fontSize: () => settingsStore.editorSettings.fontSize,
       fontFamily: () => settingsStore.editorSettings.tableFontFamily,
       lineWrapping: () => settingsStore.editorSettings.wordWrap,

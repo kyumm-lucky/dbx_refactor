@@ -343,6 +343,8 @@ import { useDataGridColumnFormatter } from "@/composables/useDataGridColumnForma
 import { useDataGridTableMetadataLoaders } from "@/composables/useDataGridTableMetadataLoaders";
 import { DATA_GRID_SERVER_COLUMN_FILTER_LIMIT, useDataGridColumnFilters } from "@/composables/useDataGridColumnFilters";
 import { useDataGridLargeValues, type LargeValueSnapshotDownloadTarget } from "@/composables/useDataGridLargeValues";
+import type { ObjectDependencyTarget } from "@/lib/database/objectDependencyDetails";
+import type { SqlObjectNavigationTarget } from "@/lib/sql/sqlNavigation";
 
 const SqlPreviewPanel = defineAsyncComponent(() => import("@/components/editor/SqlPreviewPanel.vue"));
 const ImagePreviewDialog = defineAsyncComponent(() => import("@/components/grid/ImagePreviewDialog.vue"));
@@ -555,6 +557,7 @@ const emit = defineEmits<{
   "update:orderByInput": [value: string];
   "local-column-filters-change": [value: Record<string, string[]>];
   changeQueryTimeout: [connectionId: string];
+  openDependencyObject: [context: ObjectDependencyTarget, target: SqlObjectNavigationTarget];
 }>();
 
 if (isDebugLoggingEnabled()) {

@@ -1,12 +1,57 @@
 import type { BackendError } from "@/lib/backend/errorUtils";
-import type { TransferContent, TransferMode, TransferObjectKind, TransferTableNameCase } from "@/lib/backend/tauri";
+import type { TransferColumnNameCase, TransferContent, TransferMode, TransferObjectKind, TransferTableNameCase } from "@/lib/backend/tauri";
 import type { SqlFormatDialect } from "@/lib/sql/sqlFormatter";
 import type { MultiDbExecutionTarget, MultiDbResultRunExecution } from "@/types/sqlExecution";
 import type { DatabaseType } from "@/types/generated/databaseTypes";
 import type { PluginAiRecommendation } from "@/types/pluginAiRecommendations";
 import type { GraphResult } from "@/lib/graph/graphResult";
+import type { OracleRoutinePlanDraft } from "@/types/schemaDiff";
 
 export type { DatabaseType } from "@/types/generated/databaseTypes";
+
+export interface OracleViewRenameSourceInput {
+  source: string;
+  owner: string;
+  viewName: string;
+  oldName: string;
+  newName: string;
+  targetViewName?: string;
+}
+
+export interface OracleViewRenameSource {
+  source: string;
+  fingerprint: string;
+  references: OracleViewRenameReference[];
+}
+
+export interface OracleViewRenameReference {
+  owner: string;
+  name: string;
+}
+
+export interface OracleViewRenameIssue {
+  code: string;
+  message: string;
+  viewName?: string;
+  hintText?: string | null;
+  location?: { line: number; column: number; endLine?: number; endColumn?: number } | null;
+  repairable: boolean;
+}
+
+export interface OracleViewRenameSourceReview {
+  source: OracleViewRenameSource | null;
+  references: OracleViewRenameReference[];
+  issues: OracleViewRenameIssue[];
+}
+
+export interface OracleTableReferenceRewriteInput {
+  databaseType: Extract<DatabaseType, "oracle" | "oceanbase-oracle">;
+  objectType: "PROCEDURE" | "FUNCTION" | "TRIGGER";
+  schema: string;
+  oldName: string;
+  newName: string;
+  source: string;
+}
 
 export function isElasticsearchCompatibleDatabaseType(dbType?: DatabaseType): boolean {
   return dbType === "elasticsearch" || dbType === "easysearch";
@@ -95,6 +140,8 @@ export interface CompletionAssistantResponse {
 export interface ConnectionConfig {
   id: string;
   name: string;
+  /** Read-only response identity retained when a saved JDBC URL is protected. */
+  readonly jdbc_dialect?: "oceanbase-oracle";
   note?: string;
   db_type: DatabaseType;
   driver_profile?: string;
@@ -130,6 +177,16 @@ export interface ConnectionConfig {
   query_timeout_secs?: number;
   query_timeout_inherit?: boolean;
   idle_timeout_secs?: number;
+  /** Seconds a manual transaction may sit idle before DBX rolls it back. */
+  manual_transaction_timeout_secs?: number;
+  /**
+   * 空闲自动断开阈值（秒）：后端在连接池层面实现，连接在此秒数内无任何查询活动时自动关闭其
+   * 连接池；前端据此把连接标记为未连接并保留已打开的页签与结果，供用户下次操作时自动重连。
+   *
+   * 0（默认）表示不启用。与 `idle_timeout_secs` 语义不同：后者只回收连接池内的空闲物理连接，
+   * 不会关闭整个连接池；本字段关闭的是整个连接池。所有方言均适用（与方言无关）。
+   */
+  idle_disconnect_secs?: number;
   keepalive_interval_secs?: number;
   ssl?: boolean;
   ca_cert_path?: string;
@@ -193,6 +250,7 @@ export type ProductionBadgeScope = "connection" | "database" | "table";
 export type IdentifierCase = "lower" | "upper" | "mixed";
 
 export interface DatabaseConnectionInfo {
+  compatibilityMode?: string;
   productName?: string;
   productVersion?: string;
   currentDatabase?: string;
@@ -231,6 +289,15 @@ export type ConnectionLivenessFailureKind = "probe_failed" | "timed_out";
  */
 export type ConnectionLivenessMessage = { kind: "lost"; connectionId: string; failureKind: ConnectionLivenessFailureKind } | { kind: "resync" };
 
+/**
+ * 后端「空闲自动断开」事件（`dbx:connection-idle-closed`）的载荷：某个连接的连接池因空闲
+ * 超过 `idle_disconnect_secs` 被后端自动关闭。前端收到后把该连接标记为未连接并保留页签。
+ *
+ * `closedAtMs` 是后端关闭时的墙钟时间（Unix 毫秒）：事件通道可能有缓冲，若本连接在事件
+ * 到达之前已经重新建立，说明这次断开描述的是上一个会话，前端必须忽略，否则会关掉新会话。
+ */
+export type ConnectionIdleClosedEvent = { connectionId: string; closedAtMs?: number };
+
 export type TransportLayerConfig = ({ type: "ssh" } & SshTunnelConfig) | ({ type: "proxy" } & ProxyTunnelConfig) | ({ type: "http_tunnel" } & HttpTunnelConfig);
 
 /**
@@ -253,8 +320,21 @@ export interface SshTunnelConfig {
   key_passphrase?: string;
   connect_timeout_secs?: number;
   expose_lan?: boolean;
+  /**
+   * Fixed local port (1-65535) the tunnel listens on while the connection is
+   * open, so other local tools can reuse it. Only the last enabled layer uses
+   * it, and only when it is an inline SSH layer (not a shared tunnel profile).
+   * Absent means a random free port. It binds `0.0.0.0` instead of `127.0.0.1`
+   * when `expose_lan` is on.
+   */
+  local_port?: number;
   use_ssh_agent?: boolean;
   ssh_agent_sock_path?: string;
+  /**
+   * SHA-256 fingerprint (`SHA256:...`) of the one SSH agent identity to use.
+   * Empty means every identity the agent reports is tried, in order.
+   */
+  ssh_agent_key_fingerprint?: string;
   /**
    * UI-facing choice of login method. Drives which credential inputs the
    * connection dialog shows; the backend still probes "none" then falls
@@ -284,6 +364,12 @@ export interface SshTunnelConfig {
    * and `enabled` are kept).
    */
   profile_id?: string;
+}
+
+export interface SshAgentIdentity {
+  fingerprint: string;
+  algorithm: string;
+  comment: string;
 }
 
 export interface SshConfigHostEntry {
@@ -316,6 +402,7 @@ export interface HttpTunnelConfig {
   enabled?: boolean;
   url: string;
   token?: string;
+  protocol?: "dbx_tcp" | "navicat_mysql";
   connect_timeout_secs?: number;
   /** See {@link SshTunnelConfig.profile_id}. */
   profile_id?: string;
@@ -331,6 +418,12 @@ export interface PluginDriverManifest {
   label: string;
   kind: string;
   database_type?: string;
+}
+
+export interface PluginCapabilityManifest {
+  id: string;
+  label: string;
+  kind?: string;
 }
 
 export type PluginFormFieldType = "text" | "password" | "number" | "boolean" | "select" | "radio" | "textarea";
@@ -724,6 +817,7 @@ export interface PluginManifest {
   homepage?: string;
   executable?: string;
   drivers: PluginDriverManifest[];
+  capabilities?: PluginCapabilityManifest[];
   contributions?: PluginContribution[];
   localizations?: Record<string, PluginManifestLocalization>;
 }
@@ -1082,7 +1176,7 @@ export interface MysqlEventInfo {
   source?: string | null;
 }
 
-export type CustomTypeKind = "base" | "composite" | "domain" | "enum" | "range" | "multirange";
+export type CustomTypeKind = "base" | "composite" | "domain" | "enum" | "range" | "multirange" | "object" | "collection" | "other";
 
 export interface CustomTypeMember {
   name: string;
@@ -1127,6 +1221,75 @@ export interface CustomTypeDdl {
   warnings?: string[];
 }
 
+export interface TypeMetadataRead {
+  state: "available" | "incomplete" | "unavailable" | "unsupported";
+  reason?: string | null;
+}
+
+export interface OracleTypeAttribute {
+  name: string;
+  ordinal?: number | null;
+  typeOwner?: string | null;
+  typeName?: string | null;
+  typeModifier?: string | null;
+  length?: number | null;
+  precision?: number | null;
+  scale?: number | null;
+}
+
+export interface OracleTypeMethodParameter {
+  name?: string | null;
+  ordinal?: number | null;
+  mode?: string | null;
+  typeOwner?: string | null;
+  typeName?: string | null;
+  typeModifier?: string | null;
+}
+
+export interface OracleTypeMethod {
+  name: string;
+  number?: number | null;
+  kind?: string | null;
+  parameterCount?: number | null;
+  resultCount?: number | null;
+  parameters: OracleTypeMethodParameter[];
+  results: OracleTypeMethodParameter[];
+  parametersRead: TypeMetadataRead;
+  resultsRead: TypeMetadataRead;
+}
+
+export interface OracleTypeCollection {
+  kind?: string | null;
+  upperBound?: number | null;
+  elementOwner?: string | null;
+  elementName?: string | null;
+  elementModifier?: string | null;
+  length?: number | null;
+  precision?: number | null;
+  scale?: number | null;
+}
+
+export interface OracleTypeMetadata {
+  status?: string | null;
+  typeCode?: string | null;
+  isFinal?: boolean | null;
+  instantiable?: boolean | null;
+  supertypeOwner?: string | null;
+  supertypeName?: string | null;
+  attributeCount?: number | null;
+  methodCount?: number | null;
+  bodyVisible?: boolean | null;
+  bodyStatus?: string | null;
+  propertiesRead: TypeMetadataRead;
+  bodyRead: TypeMetadataRead;
+  attributesRead: TypeMetadataRead;
+  methodsRead: TypeMetadataRead;
+  collectionRead: TypeMetadataRead;
+  attributes: OracleTypeAttribute[];
+  methods: OracleTypeMethod[];
+  collection?: OracleTypeCollection | null;
+}
+
 export interface CustomTypeDetails {
   name: string;
   schema: string;
@@ -1135,6 +1298,203 @@ export interface CustomTypeDetails {
   members: CustomTypeMember[];
   properties: CustomTypeProperties;
   ddl?: CustomTypeDdl | null;
+  oracleMetadata?: OracleTypeMetadata | null;
+}
+
+export interface TypeRecoveryContext {
+  planId: string;
+  stepId: string;
+}
+
+export interface TypeExecutionBinding extends TypeRecoveryContext {
+  executionId: string;
+  connectionId: string;
+  database: string;
+  schema: string | null;
+  sql: string;
+}
+
+export interface OracleTypeManagementTarget {
+  connectionId: string;
+  database: string;
+  owner: string;
+  name: string;
+}
+
+export interface OracleTypeManagementObjectKey {
+  owner: string;
+  name: string;
+  objectType: string;
+}
+
+export interface OracleTypeDataRelationKey {
+  owner: string;
+  name: string;
+}
+export interface OracleTypeDataField {
+  sourcePath: string[];
+  objectNull: boolean;
+  oldColumn: string;
+  expectedColumn: string;
+  targetPath: string[];
+  targetObjectNull?: boolean;
+  unchanged: boolean;
+}
+export interface OracleTypeDataMappingInput {
+  id: string;
+  source: OracleTypeDataRelationKey;
+  old: OracleTypeDataRelationKey;
+  expected: OracleTypeDataRelationKey;
+  target: OracleTypeDataRelationKey;
+  fields: OracleTypeDataField[];
+}
+export interface OracleTypeDataProjection {
+  path: string[];
+  objectNull: boolean;
+  dataType: string;
+}
+export interface OracleTypeDataRelation {
+  relation: OracleTypeDataRelationKey;
+  objectId: string;
+  readOnly: boolean | null;
+  structure: string;
+  projection: OracleTypeDataProjection[];
+}
+export interface OracleTypeDataBaseline {
+  relation: OracleTypeDataRelation;
+  rowCount: number;
+  fingerprint: string;
+}
+export interface OracleTypeDataManifest {
+  mapping: OracleTypeDataMappingInput;
+  original: OracleTypeDataBaseline;
+  old: OracleTypeDataBaseline;
+  expected: OracleTypeDataBaseline;
+  preparedTarget?: OracleTypeDataBaseline | null;
+  verifiedTarget?: OracleTypeDataBaseline | null;
+}
+export interface OracleTypeDataRequest {
+  target: OracleTypeManagementTarget;
+  action: "describe" | "register" | "verify" | "validate_insert";
+  relation?: OracleTypeDataRelationKey;
+  mapping?: OracleTypeDataMappingInput;
+  manifest?: OracleTypeDataManifest;
+  sql?: string;
+}
+export interface OracleTypeDataResult {
+  relation?: OracleTypeDataRelation | null;
+  manifest?: OracleTypeDataManifest | null;
+  insertSql?: string | null;
+}
+
+/** Database-native evolution keeps data in place. These guards contain no row values. */
+export interface OracleTypeEvolutionManifest {
+  target: OracleTypeManagementTarget;
+  sourceBefore: string;
+  sourceAfter: string;
+  statements: string[];
+  metadata: string;
+  phase: number;
+}
+export interface OracleTypeEvolutionRequest {
+  target: OracleTypeManagementTarget;
+  sourceBefore: string;
+  sourceAfter: string;
+  manifest?: OracleTypeEvolutionManifest;
+}
+
+export interface OracleTypeManagementPrivilege {
+  grantee: string;
+  privilege: string;
+  grantable?: boolean | null;
+  hierarchy?: boolean | null;
+  grantor?: string | null;
+  privilegeId?: string | null;
+  privilegeType?: string | null;
+  columnId?: string | null;
+}
+
+export interface OracleTypeManagementObject {
+  owner: string;
+  name: string;
+  objectType: string;
+  exists?: boolean | null;
+  objectId?: string | null;
+  status?: string | null;
+  statusRead: TypeMetadataRead;
+  triggerEnabled?: boolean | null;
+  triggerEnabledRead?: TypeMetadataRead | null;
+  source?: string | null;
+  sourceRead: TypeMetadataRead;
+  sourceFingerprint?: string | null;
+  errors: OracleTypeManagementError[];
+  errorsRead: TypeMetadataRead;
+  directPrivileges: OracleTypeManagementPrivilege[];
+  privilegesRead: TypeMetadataRead;
+}
+
+export interface OracleTypeManagementError {
+  line: number;
+  position: number;
+  text: string;
+}
+
+export interface OracleTypeManagementDependency {
+  owner: string;
+  name: string;
+  objectType: string;
+  referencedOwner: string;
+  referencedName: string;
+  referencedType: string;
+  referencedLink?: string | null;
+}
+
+export interface OracleTypeManagementReference {
+  owner: string;
+  tableName: string;
+  columnName?: string | null;
+  dataTypeOwner?: string | null;
+  dataType?: string | null;
+  tableStatus?: string | null;
+  tableReadOnly?: boolean | null;
+}
+
+export interface OracleTypeManagementSnapshot {
+  target: OracleTypeManagementTarget;
+  visibilityScope: string;
+  actingUser?: string | null;
+  actingUserRead: TypeMetadataRead;
+  details?: CustomTypeDetails | null;
+  detailsRead: TypeMetadataRead;
+  typeSource?: string | null;
+  typeSourceRead: TypeMetadataRead;
+  bodySource?: string | null;
+  bodySourceRead: TypeMetadataRead;
+  objects: OracleTypeManagementObject[];
+  dependencies: OracleTypeManagementDependency[];
+  dependenciesRead: TypeMetadataRead;
+  persistentReferences: OracleTypeManagementReference[];
+  persistentReferencesRead: TypeMetadataRead;
+  directPrivileges: OracleTypeManagementPrivilege[];
+  privilegesRead: TypeMetadataRead;
+}
+
+export type OracleTypeManagementSqlOperation = "save_spec" | "save_body" | "drop_spec" | "drop_body" | "grant_execute" | "grant_privilege" | "rebuild_source" | "compile_spec" | "compile_trigger";
+export interface OracleTypeManagementSqlInput {
+  databaseType: DatabaseType;
+  operation: OracleTypeManagementSqlOperation;
+  owner: string;
+  name: string;
+  source?: string | null;
+  grantee?: string | null;
+  grantable?: boolean;
+  objectType?: ObjectSourceKind;
+  privilege?: string;
+  triggerEnabled?: boolean;
+}
+export interface OracleTypeManagementSqlResult {
+  statements: string[];
+  sourceFingerprint?: string | null;
 }
 
 export interface ColumnInfo {
@@ -1165,6 +1525,8 @@ export interface SqlServerColumnMetadata extends ColumnInfo {
 }
 
 export interface IndexInfo {
+  /** Dictionary-derived index owner; absent in older or non-owner metadata. */
+  owner?: string | null;
   name: string;
   columns: string[];
   is_unique: boolean;
@@ -1175,6 +1537,12 @@ export interface IndexInfo {
   comment?: string | null;
   /** Parallel to `columns`: true at index i means columns[i] is a raw expression, not a plain column name. */
   key_is_expression?: boolean[] | null;
+  /** Parallel to `columns`: Oracle-family key ordering (`ASC` or `DESC`). */
+  key_directions?: string[] | null;
+  /** Oracle-family index visibility (`VISIBLE` or `INVISIBLE`). */
+  visibility?: string | null;
+  /** True only when expression, direction and visibility metadata are aligned and complete. */
+  key_metadata_complete?: boolean;
   /** Parallel to `columns`: operator class name for each key column (PostgreSQL), if non-default. */
   column_opclasses?: (string | null)[] | null;
   /**
@@ -1228,6 +1596,39 @@ export interface ConstraintInfo {
   initially_deferred?: boolean | null;
   enabled?: boolean | null;
   valid?: boolean | null;
+  oracle_metadata?: OracleConstraintMetadata | null;
+}
+
+export interface OracleConstraintMetadata {
+  metadataComplete: boolean;
+  owner: string;
+  constraintType: string | null;
+  status: string | null;
+  validated: string | null;
+  deferrable: string | null;
+  deferred: string | null;
+  rely: string | null;
+  indexOwner: string | null;
+  indexName: string | null;
+  indexSharing: string | null;
+  index: OracleConstraintIndexMetadata | null;
+}
+
+export interface OracleConstraintIndexMetadata {
+  metadataComplete: boolean;
+  owner: string;
+  tableOwner: string;
+  tableName: string;
+  indexType: string;
+  uniqueness: string;
+  status: string;
+  partitioned: boolean;
+  visibility: string;
+  secondary: string | null;
+  columns: string[];
+  directions: string[];
+  keyIsExpression: boolean[];
+  includedColumns: string[];
 }
 
 export interface PartitionInfo {
@@ -1402,7 +1803,23 @@ export interface QueryResult {
   /** Retained result refs also cover cells already hydrated into complete local values. */
   large_value_refs?: string[];
   session_id?: string | null;
+  /** Frontend-only owner of a manual transaction's result cursor, including retained runs. */
+  manual_transaction_session_id?: string;
   has_more?: boolean;
+  /** Frontend-only SQL page lookahead, independent of the driver's cursor has_more. */
+  page_has_more?: boolean;
+  /** Frontend-only page state, owned by the result rather than the active tab. */
+  sqlPage?: {
+    sql: string;
+    executedSql: string;
+    limit: number;
+    offset: number;
+    executedLimit: number;
+    executedOffset: number;
+    probe: boolean;
+    countSql?: string;
+    exactQueryRowBound?: number;
+  };
   /** For Elasticsearch REST search results parsed into a _source table,
    *  this carries the raw HTTP response body so the UI can toggle between
    *  the tabular view and the original JSON. */
@@ -1475,6 +1892,8 @@ export interface QueryResultSourceColumnRef {
 
 export interface QueryResultRun {
   id: string;
+  /** Source connection retained when the editor switches to another connection. */
+  connectionId?: string;
   title: string;
   sequence: number;
   sql: string;
@@ -1539,6 +1958,7 @@ export interface QueryResultRun {
   querySourceColumns?: QueryTab["querySourceColumns"];
   queryWriteTargets?: QueryTab["queryWriteTargets"];
   resultColumnComments?: QueryTab["resultColumnComments"];
+  resultColumnTypeLabels?: QueryTab["resultColumnTypeLabels"];
   queryDisplaySourceColumns?: QueryTab["queryDisplaySourceColumns"];
   queryEditabilityReason?: QueryTab["queryEditabilityReason"];
   mongoEditTarget?: QueryTab["mongoEditTarget"];
@@ -1566,6 +1986,12 @@ export interface TransactionLog {
   error?: string;
 }
 
+/**
+ * 1-based line and column range in SQL text.
+ * Both `start_column` and `end_column` are 1-based and inclusive.
+ * For example, a 1-character token at line 1, column 5 has:
+ * `{ start_line: 1, start_column: 5, end_line: 1, end_column: 5 }`.
+ */
 export interface SqlTextSpan {
   start_line: number;
   start_column: number;
@@ -1758,6 +2184,8 @@ export interface TreeNode {
   schema?: string;
   tableName?: string;
   objectName?: string;
+  /** Distinguishes schema indexes from the existing table-child index actions. */
+  objectScope?: "schema";
   signature?: string;
   customTypeKind?: CustomTypeKind;
   hasMembers?: boolean;
@@ -1794,6 +2222,7 @@ export interface TreeNode {
   meta?: ColumnInfo | IndexInfo | ForeignKeyInfo | TriggerInfo | ConstraintInfo | PartitionInfo | SubpartitionInfo | ExtensionInfo | EventTriggerInfo | VectorCollectionMeta | MongoCollectionMeta | CustomTypeTreeMemberMeta;
   loadMore?: {
     parentId: string;
+    objectType?: "INDEX";
     offset: number;
     pageSize: number;
     /** Backend filter and global-search identity for OceanBase metadata pages. */
@@ -1821,7 +2250,7 @@ export interface TableNameFilter {
   excludePatterns: string[];
 }
 
-export type TableInfoTab = "info" | "columns" | "indexes" | "foreignKeys" | "constraints" | "triggers" | "partitions" | "ddl";
+export type TableInfoTab = "info" | "columns" | "indexes" | "foreignKeys" | "constraints" | "triggers" | "partitions" | "ddl" | "relations";
 
 /** PostgreSQL declarative partitioning strategy (`pg_partitioned_table.partstrat`). */
 export type PgPartitionKind = "range" | "list" | "hash";
@@ -1865,6 +2294,17 @@ export type DataTableTabView = "structure" | "data";
 export interface TableStructureEditorTarget {
   kind: "column" | "index";
   name: string;
+  /** Raw schema-index owner; omitted by legacy table-child navigation. */
+  owner?: string;
+  /** Schema-index requests are consumed once by the existing draft editor. */
+  action?: "create" | "delete";
+}
+
+export interface SchemaIndexIdentity {
+  schema: string;
+  name: string;
+  parentSchema: string;
+  parentName: string;
 }
 
 export interface TableStructureEditorDraft {
@@ -1875,6 +2315,9 @@ export interface TableStructureEditorDraft {
   /** Original DDL and display preference retained so restoring a draft cannot change its baseline. */
   rawDdlContent?: string;
   excludeDdlStorage?: boolean;
+  includeDdlStorage?: boolean;
+  compactDdlSql?: boolean;
+  separateDdlIndexes?: boolean;
   /** Edited DDL script, or null/undefined when the DDL tab was left untouched. */
   ddlDraft?: string | null;
   newTableName: string;
@@ -1884,13 +2327,29 @@ export interface TableStructureEditorDraft {
   originalMysqlAutoIncrementValue?: string;
   mysqlTableEngine?: string;
   originalMysqlTableEngine?: string;
+  mysqlTableCharset?: string;
+  originalMysqlTableCharset?: string;
+  mysqlTableCollation?: string;
+  originalMysqlTableCollation?: string;
   physicalOptions?: import("@/lib/table/tablePhysicalOptions").TablePhysicalOptionsDraft;
+  starrocksLayoutDraft?: import("@/lib/table/starrocksAlterOptions").StarRocksLayoutDraft;
+  starrocksSortColumns?: string[];
+  starrocksPhysicalOptions?: import("@/lib/table/starrocksPhysicalOptions").StarRocksPhysicalOptionsDraft;
   tableOwner?: string;
   originalTableOwner?: string;
   columns: import("@/lib/table/tableStructureEditorSql").EditableStructureColumn[];
   indexes: import("@/lib/table/tableStructureEditorSql").EditableStructureIndex[];
   foreignKeys: import("@/lib/table/tableStructureEditorSql").EditableStructureForeignKey[];
   constraints?: ConstraintInfo[];
+  existingPrimaryKey?: NonNullable<import("@/lib/table/tableStructureEditorSql").BuildTableStructureChangeSqlOptions["primaryKeyChange"]>;
+  oracleConstraintChange?: import("@/lib/table/tableStructureEditorSql").OracleConstraintChange;
+  oracleForeignKeyCreateRecovery?: {
+    tableName: string;
+    tableExists: boolean;
+    details: string;
+    remaining: import("@/lib/table/tableStructureEditorSql").OracleForeignKeyDefinition[];
+    uncertainSteps: string[];
+  };
   constraintsLoaded?: boolean;
   triggers: import("@/lib/table/tableStructureEditorSql").EditableStructureTrigger[];
   triggersLoaded?: boolean;
@@ -1905,6 +2364,12 @@ export interface TableStructureEditorDraft {
   scrollPositions?: Partial<Record<TableInfoTab, TableStructureEditorViewport>>;
   /** Request id of the structureInitialTab the editor already applied; remounts must not replay a consumed initial tab over the restored draft. */
   appliedInitialTabRequestId?: number;
+  appliedInitialTargetRequestId?: number;
+  oracleIndexRecovery?: {
+    target: string;
+    completedCreates: import("@/lib/database/oracleIndexes").OracleIndexDefinition[];
+    refreshError?: string;
+  };
   initialized: boolean;
 }
 
@@ -1913,9 +2378,9 @@ export interface TableStructureEditorViewport {
   scrollLeft: number;
 }
 
-export type ObjectBrowserViewMode = "list" | "grid";
+export type ObjectBrowserViewMode = "list" | "grid" | "compact";
 
-export type ObjectBrowserFilter = "all" | "tables" | "views" | "materializedViews" | "procedures" | "functions" | "triggers" | "events" | "sequences" | "packages" | "types";
+export type ObjectBrowserFilter = "all" | "tables" | "views" | "materializedViews" | "procedures" | "functions" | "triggers" | "events" | "sequences" | "indexes" | "packages" | "types";
 
 export interface ObjectBrowserViewport {
   scrollTop: number;
@@ -1955,6 +2420,14 @@ export interface TabUiState {
   /** Redis query results default to grid; a per-tab override selects command-line output. */
   redisResultViewMode?: RedisResultViewMode;
   resultPaneOpen?: boolean;
+  /** Tracks whether the active output view was auto-switched to "messages" by live server output during execution. */
+  autoSwitchedToMessagesDuringExecution?: boolean;
+  /**
+   * Execution id whose batch run already auto-switched the output view to the
+   * summary. Keying the switch by run keeps it to once per execution, so a user
+   * who picks another view mid-run stays there.
+   */
+  batchSummaryExecutionId?: string;
   /** Small JSON-compatible snapshots owned by special-page components. */
   page?: Record<string, TabPageUiState>;
 }
@@ -1973,7 +2446,7 @@ export interface DatabaseSearchResultItem {
   searchScope?: DatabaseSearchScope;
   columnName?: string;
   columnComment?: string;
-  structureMatchIn?: Array<"name" | "comment">;
+  structureMatchIn?: Array<"name" | "comment" | "tableComment">;
 }
 
 export interface DatabaseSearchTableTask {
@@ -1997,6 +2470,7 @@ export interface DatabaseSearchTabState {
 }
 
 export interface QueryTab {
+  isDefaultQuery?: boolean;
   id: string;
   /** Stable creation time used when tabs are displayed in creation order. */
   createdAt?: number;
@@ -2029,6 +2503,17 @@ export interface QueryTab {
   /** Optional branch context for a driver-profile database workspace. */
   workspaceBranch?: string;
   schema?: string;
+  /**
+   * 该 Schema 是否由用户为当前页签显式选择（工具栏 / 侧栏 Schema 节点）。
+   *
+   * SQL Server 没有会话级 Schema 切换，后端会把未限定的表名按页签 Schema
+   * 改写（#8951）。只有显式选择才能参与改写：连接默认 Schema、恢复的页签、
+   * 保存的 SQL、外部文件带来的 Schema 只用于浏览/补全/预填，否则
+   * `SELECT * FROM t` 会被错误地限定到非默认 Schema。
+   *
+   * 该字段是运行时状态，不随页签持久化，恢复的页签因此回到服务器默认解析。
+   */
+  schemaQualifiesSql?: boolean;
   /** Doris / StarRocks multi-catalog: the external catalog this tab's
    * database belongs to (undefined for internal/default catalog). */
   catalog?: string;
@@ -2185,6 +2670,7 @@ export interface QueryTab {
     commandId?: string;
     pluginId: string;
     contributionId: string;
+    defaultTitle?: string;
     context?: Record<string, unknown>;
   };
   pluginFilesystem?: {
@@ -2206,11 +2692,24 @@ export interface QueryTab {
   nacosTargetRequestId?: number;
   nacosConfigEditorViewport?: NacosConfigEditorViewport;
   structureTableName?: string;
+  structureExactIdentity?: boolean;
   /** Navigation type of the opened structure object; views matter for "view data" routing. */
   structureTableType?: "table" | "view";
   structureInitialTab?: TableInfoTab;
   structureInitialTabRequestId?: number;
   structureInitialTarget?: TableStructureEditorTarget;
+  /** Runtime-only request to locate an object in the existing read-only properties. */
+  objectPropertiesRequest?: {
+    requestId: string;
+    connectionId: string;
+    database: string;
+    schema: string;
+    catalog?: string;
+    name: string;
+    objectType: "TABLE" | "VIEW" | "MATERIALIZED_VIEW";
+    initialTab: TableInfoTab;
+    focusObject?: { owner: string; name: string; type: "INDEX" };
+  };
   structureDraft?: TableStructureEditorDraft;
   /** Data-table tabs only: which top-level view is showing. Undefined means the default (structure). */
   tableView?: DataTableTabView;
@@ -2224,18 +2723,34 @@ export interface QueryTab {
     eventOpenRequestId?: number;
     /** 显式的"新建事件"请求：单调递增，用于让已复用 tab 也能重复进入 CREATE 编辑器 */
     eventCreateRequestId?: number;
-    initialObjectFilter?: "tables" | "events";
+    initialObjectFilter?: "tables" | "events" | "indexes";
+    indexRequestSequence?: number;
+    indexCreateRequestId?: number;
+    initialViewTarget?: SchemaIndexIdentity;
+    initialViewRequestId?: number;
     filter?: ObjectBrowserFilter;
     searchQuery?: string;
     viewport?: ObjectBrowserViewport;
   };
   /** Opened to view object source, including objects without editable source metadata. */
   sourceView?: boolean;
+  /** Stable object identity and local section, independent of pending source loading. */
+  objectDetails?: {
+    connectionId: string;
+    database: string;
+    schema: string;
+    catalog?: string;
+    name: string;
+    objectType: ObjectSourceKind;
+    section: "source" | "dependencies" | "dependents" | "foreignKeys" | "ownership";
+  };
   ddlViewer?: {
     schema?: string;
     tableName: string;
     objectType?: ObjectSourceKind;
     formatDialect?: SqlFormatDialect;
+    displaySource?: string;
+    separateIndexes?: boolean;
   };
   /**
    * 「先出 tab 再加载」的中间态：DDL 新标签已经可见，但 DDL 还在路上
@@ -2256,6 +2771,10 @@ export interface QueryTab {
     objectType: ObjectSourceKind;
     signature?: string;
   };
+  /** Durable TYPE definitions and step records; restored plans require fresh verification. */
+  typeManagementDraft?: import("@/lib/table/oracleTypeManagement").OracleTypeManagementDraft;
+  /** Explicit edit mode; TYPE source opens read-only and restores read-only. */
+  typeSourceEditing?: boolean;
   /**
    * 「先出 UI 再加载」的中间态：源码 tab 已经可见，但源码还在路上
    * （ensureConnected + getObjectSource）。让 tab 栏与编辑区在等待期间就有反馈，
@@ -2365,6 +2884,14 @@ export interface QueryTab {
    */
   resultColumnComments?: Array<string | undefined>;
   /**
+   * Display-only column type labels for multi-source (or otherwise enriched)
+   * query results, indexed by result-column ordinal. Built from resolved base
+   * column metadata so headers can show declared length/precision (e.g.
+   * `varchar(50)`) even when ResultSet `column_types` only carry bare type
+   * names. `undefined` entries fall back to ResultSet / single-table metadata.
+   */
+  resultColumnTypeLabels?: Array<string | undefined>;
+  /**
    * Display-only result-column to source mapping for multi-source results,
    * indexed by result-column ordinal. Each entry carries the source identity
    * (sourceKey + canonical source column name), so comments resolve per source
@@ -2432,6 +2959,8 @@ export interface SavedSqlFolder {
 }
 
 export interface SavedSqlFile {
+  /** The persistent, autosaved query for this connection/catalog/database. */
+  isDefaultQuery?: boolean;
   id: string;
   connectionId: string;
   folderId?: string;
@@ -2455,6 +2984,8 @@ export interface SavedSqlLibrary {
 }
 
 /** Serializable configuration of a saved data-transfer task. */
+export type TransferPackageDraft = Pick<OracleRoutinePlanDraft, "identity" | "sourceName" | "sql" | "packageBodySource" | "packageContract" | "confirmPackagePair"> & { reviewedTargetDraft?: boolean };
+
 export interface TransferTaskConfig {
   sourceConnectionId: string;
   /** Undefined means the connection's built-in/default catalog. */
@@ -2467,11 +2998,15 @@ export interface TransferTaskConfig {
   targetSchema?: string;
   /** Selected object names grouped by object kind (TABLE, VIEW, ...). */
   objects: Partial<Record<TransferObjectKind, string[]>>;
+  oraclePackageDrafts?: TransferPackageDraft[];
   content: TransferContent;
   mode: TransferMode;
   targetTableNameCase: TransferTableNameCase;
+  targetColumnNameCase?: TransferColumnNameCase;
   quoteTargetColumnNames: boolean;
   batchSize: number;
+  /** Per-operation timeout for this task. Undefined inherits each connection; 0 disables the limit. */
+  operationTimeoutSecs?: number;
   /** Optional per-source-table transfer filter (bare WHERE or a full SELECT). */
   tableFilters?: Record<string, string>;
   /** Legacy-compatible rebuild flag; true takes precedence over the saved DML mode. */

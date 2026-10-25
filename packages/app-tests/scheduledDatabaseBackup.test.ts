@@ -96,14 +96,14 @@ test("normalization deduplicates databases and bounds schedule values", () => {
     ...schedule(),
     databases: ["app", "app", " analytics "],
     intervalHours: 999,
-    retentionCount: 0,
+    retentionCount: -1,
     timeOfDay: "invalid",
   });
 
   assert.ok(normalized);
   assert.deepEqual(normalized.databases, ["app", "analytics"]);
   assert.equal(normalized.intervalHours, 168);
-  assert.equal(normalized.retentionCount, 1);
+  assert.equal(normalized.retentionCount, 0);
   assert.equal(normalized.timeOfDay, "02:00");
 });
 
@@ -140,6 +140,14 @@ test("backup file names retain the target suffix without an implicit run suffix"
   assert.equal(path, "C:\\backups\\before-migration__app.sql.gz");
 });
 
+test("Navicat backups use the .nb3 suffix and survive schedule normalization", () => {
+  const path = databaseBackupFilePath("/backups", "Nightly", "app", new Date(2026, 6, 16, 2, 3, 4), "12345678-abcd", "nb3", "before-migration");
+
+  assert.equal(path, "/backups/before-migration__app.nb3");
+  assert.equal(normalizeDatabaseBackupSchedule({ ...schedule(), outputCompression: "nb3" })?.outputCompression, "nb3");
+  assert.equal(normalizeDatabaseBackupSchedule({ ...schedule(), outputCompression: "zip" })?.outputCompression, "none");
+});
+
 test("scheduled runs render a user-defined relative directory template", () => {
   const directory = databaseBackupRunDirectory("C:\\backups", "archives/{schedule}/{date}/{timestamp}-{runId}", "Nightly: prod", new Date(2026, 6, 16, 2, 3, 4), "12345678-abcd");
 
@@ -157,6 +165,7 @@ test("retention pruning keeps the newest successful runs", () => {
     databaseBackupRunsToPrune(runs, "schedule-1", 2).map((item) => item.id),
     ["old"],
   );
+  assert.deepEqual(databaseBackupRunsToPrune(runs, "schedule-1", 0), []);
 });
 
 test("backup history normalization preserves an independent display name and progress", () => {

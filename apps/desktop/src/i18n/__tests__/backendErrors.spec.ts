@@ -13,6 +13,7 @@ import ko from "@/i18n/locales/ko";
 import ptBR from "@/i18n/locales/pt-BR";
 import ru from "@/i18n/locales/ru";
 import tr from "@/i18n/locales/tr";
+import th from "@/i18n/locales/th";
 import zhCN from "@/i18n/locales/zh-CN";
 import zhTW from "@/i18n/locales/zh-TW";
 import { PHOENIX_DRIVER_NOT_INSTALLED_ERROR, PHOENIX_JDBC_PLUGIN_NOT_INSTALLED_ERROR } from "@/lib/database/phoenixConnection";
@@ -27,6 +28,7 @@ const LOCALES = {
   ko,
   "pt-BR": ptBR,
   ru,
+  th,
   tr,
   "zh-CN": zhCN,
   "zh-TW": zhTW,
@@ -126,6 +128,18 @@ const CASES: { name: string; message: string; key: string; params?: Record<strin
     name: "SSH TOTP prompt cancelled",
     message: "SSH layer 1 failed: SSH keyboard-interactive authentication was cancelled",
     key: "connection.sshTotpCancelled",
+  },
+  {
+    name: "SSH fixed local port already in use",
+    message: "Failed to bind requested local port 4059: Address already in use (os error 48)",
+    key: "connection.sshLocalPortBindFailed",
+    params: { port: "4059", error: "Address already in use (os error 48)" },
+  },
+  {
+    name: "SSH fixed local port on a later layer",
+    message: "SSH layer 2 failed: Failed to bind requested local port 4059: Only one usage of each socket address is normally permitted. (os error 10048)",
+    key: "connection.sshLocalPortBindFailed",
+    params: { port: "4059", error: "Only one usage of each socket address is normally permitted. (os error 10048)" },
   },
   {
     name: "streaming export unsupported",

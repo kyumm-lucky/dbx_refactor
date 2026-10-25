@@ -2,6 +2,7 @@ import type { DatabaseType } from "@/types/database";
 import type { DataGridCopyInsertMode, DataGridTableMeta } from "@/lib/dataGrid/dataGridSql";
 
 export const DATA_GRID_COPY_EXTRACTOR_IDS = ["raw", "tsv", "tsv-with-headers", "csv", "csv-with-headers", "pipe-separated", "dsv", "json", "json-lines", "one-row", "sql-in-list", "sql-inserts", "sql-updates", "sql-select", "where-clause", "markdown", "html", "xml", "pretty"] as const;
+export const DATA_GRID_DEFAULT_VISIBLE_COPY_EXTRACTORS: readonly DataGridCopyExtractorId[] = DATA_GRID_COPY_EXTRACTOR_IDS;
 
 export type DataGridCopyExtractorId = (typeof DATA_GRID_COPY_EXTRACTOR_IDS)[number];
 export type DataGridCopyPreference = "smart" | DataGridCopyExtractorId;
@@ -208,6 +209,12 @@ const DATA_GRID_COPY_PREFERENCE_SET = new Set<string>(DATA_GRID_DEFAULT_COPY_PRE
 
 export function normalizeDataGridCopyPreference(value: unknown): DataGridCopyPreference {
   return typeof value === "string" && DATA_GRID_COPY_PREFERENCE_SET.has(value) ? (value as DataGridCopyPreference) : "smart";
+}
+
+export function normalizeVisibleDataGridCopyExtractors(value: unknown): DataGridCopyExtractorId[] {
+  if (!Array.isArray(value)) return [...DATA_GRID_DEFAULT_VISIBLE_COPY_EXTRACTORS];
+  const selected = new Set(value.filter((item): item is DataGridCopyExtractorId => typeof item === "string" && DATA_GRID_COPY_EXTRACTOR_IDS.includes(item as DataGridCopyExtractorId)));
+  return DATA_GRID_DEFAULT_VISIBLE_COPY_EXTRACTORS.filter((item) => selected.has(item));
 }
 
 export function resolveDataGridCopyPreference(preference: DataGridCopyPreference, selectedCellCount: number): DataGridCopyExtractorId {

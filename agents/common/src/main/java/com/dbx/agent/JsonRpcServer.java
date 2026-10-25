@@ -186,14 +186,17 @@ public final class JsonRpcServer {
             observingAgent.beforeAgentMethod(method, stringOrNull(params, "sessionId"));
         }
         if (AgentProtocol.METHOD_HANDSHAKE.equals(method)) {
-            return AgentProtocol.handshakeResult();
+            return AgentProtocol.withExactMetadataIdentity(AgentProtocol.handshakeResult(), agent.supportsExactMetadataIdentity());
         }
         if (AgentProtocol.METHOD_CONNECT.equals(method)) {
             ConnectParams connectParams = gson.fromJson(params, ConnectParams.class);
             agent.connect(connectParams);
             lastConnectParams = connectParams;
             lastConnectionValidationTimeMillis = 0L;
-            return Collections.singletonMap("ok", true);
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("ok", true);
+            result.put("exactMetadataIdentity", agent.supportsExactMetadataIdentity());
+            return result;
         }
         if (AgentProtocol.METHOD_TEST_CONNECTION.equals(method)) {
             Map<String, Object> result = agent.testConnectionWithInfo(gson.fromJson(params, ConnectParams.class));
@@ -218,6 +221,14 @@ public final class JsonRpcServer {
                 throw new IllegalStateException("Connection is not valid");
             }
             return Collections.singletonMap("ok", true);
+        }
+        boolean exactIdentity = booleanOrDefault(params, "exact_identity", false);
+        if (exactIdentity) {
+            if (!agent.supportsExactMetadataIdentity()) {
+                throw new UnsupportedOperationException("Agent does not support exact_metadata_identity_v1");
+            }
+            String schema = stringOrNull(params, "schema");
+            if (schema == null || schema.isBlank()) throw new IllegalArgumentException("schema is required for exact metadata identity");
         }
         ensureLiveConnection(method);
         if (AgentProtocol.METHOD_CONNECTION_INFO.equals(method)) {
@@ -254,21 +265,33 @@ public final class JsonRpcServer {
         }
         if (AgentProtocol.METHOD_GET_OBJECT_SOURCE.equals(method)) {
             switchCatalog(params);
-            return agent.getObjectSource(
-                params.get("schema").getAsString(),
-                params.get("name").getAsString(),
-                params.get("object_type").getAsString()
-            );
+            boolean includeOrigin = params.has("include_source_origin") && params.get("include_source_origin").getAsBoolean();
+            String schema = params.get("schema").getAsString();
+            String name = params.get("name").getAsString();
+            String objectType = params.get("object_type").getAsString();
+            ObjectSource source = includeOrigin
+                ? agent.getObjectSourceWithOrigin(schema, name, objectType)
+                : agent.getObjectSource(schema, name, objectType);
+            if (includeOrigin) {
+                JsonObject result = gson.toJsonTree(source).getAsJsonObject();
+                if (source.getSourceOrigin() != null) {
+                    result.addProperty("source_origin", source.getSourceOrigin());
+                }
+                return result;
+            }
+            return source;
         }
         if (AgentProtocol.METHOD_GET_TABLE_DDL.equals(method)) {
             switchCatalog(params);
-            return agent.getTableDdl(params.get("schema").getAsString(), params.get("table").getAsString());
+            return agent.getTableDdl(params.get("schema").getAsString(), params.get("table").getAsString(), exactIdentity);
         }
         if (AgentProtocol.METHOD_GET_COLUMNS.equals(method)) {
             switchCatalog(params);
             String currentSchema = params.has("current_schema") && !params.get("current_schema").isJsonNull()
                 ? params.get("current_schema").getAsString() : null;
-            return agent.getColumnsInContext(params.get("schema").getAsString(), params.get("table").getAsString(), currentSchema);
+            return exactIdentity
+                ? agent.getColumns(params.get("schema").getAsString(), params.get("table").getAsString())
+                : agent.getColumnsInContext(params.get("schema").getAsString(), params.get("table").getAsString(), currentSchema);
         }
         if (AgentProtocol.METHOD_LIST_INDEXES.equals(method)) {
             switchCatalog(params);
@@ -375,7 +398,8 @@ public final class JsonRpcServer {
             if (params.has("boundStatements")) {
                 return executeBlobBoundStatements(params, statements, true);
             }
-            return agent.executeTransaction(statements, stringOrNull(params, "schema"));
+            return executeStatementsWithTimeout(intOrDefault(params, "timeoutSecs", 0),
+                () -> agent.executeTransaction(statements, stringOrNull(params, "schema")));
         }
         if (AgentProtocol.METHOD_BEGIN_MANUAL_TRANSACTION.equals(method)) {
             agent.invalidateLargeValues();
@@ -396,7 +420,8 @@ public final class JsonRpcServer {
             if (params.has("boundStatements")) {
                 return executeBlobBoundStatements(params, statements, false);
             }
-            return agent.executeBatch(statements, stringOrNull(params, "schema"));
+            return executeStatementsWithTimeout(intOrDefault(params, "timeoutSecs", 0),
+                () -> agent.executeBatch(statements, stringOrNull(params, "schema")));
         }
         if (AgentProtocol.METHOD_DISCONNECT.equals(method)) {
             jdbcExecutor.closeAllQuerySessions();
@@ -413,6 +438,20 @@ public final class JsonRpcServer {
             return Collections.singletonMap("ok", true);
         }
         throw new IllegalArgumentException("Unknown method: " + method);
+    }
+
+    private QueryResult executeStatementsWithTimeout(int timeoutSecs, DatabaseAgent.ThrowingSupplier<QueryResult> execute) throws Exception {
+        try (JdbcExecutor.NativeOperation operation = jdbcExecutor.beginNativeOperation()) {
+            return AgentExecutionContext.withStatementTimeout(timeoutSecs, operation,
+                agent instanceof AbstractJdbcAgent jdbcAgent ? jdbcAgent : null, () -> {
+                operation.checkCancelled();
+                if (agent instanceof AbstractJdbcAgent jdbcAgent) {
+                    jdbcAgent.beforeQueryExecution(jdbcAgent.requireConnected(), timeoutSecs);
+                }
+                operation.checkCancelled();
+                return execute.get();
+            });
+        }
     }
 
     private QueryResult executeBlobBoundStatements(JsonObject params, List<String> previews, boolean transaction) {
@@ -625,7 +664,8 @@ public final class JsonRpcServer {
             stringOrNull(params, "filter"),
             intOrNull(params, "limit"),
             intOrNull(params, "offset"),
-            stringListOrNull(params, "object_types")
+            stringListOrNull(params, "object_types"),
+            booleanOrDefault(params, "exact_identity", false)
         );
     }
 

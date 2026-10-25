@@ -83,8 +83,16 @@ pub async fn redis_get_value(
     connection_id: String,
     db: u32,
     key_raw: String,
+    preview_limit_bytes: Option<usize>,
 ) -> Result<RedisValue, String> {
-    dbx_core::redis_ops::redis_get_value_in_db_core(&state, &connection_id, db, &key_raw).await
+    dbx_core::redis_ops::redis_get_value_in_db_with_preview_limit_core(
+        &state,
+        &connection_id,
+        db,
+        &key_raw,
+        preview_limit_bytes,
+    )
+    .await
 }
 
 #[tauri::command]
@@ -517,7 +525,7 @@ pub async fn redis_execute_command(
     skip_safety_check: Option<bool>,
 ) -> Result<RedisCommandResult, String> {
     let argv = parse_command_argv(&command).map_err(|error| format!("Invalid Redis command: {error}"))?;
-    let cmd_name = argv[0].to_ascii_uppercase();
+    let cmd_name = String::from_utf8_lossy(&argv[0]).to_ascii_uppercase();
     let safety = classify_command(&cmd_name);
     // In read-only mode, only allow safe read commands through the raw command interface
     if let Some(name) = dbx_core::query::connection_readonly_name(&state, &connection_id).await {

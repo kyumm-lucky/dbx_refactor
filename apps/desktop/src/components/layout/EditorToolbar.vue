@@ -1,15 +1,45 @@
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref, watch, watchEffect } from "vue";
 import { useI18n } from "vue-i18n";
-import { Play, SquarePlay, CirclePlay, Loader2, Square, Database, Check, Table2, AlignLeft, GitBranch, Save, FolderOpen, X, Shield, Download, RotateCcw, AlertTriangle, ClipboardPaste, Minimize2, SpellCheck2, Layers, MoreHorizontal, BetweenVerticalStart, Eye, WrapText, UserRound } from "@lucide/vue";
+import {
+  Play,
+  FastForward,
+  SquarePlay,
+  CirclePlay,
+  Loader2,
+  Square,
+  Database,
+  Check,
+  Table2,
+  AlignLeft,
+  GitBranch,
+  Save,
+  FolderOpen,
+  X,
+  Shield,
+  Download,
+  RotateCcw,
+  AlertTriangle,
+  ClipboardPaste,
+  Minimize2,
+  SpellCheck2,
+  Layers,
+  MoreHorizontal,
+  BetweenVerticalStart,
+  Eye,
+  WrapText,
+  UserRound,
+} from "@lucide/vue";
 import { supportsInsertValueHints } from "@/lib/editor/codemirrorInsertValueHints";
 import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import LightTooltip from "@/components/ui/LightTooltip.vue";
 import TruncatedTextTooltip from "@/components/ui/TruncatedTextTooltip.vue";
 import DatabaseIcon from "@/components/icons/DatabaseIcon.vue";
 import ConnectionTreeSelect from "@/components/connection/ConnectionTreeSelect.vue";
+import ConnectionDetailContent from "@/components/connection/ConnectionDetailContent.vue";
 import ProductionContextBadge from "@/components/common/ProductionContextBadge.vue";
 import { useConnectionStore } from "@/stores/connectionStore";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -22,12 +52,15 @@ import { supportsQueryExecution } from "@/lib/database/databaseFeatureSupport";
 import { connectionIsDorisFamilyCatalogCapable } from "@/lib/database/databaseFeatureSupport";
 import { hexToRgba } from "@/lib/common/color";
 import { productionContextForDatabase } from "@/lib/database/productionSafety";
-import { formatShortcutDisplay } from "@/lib/editor/shortcutDisplay";
+import { formatShortcutDisplay, formatShortcutTooltip } from "@/lib/editor/shortcutDisplay";
 import { resolveNextEditorToolbarTier, type EditorToolbarTier } from "@/lib/tabs/editorToolbarLayout";
 import { canSaveSqlTab } from "@/lib/tabs/sqlTabSaveTarget";
 import { looksLikeDmlStatement } from "@/lib/sql/dmlChangePreview";
 import { canFormatSqlForDatabaseType } from "@/lib/sql/sqlFormatter";
 import type { QueryTab, ConnectionConfig } from "@/types/database";
+import { isObjectDependencySection } from "@/lib/database/objectDependencyDetails";
+import { connectionDetailRows } from "@/lib/connection/connectionDetailRows";
+import { findConnectionGroupPath } from "@/lib/sidebar/sidebarLayout";
 
 const props = defineProps<{
   activeTab: QueryTab;
@@ -39,6 +72,8 @@ const props = defineProps<{
   blockDangerousRedisCommands?: boolean;
   sqlKeywordCase: "preserve" | "upper" | "lower";
   databaseRequiredSignal?: number;
+  /** When non-zero, highlights and opens the connection picker so the user selects a connection. */
+  connectionRequiredSignal?: number;
   autoCommit?: boolean;
   txnSessionId?: string;
   txnAutoRolledBack?: boolean;
@@ -62,6 +97,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   toolbarExecute: [source: "pointer" | "keyboard"];
+  toolbarExecuteAll: [source: "pointer" | "keyboard"];
   toolbarExecuteInNewResultTab: [source: "pointer" | "keyboard"];
   executePointerDown: [];
   cancel: [];
@@ -213,6 +249,12 @@ const activeProductionContext = computed(() => productionContextForDatabase(prop
 const showConnectionProductionBadge = computed(() => activeProductionContext.value.reason === "connection");
 const showDatabaseProductionBadge = computed(() => activeProductionContext.value.reason === "database");
 const activeConnectionValue = computed(() => props.activeConnection?.id || "");
+const activeConnectionDetailRows = computed(() => (props.activeConnection ? connectionDetailRows(props.activeConnection, t) : []));
+const activeConnectionGroupPath = computed(() => {
+  const connection = props.activeConnection;
+  if (!connection) return "";
+  return findConnectionGroupPath(connectionStore.sidebarLayout, connection.id)?.join(" / ") || "";
+});
 const activeSchemaValue = computed(() => props.activeTab.schema || "");
 // Salesforce identity badge. A Salesforce tab talks to one live org and every grid
 // save is a real REST write, so the signed-in user stays visible next to the
@@ -280,11 +322,8 @@ const saveTooltip = computed(() => {
 });
 const executeShortcutDisplay = computed(() => formatShortcutDisplay(settingsStore.editorSettings.shortcuts.executeSql));
 const executeShortcutTooltip = computed(() => t("toolbar.executeShortcut", { shortcut: executeShortcutDisplay.value }));
-const executeInNewResultTabShortcutDisplay = computed(() => formatShortcutDisplay(settingsStore.editorSettings.shortcuts.executeSqlInNewResultTab));
-const executeInNewResultTabTooltip = computed(() => {
-  const label = t("settings.shortcutExecuteSqlInNewResultTab");
-  return executeInNewResultTabShortcutDisplay.value ? `${label} (${executeInNewResultTabShortcutDisplay.value})` : label;
-});
+const executeAllShortcutTooltip = computed(() => formatShortcutTooltip(t("toolbar.executeAllSql"), settingsStore.editorSettings.shortcuts.executeAllSql));
+const executeInNewResultTabTooltip = computed(() => formatShortcutTooltip(t("settings.shortcutExecuteSqlInNewResultTab"), settingsStore.editorSettings.shortcuts.executeSqlInNewResultTab));
 // executableSql 在无选区时可能是整篇文档；只要有 DML 语句出现就显示预览按钮，
 // 具体"当前语句"由编辑器（QueryEditor）按执行模式解析。
 const DML_KEYWORD_RE = /(^|\s)(update|insert|delete)\s/i;
@@ -353,6 +392,9 @@ const executeButtonClass = computed(() => {
   if (props.activeTab.isExecuting) return "";
   return activeProductionContext.value.active ? "bg-red-500/10 text-red-700 hover:bg-red-500/20 hover:text-red-800 dark:text-red-300 dark:hover:text-red-200" : "bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200";
 });
+const executeAllButtonClass = computed(() => {
+  return activeProductionContext.value.active ? "text-red-700 hover:bg-red-500/10 hover:text-red-800 dark:text-red-300 dark:hover:text-red-200" : "text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-300 dark:hover:text-emerald-200";
+});
 
 const canMultiExecute = computed(() => {
   if (!supportsQueryExecution(props.activeConnection?.db_type)) return false;
@@ -385,9 +427,35 @@ watch(
   },
 );
 
+const connectionRequiredVisible = ref(false);
+
+watch(
+  () => props.connectionRequiredSignal,
+  (signal) => {
+    if (!signal) return;
+    connectionRequiredVisible.value = false;
+    requestAnimationFrame(() => {
+      connectionRequiredVisible.value = true;
+      connectionPickerRef.value?.openDropdown();
+    });
+  },
+);
+
 watch(activeDatabaseValue, (database) => {
   if (database) databaseRequiredVisible.value = false;
 });
+
+watch(activeConnectionValue, (connectionId) => {
+  if (connectionId) connectionRequiredVisible.value = false;
+});
+
+/**
+ * 用户在侧栏显式关闭过、且还没重新连上的连接。
+ *
+ * 下面三个 watchEffect 是自动预取（挂载工具栏、切页签/切库时拉下拉选项），不代表用户
+ * 想连接；对显式关闭的连接必须跳过，否则残留页签一被激活就把连接连回来。它同时是这些
+ * 效果的响应式依赖：用户重连后标记消失，预取会自然补上。
+ */
 
 watchEffect(() => {
   const connection = props.activeConnection;
@@ -455,6 +523,10 @@ function onExecuteClick(event: MouseEvent) {
   emit("toolbarExecute", event.detail > 0 ? "pointer" : "keyboard");
 }
 
+function onExecuteAllClick(event: MouseEvent) {
+  emit("toolbarExecuteAll", event.detail > 0 ? "pointer" : "keyboard");
+}
+
 function onExecuteInNewResultTabClick(event: MouseEvent) {
   emit("toolbarExecuteInNewResultTab", event.detail > 0 ? "pointer" : "keyboard");
 }
@@ -471,10 +543,20 @@ async function changeCatalog(selectedCatalog: string) {
     switchingCatalog.value = false;
   }
 }
+
+const connectionPickerRef = ref<InstanceType<typeof ConnectionTreeSelect> | null>(null);
+const databasePickerRef = ref<InstanceType<typeof SearchableSelect> | null>(null);
+const schemaPickerRef = ref<InstanceType<typeof SearchableSelect> | null>(null);
+
+defineExpose({
+  openConnectionPicker: () => connectionPickerRef.value?.openDropdown() ?? false,
+  openDatabasePicker: () => databasePickerRef.value?.openDropdown() ?? false,
+  openSchemaPicker: () => schemaPickerRef.value?.openDropdown() ?? false,
+});
 </script>
 
 <template>
-  <div ref="toolbarRootRef" class="app-editor-toolbar min-w-0 shrink-0 border-b bg-background/80 px-3 flex items-center gap-1 text-xs text-muted-foreground relative z-10 overflow-hidden" :style="toolbarStyle">
+  <div v-show="!isObjectDependencySection(activeTab)" ref="toolbarRootRef" class="app-editor-toolbar min-w-0 shrink-0 border-b bg-background/80 px-3 flex items-center gap-1 text-xs text-muted-foreground relative z-10 overflow-hidden" :style="toolbarStyle">
     <div ref="toolbarActionsRef" class="min-w-0 flex flex-1 items-center gap-0.5 overflow-hidden">
       <Tooltip>
         <TooltipTrigger as-child>
@@ -493,6 +575,14 @@ async function changeCatalog(selectedCatalog: string) {
           </Button>
         </TooltipTrigger>
         <TooltipContent>{{ activeTab.isExecuting ? t("toolbar.stopQuery") : executeShortcutTooltip }}</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <Button variant="ghost" size="icon" class="h-6 w-6" :class="executeAllButtonClass" :disabled="activeTab.isExecuting || activeTab.isCancelling || activeTab.isExplaining || !activeTab.sql.trim()" :aria-label="t('toolbar.executeAllSql')" @click="onExecuteAllClick">
+            <FastForward class="h-3.5 w-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{{ executeAllShortcutTooltip }}</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger as-child>
@@ -687,29 +777,35 @@ async function changeCatalog(selectedCatalog: string) {
       </div>
     </div>
     <div class="flex shrink-0 items-center gap-2">
-      <div class="flex shrink-0 items-center gap-1">
+      <div class="flex shrink-0 items-center gap-1" :class="{ 'connection-required-prompt': connectionRequiredVisible }">
         <span v-if="activeConnection?.color" class="h-4 w-1 rounded-full shrink-0" :style="{ backgroundColor: activeConnection.color }" />
-        <ConnectionTreeSelect
-          :model-value="activeConnectionValue"
-          :connections="connectionStore.connections"
-          :layout="connectionStore.sidebarLayout"
-          :placeholder="t('editor.selectConnection')"
-          :search-placeholder="t('editor.searchConnection')"
-          :empty-text="t('grid.noSearchResults')"
-          trigger-class="font-medium text-foreground"
-          trigger-icon-class="h-3 w-3"
-          list-class="w-96 max-w-[calc(100vw-2rem)]"
-          @update:model-value="(connectionId) => emit('changeConnection', connectionId)"
-        >
-          <template #trigger-label="{ label }">
-            <div v-if="activeConnection" class="flex min-w-0 items-center gap-1.5">
-              <DatabaseIcon :db-type="connectionIconType(activeConnection)" class="h-3.5 w-3.5 shrink-0" />
-              <span class="truncate">{{ label }}</span>
-              <ProductionContextBadge v-if="showConnectionProductionBadge" compact />
-            </div>
-            <span v-else class="truncate text-muted-foreground">{{ t("editor.selectConnection") }}</span>
-          </template>
-        </ConnectionTreeSelect>
+        <LightTooltip text="" :disabled="!activeConnectionDetailRows.length" side="bottom" :side-offset="6" :delay="250" :close-delay="80" surface="popover">
+          <ConnectionTreeSelect
+            ref="connectionPickerRef"
+            :model-value="activeConnectionValue"
+            :connections="connectionStore.connections"
+            :layout="connectionStore.sidebarLayout"
+            :placeholder="t('editor.selectConnection')"
+            :search-placeholder="t('editor.searchConnection')"
+            :empty-text="t('grid.noSearchResults')"
+            :hide-title="activeConnectionDetailRows.length > 0"
+            trigger-class="font-medium text-foreground"
+            trigger-icon-class="h-3 w-3"
+            list-class="w-96 max-w-[calc(100vw-2rem)]"
+            @update:model-value="(connectionId) => emit('changeConnection', connectionId)"
+          >
+            <template #trigger-label="{ label }">
+              <div v-if="activeConnection" class="flex min-w-0 items-center gap-1.5">
+                <DatabaseIcon :db-type="connectionIconType(activeConnection)" class="h-3.5 w-3.5 shrink-0" />
+                <span v-if="activeConnectionGroupPath" class="shrink-0 text-muted-foreground">{{ activeConnectionGroupPath }} /</span>
+                <span class="truncate">{{ label }}</span>
+                <ProductionContextBadge v-if="showConnectionProductionBadge" compact />
+              </div>
+              <span v-else class="truncate text-muted-foreground">{{ t("editor.selectConnection") }}</span>
+            </template>
+          </ConnectionTreeSelect>
+          <template #content><ConnectionDetailContent :rows="activeConnectionDetailRows" /></template>
+        </LightTooltip>
       </div>
       <div v-if="showCatalogSelector" class="flex shrink-0 items-center gap-1">
         <SearchableSelect
@@ -754,6 +850,7 @@ async function changeCatalog(selectedCatalog: string) {
         :class="{ 'database-required-prompt': databaseRequiredVisible }"
       >
         <SearchableSelect
+          ref="databasePickerRef"
           :model-value="activeDatabaseValue"
           :options="activeDatabaseOptions.length ? activeDatabaseOptions : activeDatabaseValue ? [activeDatabaseValue] : []"
           :placeholder="t('editor.selectDatabase')"
@@ -801,6 +898,7 @@ async function changeCatalog(selectedCatalog: string) {
       </div>
       <div v-if="showSchemaSelector" class="flex shrink-0 items-center gap-1">
         <SearchableSelect
+          ref="schemaPickerRef"
           :model-value="activeSchemaValue"
           :options="activeSchemaOptions.length ? activeSchemaOptions : activeSchemaValue ? [activeSchemaValue] : []"
           :placeholder="t('editor.selectSchema')"
@@ -889,5 +987,16 @@ async function changeCatalog(selectedCatalog: string) {
   72% {
     transform: translateX(3px);
   }
+}
+
+.connection-required-prompt {
+  color: var(--destructive);
+  animation: database-required-shake 420ms ease;
+}
+
+.connection-required-prompt :deep(button) {
+  color: var(--destructive);
+  border-color: color-mix(in oklch, var(--destructive) 55%, transparent);
+  background: color-mix(in oklch, var(--destructive) 10%, transparent);
 }
 </style>
