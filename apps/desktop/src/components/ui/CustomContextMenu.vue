@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onBeforeUnmount, onMounted, nextTick } from "vue";
 import { Check, ChevronRight } from "@lucide/vue";
-import { shortcutDisplayKeys } from "@/lib/editor/shortcutDisplay";
+import { isMacShortcutPlatform, shortcutDisplayKeys } from "@/lib/editor/shortcutDisplay";
 import { registerGlobalContextMenu, type ContextMenuRegistration, type ContextMenuItem } from "@/components/ui/customContextMenuRegistry";
 import { buildSubmenuGraceArea, isPointerInGraceArea, type GraceAreaPoint } from "@/lib/ui/pointerGraceArea";
 
@@ -452,14 +452,14 @@ function adjustSubPosition() {
  */
 function itemButtonClass(variant?: "default" | "destructive") {
   return [
-    "w-full gap-2 rounded-md px-2 py-1 text-xs leading-4 outline-hidden select-none text-left cursor-default flex items-center disabled:pointer-events-none disabled:opacity-50",
-    variant === "destructive" ? "text-destructive hover:bg-destructive/10 hover:text-destructive focus-visible:bg-destructive/10 focus-visible:text-destructive" : "hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground",
+    "group w-full h-6 gap-1.5 rounded-[5px] px-2 text-[13px] leading-4 outline-hidden select-none text-left cursor-default flex items-center disabled:pointer-events-none disabled:opacity-50",
+    variant === "destructive" ? "text-destructive hover:bg-destructive/10 focus-visible:bg-destructive/10" : "text-foreground hover:bg-primary hover:text-primary-foreground focus-visible:bg-primary focus-visible:text-primary-foreground",
   ];
 }
 
 function activeSubmenuTriggerClass(item: ContextMenuItem, index: number) {
   if (activeSubIndex.value !== index) return "";
-  return item.variant === "destructive" ? "bg-destructive/10 text-destructive" : "bg-accent text-accent-foreground";
+  return item.variant === "destructive" ? "bg-destructive/10 text-destructive" : "bg-primary text-primary-foreground";
 }
 
 function itemIsDisabled(item: ContextMenuItem): boolean {
@@ -468,6 +468,15 @@ function itemIsDisabled(item: ContextMenuItem): boolean {
 
 function shortcutKeys(shortcut?: string): string[] {
   return shortcutDisplayKeys(shortcut);
+}
+
+/**
+ * 快捷键以纯文本显示：macOS 用 ⇧⌘ 连写、其他平台用 + 连接。
+ * Apple 菜单里没有 kbd 按键框，这也是新菜单和旧样式的最大区别之一。
+ */
+function shortcutText(shortcut?: string): string {
+  const keys = shortcutKeys(shortcut);
+  return isMacShortcutPlatform() ? keys.join("") : keys.join("+");
 }
 
 onBeforeUnmount(() => {
@@ -492,13 +501,11 @@ onBeforeUnmount(() => {
       ref="menuRef"
       data-dbx-context-menu
       :style="{ position: 'fixed', left: x + 'px', top: y + 'px', zIndex: 9999, maxHeight: 'calc(100vh - 16px)' }"
-      class="pointer-events-auto bg-popover text-popover-foreground min-w-40 w-max max-w-[calc(100vw-16px)] rounded-md p-1 overflow-y-auto overscroll-contain ring-1 ring-foreground/10 shadow-lg"
+      class="pointer-events-auto cn-menu-translucent text-foreground min-w-[180px] w-max max-w-[calc(100vw-16px)] rounded-[10px] p-[5px] text-[13px] leading-4 overflow-y-auto overscroll-contain"
     >
       <template v-for="(item, index) in activeItems" :key="item.sidebarActionId ?? index">
         <template v-if="item.visible !== false">
-          <div v-if="item.separator" class="-mx-1 my-1 flex items-center px-1">
-            <div class="h-px flex-1 bg-border/70" />
-          </div>
+          <div v-if="item.separator" class="my-1 mx-1.5 h-px bg-border/80" />
           <button
             v-else
             :disabled="itemIsDisabled(item)"
@@ -510,18 +517,12 @@ onBeforeUnmount(() => {
             @mouseenter="(e) => onItemMouseEnter(index, e)"
             @mouseleave="onItemMouseLeave"
           >
-            <span v-if="item.checkedStyle !== 'switch'" class="flex size-4 shrink-0 items-center justify-center">
-              <Check v-if="item.checked" class="size-4 text-primary" />
-              <component :is="item.icon" v-else-if="item.icon" :class="['size-4', item.iconClass]" />
+            <span class="flex w-3.5 shrink-0 items-center justify-center">
+              <Check v-if="item.checked" class="size-3" />
             </span>
-            <span class="flex-1 whitespace-nowrap" :class="item.variant === 'destructive' ? '' : 'text-muted-foreground'">{{ item.label }}</span>
-            <span v-if="item.checkedStyle === 'switch'" aria-hidden="true" class="ml-3 flex h-3.5 w-6 shrink-0 items-center rounded-full p-0.5 transition-colors" :class="item.checked ? 'bg-primary' : 'bg-input'">
-              <span class="size-2.5 rounded-full bg-primary-foreground shadow-xs transition-transform" :class="item.checked ? 'translate-x-2.5' : 'translate-x-0'" />
-            </span>
-            <span v-if="item.shortcut" class="ml-8 inline-flex shrink-0 items-center gap-1 text-muted-foreground">
-              <kbd v-for="key in shortcutKeys(item.shortcut)" :key="key" class="min-w-4 rounded border border-border/70 bg-muted/60 px-1 py-0.5 text-center font-mono text-[10px] leading-none text-muted-foreground shadow-xs">{{ key }}</kbd>
-            </span>
-            <ChevronRight v-if="item.children?.length" :class="['ml-auto size-4', item.variant === 'destructive' ? 'text-destructive' : 'text-muted-foreground/80']" />
+            <span class="flex-1 overflow-hidden whitespace-nowrap text-ellipsis">{{ item.label }}</span>
+            <span v-if="item.shortcut" class="ml-6 shrink-0 text-[13px] tracking-[0.2px]" :class="item.variant === 'destructive' ? 'text-destructive/70' : 'text-muted-foreground group-hover:text-primary-foreground/80'">{{ shortcutText(item.shortcut) }}</span>
+            <ChevronRight v-if="item.children?.length" :class="['ml-1 size-[9px] shrink-0 stroke-[1.8]', item.variant === 'destructive' ? 'text-destructive' : 'text-muted-foreground/80 group-hover:text-primary-foreground/90']" />
           </button>
         </template>
       </template>
@@ -534,15 +535,13 @@ onBeforeUnmount(() => {
       ref="subRef"
       data-dbx-context-menu
       :style="{ position: 'fixed', left: subX + 'px', top: subY + 'px', zIndex: 10000, maxHeight: 'min(420px, calc(100vh - 16px))' }"
-      class="pointer-events-auto bg-popover text-popover-foreground min-w-56 w-max max-w-[calc(100vw-16px)] rounded-md p-1 overflow-y-auto ring-1 ring-foreground/10 shadow-lg"
+      class="pointer-events-auto cn-menu-translucent text-foreground min-w-[168px] w-max max-w-[calc(100vw-16px)] rounded-[10px] p-[5px] text-[13px] leading-4 overflow-y-auto"
       @mouseenter="onSubMouseEnter"
       @mouseleave="onSubMouseLeave"
     >
       <template v-for="(child, ci) in activeItems[activeSubIndex]!.children!" :key="ci">
         <template v-if="child.visible !== false">
-          <div v-if="child.separator" class="-mx-1 my-1 flex items-center px-1">
-            <div class="h-px flex-1 bg-border/70" />
-          </div>
+          <div v-if="child.separator" class="my-1 mx-1.5 h-px bg-border/80" />
           <button
             v-else
             :disabled="itemIsDisabled(child)"
@@ -552,17 +551,11 @@ onBeforeUnmount(() => {
             :style="{ paddingInlineStart: `${0.5 + (child.indentLevel ?? 0) * 0.75}rem` }"
             @click="handleSubItemClick(child)"
           >
-            <span v-if="child.checkedStyle !== 'switch'" class="flex size-4 shrink-0 items-center justify-center">
-              <Check v-if="child.checked" class="size-4 text-primary" />
-              <component :is="child.icon ?? activeItems[activeSubIndex]!.icon" v-else-if="child.icon || activeItems[activeSubIndex]!.icon" :class="['size-4', child.iconClass ?? (child.icon ? undefined : activeItems[activeSubIndex]!.iconClass)]" />
+            <span class="flex w-3.5 shrink-0 items-center justify-center">
+              <Check v-if="child.checked" class="size-3" />
             </span>
-            <span class="flex-1 whitespace-nowrap" :class="child.variant === 'destructive' ? '' : 'text-muted-foreground'">{{ child.label }}</span>
-            <span v-if="child.checkedStyle === 'switch'" aria-hidden="true" class="ml-3 flex h-3.5 w-6 shrink-0 items-center rounded-full p-0.5 transition-colors" :class="child.checked ? 'bg-primary' : 'bg-input'">
-              <span class="size-2.5 rounded-full bg-primary-foreground shadow-xs transition-transform" :class="child.checked ? 'translate-x-2.5' : 'translate-x-0'" />
-            </span>
-            <span v-if="child.shortcut" class="ml-8 inline-flex shrink-0 items-center gap-1 text-muted-foreground">
-              <kbd v-for="key in shortcutKeys(child.shortcut)" :key="key" class="min-w-4 rounded border border-border/70 bg-muted/60 px-1 py-0.5 text-center font-mono text-[10px] leading-none text-muted-foreground shadow-xs">{{ key }}</kbd>
-            </span>
+            <span class="flex-1 overflow-hidden whitespace-nowrap text-ellipsis">{{ child.label }}</span>
+            <span v-if="child.shortcut" class="ml-6 shrink-0 text-[13px] tracking-[0.2px]" :class="child.variant === 'destructive' ? 'text-destructive/70' : 'text-muted-foreground group-hover:text-primary-foreground/80'">{{ shortcutText(child.shortcut) }}</span>
           </button>
         </template>
       </template>
