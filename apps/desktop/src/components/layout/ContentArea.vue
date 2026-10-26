@@ -20,7 +20,7 @@ import { provideTabUiState } from "@/lib/tabs/tabUiState";
 import { shouldPinResultRunOnClick } from "@/lib/tabs/resultRunPin";
 import { dataTableTabView } from "@/lib/tabs/dataTableView";
 import TableDataViewSwitcher from "@/components/layout/TableDataViewSwitcher.vue";
-import TableDataToolboxMenu from "@/components/grid/TableDataToolboxMenu.vue";
+import DataGridObjectBar from "@/components/grid/DataGridObjectBar.vue";
 import {
   Check,
   CheckSquare2,
@@ -201,7 +201,7 @@ import { applyMongoGridChangesToDocument, applyMongoGridChangesToDocumentBaselin
 import { buildMongoQueryResultOperations, formatMongoQueryResultOperationPreview } from "@/lib/mongo/mongoQueryResultEditing";
 import { buildInfluxDbV1DeleteStatements, canDeleteInfluxDbV1Row, resolveInfluxDbV1DeleteTarget } from "@/lib/influxdb/influxDbV1Delete";
 import type { DataGridSortMode } from "@/lib/dataGrid/dataGridSort";
-import { isDataGridToolbarCompact, type DataGridReloadIntent, type DataGridToolbarActionCapability } from "@/lib/dataGrid/dataGridToolbar";
+import { isDataGridToolbarCompact, type DataGridObjectBarCapabilities, type DataGridReloadIntent, type DataGridToolbarActionCapability } from "@/lib/dataGrid/dataGridToolbar";
 import { useTabScroll } from "@/composables/useTabScroll";
 import { formatElapsedSeconds } from "@/lib/common/elapsedTime";
 import { copyToClipboard } from "@/lib/common/clipboard";
@@ -225,6 +225,8 @@ type DataGridHandle = DataGridColumnLayoutHandle & {
   tableInfoToolbarCapability: DataGridToolbarActionCapability;
   goToColumnToolbarCapability: DataGridToolbarActionCapability;
   onToolbarRefresh: () => Promise<void> | void;
+  objectBarCapabilities: DataGridObjectBarCapabilities;
+  openTableInfo: (tab?: TableInfoTab) => Promise<void> | void;
   focusSearch: (target?: Element | null) => boolean;
   focusWhere: () => boolean;
   openGoToColumn: () => boolean;
@@ -530,6 +532,13 @@ function viewObjectDependencySql(context: ObjectDependencyTarget, sql: string) {
 }
 // 表数据工具箱的「导入数据」与侧边栏、对象浏览器共用同一条能力判断：未适配导入的引擎（如 HANA）不出现入口。
 const canOpenTableImport = computed(() => supportsTableImport(activeEffectiveDatabaseType.value));
+// 表数据页对象头（52px 身份条）读取的展示信息：表名/驱动/注释/所在 schema/列数。
+const dataTableObjectTitle = computed(() => activeDataTabTableMeta.value?.tableName?.trim() || props.activeTab.title);
+const dataTableObjectDriver = computed(() => activeResultConnection.value?.driver_label || activeEffectiveDatabaseType.value || "");
+// 表注释挂在 tab 上（tableComment），不在 tableMeta 里。
+const dataTableObjectComment = computed(() => props.activeTab.tableComment?.trim() || "");
+const dataTableObjectSchema = computed(() => activeDataTabTableMeta.value?.schema?.trim() || activeDataTabTableMeta.value?.database?.trim() || props.activeTab.schema || props.activeTab.database || "");
+const dataTableObjectColumnCount = computed(() => props.activeTab.result?.columns.length || activeDataTabTableMeta.value?.columns.length || 0);
 const activeVectorConnection = computed(() => connectionStore.getConfig(props.activeTab.connectionId) ?? props.activeConnection);
 const activeDataTabExecutionDatabase = computed(() => dataTabExecutionDatabase(props.activeConnection, props.activeTab.database, activeDataTabTableMeta.value?.catalog));
 const tableSqlPreview = ref<{
@@ -3125,10 +3134,26 @@ defineExpose({
     <!-- Data mode: full-height grid -->
     <template v-else-if="activeTab.mode === 'data'">
       <div class="flex-1 min-h-0 flex flex-col">
-        <!-- 视图切换与「数据工具」在数据视图里已并入网格顶栏（见 DataGrid 的 #topbar-leading），
-             这里只在「表结构」视图、以及网格未挂载（加载中 / 空 / 错误）时提供这条 32px 工具条，
-             保证切换入口始终可达。 -->
-        <div v-if="activeTableDataView === 'structure' || !activeTab.result" class="h-8 shrink-0 border-b bg-background/80 px-3 flex items-center gap-2 text-xs overflow-hidden">
+        <!-- 数据视图的对象头（身份 + 视图切换 + 本次操作）常驻；表结构视图沿用结构编辑器自带对象头，
+             这里只保留切换回「表数据」的入口。 -->
+        <DataGridObjectBar
+          v-if="activeTableDataView === 'data'"
+          :title="dataTableObjectTitle"
+          :driver-label="dataTableObjectDriver"
+          :comment="dataTableObjectComment"
+          :schema-label="dataTableObjectSchema"
+          :column-count="dataTableObjectColumnCount"
+          :active-view="activeTableDataView"
+          :capabilities="dataGridRef?.objectBarCapabilities"
+          :can-import="canOpenTableImport"
+          @select-view="selectTableDataView"
+          @refresh="reloadUnavailableDataTab()"
+          @table-info="dataGridRef?.openTableInfo()"
+          @generate="handleTableDataGenerate"
+          @import-data="handleTableImport"
+          @export-data="handleTableToolboxExport"
+        />
+        <div v-if="activeTableDataView === 'structure'" class="h-8 shrink-0 border-b bg-background/80 px-3 flex items-center gap-2 text-xs overflow-hidden">
           <TableDataViewSwitcher :active-view="activeTableDataView" @select-view="selectTableDataView" />
           <span class="ml-auto" />
         </div>
@@ -3151,6 +3176,7 @@ defineExpose({
             :editable="!activeTab.tableMetaPending && (isTableDataEditable(activeEffectiveDatabaseType, activeTableMeta?.primaryKeys ?? [], activeTableMeta?.tableType) || !!influxDbV1DeleteSaveHandler)"
             :custom-save-handler="influxDbV1DeleteSaveHandler"
             context="table-data"
+            chrome-variant="apple"
             :initial-where-input="activeTab.whereInput"
             :database-type="activeEffectiveDatabaseType"
             :connection-id="activeTab.connectionId"
@@ -3173,10 +3199,8 @@ defineExpose({
             @sort="(column: string, columnIndex: number, direction: 'asc' | 'desc' | null, whereInput?: string, mode?: DataGridSortMode) => emit('sort', activeTab.id, column, columnIndex, direction, whereInput, mode)"
             @change-query-timeout="(connectionId: string) => emit('openConnectionSettings', connectionId, 'advanced')"
           >
-            <template #topbar-leading="{ compact }">
-              <TableDataViewSwitcher :active-view="activeTableDataView" @select-view="selectTableDataView" />
-              <span class="h-4 w-px shrink-0 bg-border" aria-hidden="true" />
-              <TableDataToolboxMenu v-if="activeDataTabTableMeta && activeTab.connectionId" :compact="compact" :can-import="canOpenTableImport" @generate="handleTableDataGenerate" @import-data="handleTableImport" @export-data="handleTableToolboxExport" />
+            <template #querybar-actions>
+              <DataGridColumnLayoutPopover :grid="dataGridRef" compact content-align="end" trigger-class="text-muted-foreground" />
             </template>
             <template v-if="activeTab.result?.columns.length" #row-number-header>
               <DataGridColumnLayoutPopover :grid="dataGridRef" compact content-align="start" trigger-class="text-muted-foreground" />

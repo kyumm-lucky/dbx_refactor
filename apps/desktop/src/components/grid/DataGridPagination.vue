@@ -34,8 +34,12 @@ const props = withDefaults(
     maxPage?: number;
     canGoNextPage: boolean;
     canJumpLastPage: boolean;
+    // 表数据页状态栏：只保留「页大小 chip + ‹ 页码 ›」，首/末页收进页大小菜单，不显示加载全部与导出
+    compact?: boolean;
+    // 经典状态栏可单独隐藏导出入口；compact 下导出已移到查询条，该值不再生效
+    showExport?: boolean;
   }>(),
-  { paginationEnabled: true, loadAllRowsActive: false, loadAllRowsEnabled: true, canLoadAllRows: false, canExport: true, selectionSummaryPending: false },
+  { paginationEnabled: true, loadAllRowsActive: false, loadAllRowsEnabled: true, canLoadAllRows: false, canExport: true, selectionSummaryPending: false, compact: false, showExport: true },
 );
 
 const customPageSizeInput = defineModel<string>("customPageSizeInput", { default: "" });
@@ -46,6 +50,13 @@ const maximumInputPage = computed(() => {
   if (typeof props.maxPage !== "number" || !Number.isFinite(props.maxPage) || props.maxPage < 1) return maximumSafeOffsetPage;
   return Math.min(maximumSafeOffsetPage, Math.floor(props.maxPage));
 });
+
+// compact 页大小 chip：24px 高、12px 字号、hover 走 accent 底色；classic 保持原有 20px 触发区
+const pageSizeTriggerClass = computed(() =>
+  props.compact
+    ? "inline-flex h-6 shrink-0 items-center justify-center gap-[3px] whitespace-nowrap rounded-md px-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+    : "inline-flex h-5 shrink-0 items-center justify-center whitespace-nowrap rounded-md px-1.5 text-xs hover:bg-accent hover:text-accent-foreground",
+);
 
 const emit = defineEmits<{
   selectPageSize: [value: string];
@@ -104,7 +115,7 @@ function handlePageInputKeydown(event: KeyboardEvent) {
 
 <template>
   <div class="flex min-w-max items-center justify-end gap-1">
-    <div v-if="selectionSummary" class="flex shrink-0 items-center gap-3 tabular-nums">
+    <div v-if="selectionSummary" class="flex shrink-0 items-center gap-3 tabular-nums" :class="compact ? 'text-xs text-muted-foreground' : ''">
       <button type="button" class="shrink-0 text-left" :class="selectionSummaryValueClass" :title="selectionSummaryPending ? undefined : t('grid.copyValue')" :disabled="selectionSummaryPending" data-selection-summary-sum @click="copySelectionSummaryValue(selectionSummarySumText)">
         <span v-if="!selectionSummaryPending" class="sr-only">{{ t("grid.copyValue") }}: </span>{{ t("grid.selectionSum", { value: selectionSummarySumText }) }}
       </button>
@@ -125,10 +136,10 @@ function handlePageInputKeydown(event: KeyboardEvent) {
         :model-value="String(pageSize)"
         :items="pageSizeMenuItems"
         :trigger-label="`${pageSize}${t('grid.rowsPerPageShort')}`"
-        trigger-class="inline-flex h-5 shrink-0 items-center justify-center whitespace-nowrap rounded-md px-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
+        :trigger-class="pageSizeTriggerClass"
         content-class="w-52"
         :highlight-selected="false"
-        check-position="none"
+        :check-position="compact ? 'left' : 'none'"
         align="end"
         @update:model-value="emit('selectPageSize', $event)"
       >
@@ -156,24 +167,66 @@ function handlePageInputKeydown(event: KeyboardEvent) {
           <button type="button" class="flex-1 whitespace-nowrap rounded-md border px-2 py-1.5 text-center text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground" @click.stop="emit('applyCustomPageSize')">{{ t("grid.applyForThisQuery") }}</button>
           <button type="button" class="flex-1 whitespace-nowrap rounded-md bg-primary px-2 py-1.5 text-center text-xs text-primary-foreground hover:bg-primary/90" @click.stop="emit('applyCustomPageSizeAndSetDefault')">{{ t("grid.applyAndSetDefault") }}</button>
         </div>
+        <!-- compact：状态栏不再单列首/末页按钮，改为页大小菜单底部的两个文字项 -->
+        <template v-if="compact">
+          <div class="bg-border -mx-1 my-1 h-px" />
+          <button
+            type="button"
+            role="menuitem"
+            class="flex w-full items-center rounded-md py-1 pr-1.5 pl-6 text-left text-sm outline-hidden hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+            :disabled="loading || currentPage <= 1"
+            @click.stop="emit('firstPage')"
+          >
+            {{ t("settings.shortcutGoToFirstPage") }}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            class="flex w-full items-center rounded-md py-1 pr-1.5 pl-6 text-left text-sm outline-hidden hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+            :disabled="loading || !canJumpLastPage"
+            @click.stop="emit('lastPage')"
+          >
+            {{ t("settings.shortcutGoToLastPage") }}
+          </button>
+        </template>
       </LightDropdown>
-      <Button variant="ghost" size="icon" class="h-5 w-5 shrink-0" :disabled="loading || currentPage <= 1" @click="emit('firstPage')"><ChevronsLeft class="h-3 w-3" /></Button>
-      <Button variant="ghost" size="icon" class="h-5 w-5 shrink-0" :disabled="loading || currentPage <= 1" @click="emit('previousPage')"><ChevronLeft class="h-3 w-3" /></Button>
-      <Input
-        v-model="pageInput"
-        type="number"
-        inputmode="numeric"
-        :min="1"
-        :max="maximumInputPage"
-        :disabled="loading"
-        :aria-label="t('grid.jumpToPage')"
-        class="h-5 w-14 shrink-0 px-1 text-center text-xs tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-        @keydown="handlePageInputKeydown"
-      />
-      <Button variant="ghost" size="icon" class="h-5 w-5 shrink-0" :disabled="loading || !canGoNextPage" @click="emit('nextPage')"><ChevronRight class="h-3 w-3" /></Button>
-      <Button variant="ghost" size="icon" class="h-5 w-5 shrink-0" :disabled="loading || !canJumpLastPage" @click="emit('lastPage')"><ChevronsRight class="h-3 w-3" /></Button>
+      <!-- classic：保留首/末页与页码输入的完整导航，避免查询结果页与文档表格回归 -->
+      <template v-if="!compact">
+        <Button variant="ghost" size="icon" class="h-5 w-5 shrink-0" :disabled="loading || currentPage <= 1" @click="emit('firstPage')"><ChevronsLeft class="h-3 w-3" /></Button>
+        <Button variant="ghost" size="icon" class="h-5 w-5 shrink-0" :disabled="loading || currentPage <= 1" @click="emit('previousPage')"><ChevronLeft class="h-3 w-3" /></Button>
+        <Input
+          v-model="pageInput"
+          type="number"
+          inputmode="numeric"
+          :min="1"
+          :max="maximumInputPage"
+          :disabled="loading"
+          :aria-label="t('grid.jumpToPage')"
+          class="h-5 w-14 shrink-0 px-1 text-center text-xs tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          @keydown="handlePageInputKeydown"
+        />
+        <Button variant="ghost" size="icon" class="h-5 w-5 shrink-0" :disabled="loading || !canGoNextPage" @click="emit('nextPage')"><ChevronRight class="h-3 w-3" /></Button>
+        <Button variant="ghost" size="icon" class="h-5 w-5 shrink-0" :disabled="loading || !canJumpLastPage" @click="emit('lastPage')"><ChevronsRight class="h-3 w-3" /></Button>
+      </template>
+      <!-- compact：仅 ‹ 页码 › 三个 24px 控件 -->
+      <div v-else class="flex items-center gap-px">
+        <Button variant="ghost" size="icon" class="h-6 w-6 shrink-0 disabled:opacity-[0.35]" :aria-label="t('settings.shortcutGoToPreviousPage')" :disabled="loading || currentPage <= 1" @click="emit('previousPage')"><ChevronLeft class="h-3.5 w-3.5" /></Button>
+        <Input
+          v-model="pageInput"
+          type="number"
+          inputmode="numeric"
+          :min="1"
+          :max="maximumInputPage"
+          :disabled="loading"
+          :aria-label="t('grid.jumpToPage')"
+          class="h-[22px] w-[34px] shrink-0 rounded-md border-border bg-background px-0 text-center text-xs tabular-nums focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/[0.16] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          @keydown="handlePageInputKeydown"
+        />
+        <Button variant="ghost" size="icon" class="h-6 w-6 shrink-0 disabled:opacity-[0.35]" :aria-label="t('settings.shortcutGoToNextPage')" :disabled="loading || !canGoNextPage" @click="emit('nextPage')"><ChevronRight class="h-3.5 w-3.5" /></Button>
+      </div>
     </template>
-    <Tooltip v-if="paginationEnabled && loadAllRowsEnabled">
+    <!-- compact 下「加载全部」已移除，仅 classic 状态栏保留 -->
+    <Tooltip v-if="paginationEnabled && loadAllRowsEnabled && !compact">
       <TooltipTrigger as-child>
         <Button variant="ghost" size="icon" class="h-5 w-5 shrink-0" :disabled="loading || !canLoadAllRows" :aria-label="t('grid.loadAllAndGoToLastRow')" @click="emit('loadAllRows')">
           <ChevronsDown class="h-3 w-3" />
@@ -181,6 +234,7 @@ function handlePageInputKeydown(event: KeyboardEvent) {
       </TooltipTrigger>
       <TooltipContent side="bottom">{{ t("grid.loadAllAndGoToLastRow") }}</TooltipContent>
     </Tooltip>
-    <DataGridExportMenu v-if="canExport" :items="exportMenuItems" :label="t('grid.export')" :on-select="(value) => emit('selectExport', value)" />
+    <!-- compact 下导出入口已移到查询条，状态栏不再渲染 -->
+    <DataGridExportMenu v-if="canExport && showExport && !compact" :items="exportMenuItems" :label="t('grid.export')" :on-select="(value) => emit('selectExport', value)" />
   </div>
 </template>

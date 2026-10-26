@@ -57,6 +57,21 @@ export interface DataGridToolbarSaveCapability extends DataGridToolbarActionCapa
   shortcutLabel?: string;
 }
 
+/**
+ * 网格暴露给表数据页对象头的一组动作能力。
+ * 对象头与网格内置工具条共用同一份对象，禁用态、计数与文案只有一个来源。
+ */
+export interface DataGridObjectBarCapabilities {
+  refresh: DataGridToolbarActionCapability;
+  addRow: DataGridToolbarAddRowCapability;
+  deleteRow: DataGridToolbarActionCapability;
+  save: DataGridToolbarSaveCapability;
+  rollback: DataGridToolbarActionCapability;
+  /** 变更 SQL 预览 / 几何预览：经典工具条上的动作，收进对象头「⋯」保留能力。 */
+  preview?: DataGridToolbarActionCapability;
+  layerPreview?: DataGridToolbarActionCapability;
+}
+
 export interface DataGridToolbarMenuItem {
   value: string;
   label: string;

@@ -65,7 +65,7 @@ const emit = defineEmits<{
 
 <template>
   <div
-    class="data-grid-header-cell shrink-0 px-2 py-1.5 border-r border-border whitespace-nowrap hover:bg-black/5 dark:hover:bg-white/6 select-none relative overflow-hidden"
+    class="data-grid-header-cell shrink-0 px-2.5 whitespace-nowrap select-none relative overflow-hidden"
     :class="[dark && 'data-grid-header-cell--dark', selected && 'data-grid-header-cell--selected', searchMatch && 'bg-amber-500/20 ring-1 ring-inset ring-amber-500/40', frozen && 'data-grid-header-cell--frozen', frozenSeparator && 'data-grid-header-cell--frozen-separator', dragClass]"
     :style="columnStyle"
     :data-grid-column-index="actualColumnIndex"
@@ -130,45 +130,6 @@ const emit = defineEmits<{
     <div data-column-resize-handle class="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/30" @mousedown.stop="emit('resizeStart', $event)" @click.stop.prevent @dblclick.stop="emit('autoFit')" />
   </div>
 </template>
-
-<style scoped>
-.data-grid-header-cell {
-  background-color: rgb(250, 250, 251);
-}
-
-.data-grid-header-cell--dark {
-  background-color: rgb(32, 32, 34) !important;
-}
-
-.data-grid-header-cell--dark:hover {
-  background-color: rgb(46, 47, 51) !important;
-}
-
-.data-grid-header-cell--selected {
-  background-color: var(--data-grid-cell-selected-single-bg, rgb(191, 219, 254)) !important;
-}
-
-.data-grid-header-cell--dark.data-grid-header-cell--selected {
-  background-color: var(--data-grid-cell-selected-single-bg, rgb(30, 64, 96)) !important;
-  color: rgb(244, 244, 245) !important;
-}
-
-.data-grid-header-cell--frozen {
-  background-color: rgb(220, 225, 232) !important;
-}
-
-.data-grid-header-cell--frozen-separator {
-  border-right: 2px solid rgb(100, 116, 139) !important;
-}
-
-.data-grid-header-cell--dark.data-grid-header-cell--frozen {
-  background-color: rgb(40, 42, 48) !important;
-}
-
-.data-grid-header-cell--dark.data-grid-header-cell--frozen-separator {
-  border-right: 2px solid rgb(100, 116, 139) !important;
-}
-</style>
 
 <style>
 /* 列头操作按钮（排序 / 列操作 / 格式化）默认不占视线：只有 hover 该列头才淡入，

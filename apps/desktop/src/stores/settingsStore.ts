@@ -848,7 +848,7 @@ export const DEFAULT_EXPLAIN_VIEWS = ["canvas", "tree", "summary", "table", "raw
 export type DefaultExplainView = (typeof DEFAULT_EXPLAIN_VIEWS)[number];
 export const TABLE_FONT_SIZE_MIN = 8;
 export const TABLE_FONT_SIZE_MAX = 16;
-export const TABLE_FONT_SIZE_DEFAULT = 12;
+export const TABLE_FONT_SIZE_DEFAULT = 13;
 export const SIDEBAR_FONT_SIZE_MIN = 9;
 export const SIDEBAR_FONT_SIZE_MAX = 24;
 export const SIDEBAR_FONT_SIZE_DEFAULT = 14;
@@ -1519,7 +1519,8 @@ export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
   dataGridCrosshairHighlight: false,
   dataGridCrosshairRowBg: "",
   dataGridCrosshairColBg: "",
-  dataGridStripedRows: true,
+  // Apple 极简网格默认不铺斑马纹：发丝行线已经足够分隔行，斑马纹会让数据区变灰。
+  dataGridStripedRows: false,
   dataGridZebraRowBg: "",
   dataGridMultiRowTranspose: false,
   dataGridHideNullColumns: false,

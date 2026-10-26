@@ -69,6 +69,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import ErrorBanner from "@/components/ui/ErrorBanner.vue";
 import DangerConfirmDialog from "@/components/editor/DangerConfirmDialog.vue";
 import DataGridPagination from "@/components/grid/DataGridPagination.vue";
+import DataGridExportMenu from "@/components/grid/DataGridExportMenu.vue";
 import DataGridSearchBar from "@/components/grid/DataGridSearchBar.vue";
 import DataGridToolbar from "@/components/grid/DataGridToolbar.vue";
 import DataGridExtractorDialog from "@/components/grid/DataGridExtractorDialog.vue";
@@ -220,7 +221,6 @@ import {
 import { resolveDataGridWheelScroll } from "@/lib/dataGrid/dataGridWheel";
 import { CANVAS_DATA_GRID_ROW_HEIGHT, MAX_CANVAS_DATA_GRID_PIXEL_RATIO, canvasDataGridActionOverlayWidth, canvasDataGridActionReservedWidth, dataGridSearchMatchKey, drawCanvasDataGrid, resolveCanvasCellTextLayout, type CanvasDevicePixelSize } from "@/lib/dataGrid/canvasDataGridRenderer";
 import { resolveCrosshairTarget, type CrosshairTarget } from "@/lib/dataGrid/crosshairHighlight";
-import { dataGridActiveRowBackground } from "@/lib/dataGrid/dataGridPaintTheme";
 import { createRowLowerTextCache } from "@/lib/dataGrid/dataGridRowLowerText";
 import { dataGridPreviewLabelKey, dataGridSaveActionMode, dataGridSaveToolbarState } from "@/lib/dataGrid/dataGridSaveUi";
 import { buildDataGridSavedRowRefreshPlan, dataGridSavedRowRefreshPatches } from "@/lib/dataGrid/dataGridSavedRowRefresh";
@@ -315,6 +315,7 @@ import {
   dataGridDeleteRowToolbarState,
   dataGridToolbarActionCollapseCount,
   isDataGridToolbarCompact,
+  type DataGridObjectBarCapabilities,
   type DataGridReloadIntent,
   type DataGridToolbarActionCapability,
   type DataGridToolbarAddRowCapability,
@@ -411,6 +412,11 @@ interface DataGridProps {
   schema?: string;
   columnLayoutScopeKey?: string;
   context?: "results" | "table-data";
+  /**
+   * 表数据页的页面外壳：`apple` 时对象头交给调用方（ContentArea 的 DataGridObjectBar），
+   * 网格自身只保留 38px 查询条、内联查找条与 30px 状态栏；`classic` 保持原有顶栏 + 工具条。
+   */
+  chromeVariant?: "classic" | "apple";
   pageSizePreference?: DataGridPageSizePreference;
   autoTransposeSingleRow?: boolean;
   sourceColumns?: Array<string | undefined>;
@@ -988,6 +994,59 @@ const {
   matchSet: searchMatchSet,
   currentMatch: currentSearchMatch,
 } = dataGridSearch;
+
+// 查找条在两个位置渲染（apple 外壳的查询条下方内联条 / 经典模式右上角浮层），
+// 绑定只写一份，避免两处模板各维护一套 props。
+const searchBarBindings = computed(() => ({
+  text: searchText.value,
+  "onUpdate:text": (value: string) => {
+    searchText.value = value;
+  },
+  replaceOpen: replaceOpen.value,
+  "onUpdate:replaceOpen": (value: boolean) => {
+    replaceOpen.value = value;
+  },
+  replacementText: replacementText.value,
+  "onUpdate:replacementText": (value: string) => {
+    replacementText.value = value;
+  },
+  replaceScope: replaceScope.value,
+  "onUpdate:replaceScope": (value: DataGridReplaceScope) => {
+    replaceScope.value = value;
+  },
+  caseSensitive: replaceCaseSensitive.value,
+  "onUpdate:caseSensitive": (value: boolean) => {
+    replaceCaseSensitive.value = value;
+  },
+  replaceColumn: replaceColumn.value,
+  "onUpdate:replaceColumn": (value: number) => {
+    replaceColumn.value = value;
+  },
+  replaceAvailable: replaceAvailable.value,
+  replaceBusy: replaceBusy.value,
+  replaceMatchCount: replacementMatches.value.length,
+  canReplaceCurrent: canReplaceCurrent.value,
+  columns: props.result.columns,
+  open: searchOverlayVisible.value,
+  suggestions: searchSuggestions.value,
+  suggestionIndex: suggestionIndex.value,
+  matchCount: searchMatchCount.value,
+  currentMatchIndex: currentMatchIndex.value,
+  hasDeferredSearchText: !!deferredClientSearchText.value,
+  valuesTruncated: (props.result.large_value_cells?.length ?? 0) > 0,
+  onKeydown: onSearchKeydown,
+  onNavigate: navigateMatch,
+  onReplaceCurrent: () => replaceGridMatches(true),
+  onReplaceAll: () => replaceGridMatches(),
+  onClose: closeSearch,
+  onAcceptSuggestion: (index: number) => {
+    suggestionIndex.value = index;
+    acceptSuggestion();
+  },
+  onHoverSuggestion: (index: number) => {
+    suggestionIndex.value = index;
+  },
+}));
 
 // Registered ahead of useDataGridEditor's own onMounted so a restored query
 // resolves the row set — "filter" search mode shrinks sortedRows — before
@@ -3834,6 +3893,8 @@ const saveToolbarState = computed(() =>
   }),
 );
 const hasSearchBarSlot = computed(() => !!slots["search-bar"]);
+// 表数据页使用 apple 外壳（对象头在外层 ContentArea），其余场景沿用经典顶栏 + 工具条。
+const appleChrome = computed(() => props.context === "table-data" && props.chromeVariant === "apple");
 const splitDataGridToolbar = computed(() => settingsStore.editorSettings.dataGridToolbarLayout === "split");
 const hasTopbarLeadingSlot = computed(() => !!slots["topbar-leading"]);
 const hasResultToolbarLeadingSlot = computed(() => !!slots["result-toolbar-leading"]);
@@ -4355,6 +4416,17 @@ const rollbackToolbarCapability = computed<DataGridToolbarActionCapability>(() =
   visible: saveToolbarState.value.showActions,
   disabled: saveToolbarState.value.actionsDisabled,
   onTrigger: useTransaction.value ? onToolbarRollback : discardChanges,
+}));
+// 表数据页对象头（ContentArea/DataGridObjectBar）直接复用同一组能力对象：
+// 禁用态、待提交计数与文案只由网格决定，对象头不重复计算。
+const objectBarCapabilities = computed<DataGridObjectBarCapabilities>(() => ({
+  refresh: refreshToolbarCapability.value,
+  addRow: addRowToolbarCapability.value,
+  deleteRow: deleteRowToolbarCapability.value,
+  save: saveToolbarCapability.value,
+  rollback: rollbackToolbarCapability.value,
+  preview: previewToolbarCapability.value,
+  layerPreview: layerPreviewToolbarCapability.value,
 }));
 
 const sortedRows = computed(() => {
@@ -6081,13 +6153,12 @@ function rowCellsUseSelectionVisual(rowId: number): boolean {
 
 function dataGridRowStyle(item: RowItem): CSSProperties {
   const dark = isDark.value || (typeof document !== "undefined" && document.documentElement.classList.contains("dark"));
-  const activeRowBg = dataGridActiveRowBackground(dark);
   const rowBg = item.isDeleted
     ? dark
       ? "rgb(55, 31, 32)"
       : "rgb(255, 244, 244)"
     : isRowActive(item.displayIndex)
-      ? activeRowBg
+      ? "var(--data-grid-cell-active-bg)"
       : item.isNew
         ? dark
           ? "rgb(51, 51, 55)"
@@ -6099,33 +6170,16 @@ function dataGridRowStyle(item: RowItem): CSSProperties {
           : dark
             ? "var(--dbx-content, rgb(30, 30, 32))"
             : "var(--background, rgb(255, 255, 255))";
-  const rowNumberBg =
-    item.status === "new"
-      ? dark
-        ? "rgb(33, 45, 40)"
-        : "rgb(219, 244, 233)"
-      : item.status === "edited"
-        ? dark
-          ? "rgb(48, 41, 28)"
-          : "rgb(253, 241, 219)"
-        : item.status === "deleted"
-          ? dark
-            ? "rgb(55, 31, 32)"
-            : "rgb(255, 244, 244)"
-          : isRowActive(item.displayIndex) && !item.isDeleted
-            ? activeRowBg
-            : dark
-              ? "rgb(35, 37, 42)"
-              : "rgb(255, 255, 255)";
+  const rowNumberBg = item.status === "new" ? (dark ? "rgb(33, 45, 40)" : "rgb(219, 244, 233)") : item.status === "edited" ? (dark ? "rgb(48, 41, 28)" : "rgb(253, 241, 219)") : item.status === "deleted" ? (dark ? "rgb(55, 31, 32)" : "rgb(255, 244, 244)") : "var(--dbx-grid-gutter-bg)";
   return {
     "--data-grid-cell-bg": rowBg,
     "--data-grid-row-number-bg": rowNumberBg,
-    "--data-grid-cell-selected-bg": dark ? "rgb(20, 40, 60)" : "rgb(239, 246, 255)",
-    "--data-grid-cell-selected-single-bg": dark ? "rgb(30, 64, 96)" : "rgb(191, 219, 254)",
-    "--data-grid-cell-selected-dirty-bg": dark ? "rgb(76, 66, 38)" : "rgb(235, 224, 184)",
-    "--data-grid-cell-selected-border": dark ? "rgb(96, 165, 250)" : "rgb(59, 130, 246)",
-    "--data-grid-row-number-active-bg": activeRowBg,
-    "--data-grid-row-number-selected-bg": dark ? "rgb(30, 64, 96)" : "rgb(191, 219, 254)",
+    "--data-grid-cell-selected-bg": "var(--dbx-grid-row-selected)",
+    "--data-grid-cell-selected-single-bg": "var(--dbx-grid-cell-focus)",
+    "--data-grid-cell-selected-dirty-bg": "var(--dbx-grid-cell-dirty-bg)",
+    "--data-grid-cell-selected-border": "var(--primary)",
+    "--data-grid-row-number-active-bg": "var(--dbx-grid-gutter-bg)",
+    "--data-grid-row-number-selected-bg": "var(--dbx-grid-row-selected)",
   } as CSSProperties;
 }
 
@@ -6924,6 +6978,7 @@ function drawCanvasGrid() {
     booleanDisplayMode: booleanDisplayMode.value,
     flatteningMultiLineEnabled: flatteningMultiLineEnabled.value,
     showWhitespace: showWhitespaceEnabled.value,
+    stripedRows: settingsStore.editorSettings.dataGridStripedRows,
   });
   if (!drawn) return;
   flipCanvasSurface();
@@ -6952,6 +7007,10 @@ watch(booleanDisplayMode, () => scheduleCanvasDraw());
 watch(flatteningMultiLineEnabled, () => scheduleCanvasDraw());
 watch(showWhitespaceEnabled, () => scheduleCanvasDraw());
 watch(colorizeDataGridCellTypes, () => scheduleCanvasDraw());
+watch(
+  () => settingsStore.editorSettings.dataGridStripedRows,
+  () => scheduleCanvasDraw(),
+);
 watch(
   [
     displayRowRefs,
@@ -10206,6 +10265,15 @@ async function toggleTableInfo(tab?: TableInfoTab) {
   await selectTableInfoTab(nextTab);
 }
 
+/** 对象头「⋯ → 表信息」：只负责打开抽屉，不因已展开而关闭。 */
+async function openTableInfo(tab?: TableInfoTab) {
+  if (!showTableInfo.value) {
+    await toggleTableInfo(tab);
+    return;
+  }
+  if (tab) await selectTableInfoTab(tab);
+}
+
 function toggleTableInfoDrawerPinned() {
   settingsStore.updateEditorSettings({ tableInfoDrawerPinned: !tableInfoDrawerPinned.value });
 }
@@ -10897,6 +10965,8 @@ defineExpose({
   onToolbarRefresh,
   onToolbarCommit,
   onToolbarRollback,
+  objectBarCapabilities,
+  openTableInfo,
   resetInfiniteScrollState,
   showDdl: showTableInfo,
   toggleDdl: toggleTableInfo,
@@ -11374,23 +11444,25 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
           ref="dataGridTopbarRef"
           v-if="showDataGridTopbar"
           :data-grid-toolbar-layout="settingsStore.editorSettings.dataGridToolbarLayout"
+          :data-grid-chrome="appleChrome ? 'apple' : 'classic'"
           class="data-grid-topbar-shell min-w-0 shrink-0 border-b bg-muted/20"
-          :class="splitDataGridToolbar ? 'grid h-16 grid-cols-[auto_minmax(0,1fr)] grid-rows-2' : 'flex h-8 items-center'"
+          :class="appleChrome ? 'data-grid-querybar flex h-[38px] items-center gap-2 px-3' : splitDataGridToolbar ? 'grid h-16 grid-cols-[auto_minmax(0,1fr)] grid-rows-2' : 'flex h-8 items-center'"
         >
-          <div v-if="hasTopbarLeadingSlot" data-grid-topbar-row="leading" class="flex h-full shrink-0 items-center gap-2 border-r px-2" :class="splitDataGridToolbar ? 'col-start-1 row-start-1' : ''">
+          <div v-if="!appleChrome && hasTopbarLeadingSlot" data-grid-topbar-row="leading" class="flex h-full shrink-0 items-center gap-2 border-r px-2" :class="splitDataGridToolbar ? 'col-start-1 row-start-1' : ''">
             <slot name="topbar-leading" :compact="compactDataGridToolbar" />
           </div>
-          <div v-if="hasResultToolbarLeadingSlot" data-grid-topbar-row="actions" class="flex shrink-0 items-center border-r" :class="splitDataGridToolbar ? 'col-start-2 row-start-1' : ''">
+          <div v-if="!appleChrome && hasResultToolbarLeadingSlot" data-grid-topbar-row="actions" class="flex shrink-0 items-center border-r" :class="splitDataGridToolbar ? 'col-start-2 row-start-1' : ''">
             <slot name="result-toolbar-leading" :compact="compactDataGridToolbar" />
           </div>
           <!-- Clip both axes instead of creating a hidden scroll container around the toolbar controls. -->
-          <div data-grid-topbar-row="filters" class="data-grid-topbar-scroll min-w-0 overflow-clip" :class="splitDataGridToolbar ? 'data-grid-topbar-scroll--row-divider col-span-2 row-start-2' : 'flex-1'">
-            <div class="data-grid-topbar flex items-stretch relative" :class="{ 'data-grid-topbar--compact': compactDataGridToolbar }">
-              <div v-if="useTransaction && editable && hasDataGridSaveTarget" class="flex shrink-0 items-center border-r px-1.5 py-0.5">
+          <div data-grid-topbar-row="filters" class="data-grid-topbar-scroll min-w-0 overflow-clip" :class="appleChrome ? 'flex-1' : splitDataGridToolbar ? 'data-grid-topbar-scroll--row-divider col-span-2 row-start-2' : 'flex-1'">
+            <div class="data-grid-topbar flex items-stretch relative" :class="{ 'data-grid-topbar--compact': compactDataGridToolbar, 'data-grid-querybar-inner': appleChrome }">
+              <div v-if="useTransaction && editable && hasDataGridSaveTarget" class="flex shrink-0 items-center border-r px-1.5 py-0.5" :class="appleChrome ? 'data-grid-querybar-rowfilter ml-1 border-r-0 px-0' : ''">
                 <Select :model-value="rowStatusFilter" @update:model-value="(value: any) => setRowStatusFilter(String(value))">
                   <SelectTrigger
                     :class="[
                       'h-5 max-w-28 shrink-0 gap-1 rounded-md border-0 px-1.5 text-xs font-medium shadow-none focus-visible:ring-0 [&_svg]:size-3',
+                      appleChrome ? 'data-grid-querybar-rowfilter-trigger' : '',
                       rowStatusFilter === 'all' ? 'bg-muted/60 text-foreground/70 hover:bg-muted data-[state=open]:bg-muted data-[state=open]:text-foreground' : 'bg-primary/10 text-primary hover:bg-primary/15 data-[state=open]:bg-primary/15',
                     ]"
                   >
@@ -11424,6 +11496,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                   :identifier-quote="conditionIdentifierQuote"
                   :history-scope="conditionHistoryScope"
                   :can-use-where-search="canUseWhereSearch"
+                  :chrome="appleChrome ? 'apple' : 'classic'"
                   :compact="compactDataGridToolbar"
                   :leading-border="!!(useTransaction && editable && hasDataGridSaveTarget)"
                   :filter-button-active="filterButtonActive"
@@ -11452,10 +11525,29 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
               </template>
 
               <slot name="search-bar" :local-filter-count="localFilterCount + serverColumnFilterCount" :has-local-column-filters="hasLocalColumnFilters || hasServerColumnFilters" :local-filter-summaries="localFilterSummaries" :clear-local-filter="clearLocalFilter" />
+
+              <!-- apple 查询条右侧：查找 / 列设置（调用方插槽）/ 导出 -->
+              <div v-if="appleChrome" class="data-grid-querybar-actions order-2 ml-auto flex shrink-0 items-center" data-grid-querybar-actions>
+                <button
+                  type="button"
+                  class="data-grid-querybar-icon-btn"
+                  :class="{ 'is-active': searchOverlayVisible }"
+                  :title="t('editor.search.find')"
+                  :aria-label="t('editor.search.find')"
+                  :aria-pressed="searchOverlayVisible"
+                  data-grid-find-button
+                  @click="searchOverlayVisible ? closeSearch() : focusSearch()"
+                >
+                  <Search />
+                </button>
+                <slot name="querybar-actions" />
+                <DataGridExportMenu icon-only :items="exportMenuItems" :label="t('grid.export')" :on-select="(value: string) => selectExportMenuItem(value)" />
+              </div>
             </div>
           </div>
 
           <DataGridToolbar
+            v-if="!appleChrome"
             class="ml-auto"
             :compact-action-count="compactDataGridToolbarActionCount"
             :navigation-visible="props.result.columns.length > 0"
@@ -11552,6 +11644,10 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
             </template>
           </DataGridToolbar>
         </div>
+        <!-- apple 外壳的内联查找条：位于查询条下方，不覆盖网格 -->
+        <div v-if="appleChrome && searchOverlayVisible" class="data-grid-findbar-shell shrink-0" data-grid-findbar-shell>
+          <DataGridSearchBar ref="searchBarRef" inline v-bind="searchBarBindings" />
+        </div>
         <DataGridFilterWorkbench
           v-if="canUseWhereSearch && filterEditorView === 'conditions' && effectiveFilterBuilderOpen"
           ref="filterWorkbenchRef"
@@ -11606,38 +11702,8 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
         <!-- Content area: table + side/bottom detail panes -->
         <div class="flex-1 grid min-h-0 overflow-hidden" :style="contentGridStyle">
           <div class="col-start-1 row-start-1 flex flex-col min-w-0 overflow-hidden relative">
-            <!-- Search overlay (Ctrl+F) -->
-            <DataGridSearchBar
-              ref="searchBarRef"
-              v-model:text="searchText"
-              v-model:replace-open="replaceOpen"
-              v-model:replacement-text="replacementText"
-              v-model:replace-scope="replaceScope"
-              v-model:case-sensitive="replaceCaseSensitive"
-              v-model:replace-column="replaceColumn"
-              :replace-available="replaceAvailable"
-              :replace-busy="replaceBusy"
-              :replace-match-count="replacementMatches.length"
-              :can-replace-current="canReplaceCurrent"
-              :columns="props.result.columns"
-              :open="searchOverlayVisible"
-              :suggestions="searchSuggestions"
-              :suggestion-index="suggestionIndex"
-              :match-count="searchMatchCount"
-              :current-match-index="currentMatchIndex"
-              :has-deferred-search-text="!!deferredClientSearchText"
-              :values-truncated="(props.result.large_value_cells?.length ?? 0) > 0"
-              @keydown="onSearchKeydown"
-              @navigate="navigateMatch"
-              @replace-current="replaceGridMatches(true)"
-              @replace-all="replaceGridMatches()"
-              @close="closeSearch"
-              @accept-suggestion="
-                suggestionIndex = $event;
-                acceptSuggestion();
-              "
-              @hover-suggestion="suggestionIndex = $event"
-            />
+            <!-- Search overlay (Ctrl+F)：apple 外壳改用查询条下方的内联查找条 -->
+            <DataGridSearchBar v-if="!appleChrome" ref="searchBarRef" v-bind="searchBarBindings" />
             <ErrorBanner v-if="isErrorResult" variant="centered" :message="errorMessage">
               <template #actions>
                 <slot name="error-actions" :error-message="errorMessage" />
@@ -11909,7 +11975,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
               <div ref="headerRef" class="data-grid-header-shell shrink-0 z-10 w-full border-y border-border overflow-hidden">
                 <div class="data-grid-header-row flex w-(--header-total-w) font-semibold text-foreground">
                   <div
-                    class="data-grid-header-cell shrink-0 px-2 py-1.5 border-r w-(--row-num-w) border-border text-center text-muted-foreground select-none cursor-default hover:bg-gray-200 dark:hover:bg-gray-800 sticky left-0 z-20"
+                    class="data-grid-header-cell data-grid-header-gutter shrink-0 px-2 py-1.5 border-r w-(--row-num-w) border-border text-center text-muted-foreground select-none cursor-default hover:bg-gray-200 dark:hover:bg-gray-800 sticky left-0 z-20"
                     :class="{
                       'data-grid-header-cell--selected': isSelectingAll,
                     }"
@@ -11993,7 +12059,7 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
                             <button
                               type="button"
                               class="flex h-4 w-4 shrink-0 items-center justify-center rounded"
-                              :class="columnIsSorted(col.name, col.actualColIdx) ? 'bg-primary text-primary-foreground opacity-100 shadow-sm hover:bg-primary/90' : 'text-muted-foreground opacity-80 hover:bg-accent hover:text-foreground'"
+                              :class="columnIsSorted(col.name, col.actualColIdx) ? 'text-primary opacity-100 hover:bg-accent hover:text-primary' : 'text-muted-foreground opacity-80 hover:bg-accent hover:text-foreground'"
                               :data-column-hover-only="columnIsSorted(col.name, col.actualColIdx) ? undefined : 'true'"
                               :title="t('grid.sort')"
                               :aria-expanded="open"
@@ -13031,9 +13097,9 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
     <ErrorBanner v-if="saveError" variant="card" :title="t('grid.saveErrorTitle')" :message="saveError" copy-mode="label" dismissible @dismiss="saveError = ''" />
 
     <!-- Bottom status bar -->
-    <div v-if="!isErrorResult" class="grid grid-cols-[max-content_minmax(0,1fr)_max-content] items-center gap-2 px-3 py-1 border-t text-xs text-muted-foreground bg-muted/30 shrink-0">
-      <div class="flex min-w-0 items-center gap-2 overflow-hidden">
-        <span v-if="hasData" class="shrink-0">
+    <div v-if="!isErrorResult" class="data-grid-statusbar" :class="{ 'data-grid-statusbar--apple': appleChrome }" data-grid-statusbar>
+      <div class="data-grid-statusbar-left">
+        <span v-if="hasData" class="data-grid-statusbar-count shrink-0">
           {{
             t(showTruncationWarning ? "grid.loadedRows" : "grid.totalRows", {
               count: result.rows.length,
@@ -13075,19 +13141,20 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
         <span v-else class="shrink-0">{{ result.execution_time_ms }}ms</span>
 
         <template v-if="editable && hasDataGridSaveTarget">
-          <span v-if="hasPendingChanges" class="shrink-0 text-foreground">
+          <span v-if="hasPendingChanges" class="data-grid-statusbar-pending shrink-0">
             {{ t("grid.pendingChanges", { count: pendingChangeCount }) }}
           </span>
         </template>
       </div>
 
-      <div v-if="sqlOneLiner" class="min-w-0 max-w-full justify-self-center">
+      <div v-if="sqlOneLiner" class="data-grid-statusbar-sql">
         <CustomContextMenu :items="statusSqlContextMenuItems" v-slot="{ onContextMenu }">
           <Tooltip>
             <TooltipTrigger as-child>
-              <span class="block min-w-0 max-w-full truncate opacity-60 cursor-pointer hover:opacity-100" data-result-sql @click="copyUserFacingSql" @contextmenu="onContextMenu">
-                {{ sqlOneLiner }}
-              </span>
+              <button type="button" class="data-grid-statusbar-sql-button" data-result-sql @click="copyUserFacingSql" @contextmenu="onContextMenu">
+                <span class="data-grid-statusbar-sql-text">{{ sqlOneLiner }}</span>
+                <Copy class="data-grid-statusbar-sql-copy" aria-hidden="true" />
+              </button>
             </TooltipTrigger>
             <TooltipContent side="top" class="max-w-md">
               <pre class="text-xs font-mono whitespace-pre-wrap">{{ userFacingSql }}</pre>
@@ -13098,8 +13165,11 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
       <span v-else class="min-w-0" />
 
       <DataGridPagination
+        class="data-grid-statusbar-right"
         v-model:custom-page-size-input="customPageSizeInput"
         :pagination-enabled="paginationEnabled"
+        :compact="appleChrome"
+        :show-export="!appleChrome"
         :load-all-rows-active="false"
         :load-all-rows-enabled="false"
         :can-load-all-rows="false"
@@ -13357,28 +13427,37 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
   --data-grid-row-muted-bg: rgb(240, 240, 240);
   --data-grid-row-new-bg: rgb(243, 243, 243);
   --data-grid-row-deleted-bg: rgb(255, 244, 244);
-  --data-grid-cell-active-bg: rgb(244, 248, 255);
+  /* Apple 极简网格体：发丝线只画行线，选中/焦点统一走系统蓝 10%，脏数据用琥珀。 */
+  --data-grid-row-line-color: var(--dbx-grid-row-line);
+  --data-grid-row-hover-bg: var(--dbx-grid-row-hover);
+  --data-grid-row-selected-bg: var(--dbx-grid-row-selected);
+  --data-grid-hairline: var(--dbx-grid-hairline);
+  --data-grid-hairline-strong: var(--dbx-grid-hairline-strong);
+  --data-grid-header-bg: var(--dbx-grid-header-bg);
+  --data-grid-gutter-selected-text: var(--dbx-grid-gutter-selected-fg);
+  --data-grid-cell-active-bg: transparent;
   --data-grid-cell-crosshair-row-bg: rgb(174, 195, 224);
   --data-grid-cell-crosshair-col-bg: rgb(142, 170, 210);
-  --data-grid-cell-dirty-bg: rgb(255, 248, 230);
-  --data-grid-cell-selected-bg: rgb(239, 246, 255);
-  --data-grid-cell-selected-single-bg: rgb(191, 219, 254);
-  --data-grid-cell-selected-dirty-bg: rgb(235, 224, 184);
-  --data-grid-cell-selected-border: rgb(59, 130, 246);
-  --data-grid-cell-hover-bg: rgb(245, 245, 245);
+  --data-grid-cell-dirty-bg: var(--dbx-grid-cell-dirty-bg);
+  --data-grid-cell-dirty-bar: var(--dbx-grid-cell-dirty-bar);
+  --data-grid-cell-selected-bg: var(--dbx-grid-row-selected);
+  --data-grid-cell-selected-single-bg: var(--dbx-grid-cell-focus);
+  --data-grid-cell-selected-dirty-bg: var(--dbx-grid-cell-dirty-bg);
+  --data-grid-cell-selected-border: var(--primary);
+  --data-grid-cell-hover-bg: var(--dbx-grid-row-hover);
   --data-grid-cell-search-bg: rgb(253, 245, 184);
   --data-grid-cell-current-search-bg: rgba(253, 224, 71, 0.52);
   --data-grid-cell-current-search-border: rgba(234, 179, 8, 0.82);
-  --data-grid-row-number-default-bg: rgb(255, 255, 255);
+  --data-grid-row-number-default-bg: var(--dbx-grid-gutter-bg);
   --data-grid-row-number-new-bg: rgb(219, 244, 233);
   --data-grid-row-number-edited-bg: rgb(253, 241, 219);
   --data-grid-row-number-deleted-bg: rgb(255, 244, 244);
-  --data-grid-row-number-active-bg: rgb(244, 248, 255);
-  --data-grid-row-number-selected-bg: rgb(191, 219, 254);
+  --data-grid-row-number-active-bg: var(--dbx-grid-gutter-bg);
+  --data-grid-row-number-selected-bg: var(--dbx-grid-row-selected);
   --data-grid-scrollbar-thumb: color-mix(in oklch, var(--foreground) 30%, transparent);
   --data-grid-scrollbar-thumb-hover: color-mix(in oklch, var(--foreground) 48%, transparent);
   --data-grid-scrollbar-track: transparent;
-  background-color: rgb(255, 255, 255);
+  background-color: var(--background);
 }
 
 [data-grid-root].data-grid--has-save-error {
@@ -13391,24 +13470,25 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
   --data-grid-row-muted-bg: rgb(40, 40, 43);
   --data-grid-row-new-bg: rgb(51, 51, 55);
   --data-grid-row-deleted-bg: rgb(55, 31, 32);
-  --data-grid-cell-active-bg: rgb(25, 34, 46);
+  --data-grid-cell-active-bg: transparent;
   --data-grid-cell-crosshair-row-bg: rgb(75, 84, 98);
   --data-grid-cell-crosshair-col-bg: rgb(98, 111, 130);
-  --data-grid-cell-dirty-bg: rgb(94, 75, 26);
-  --data-grid-cell-selected-bg: rgb(20, 40, 60);
-  --data-grid-cell-selected-single-bg: rgb(30, 64, 96);
-  --data-grid-cell-selected-dirty-bg: rgb(76, 66, 38);
-  --data-grid-cell-selected-border: rgb(96, 165, 250);
-  --data-grid-cell-hover-bg: rgb(46, 47, 51);
+  --data-grid-cell-dirty-bg: var(--dbx-grid-cell-dirty-bg);
+  --data-grid-cell-dirty-bar: var(--dbx-grid-cell-dirty-bar);
+  --data-grid-cell-selected-bg: var(--dbx-grid-row-selected);
+  --data-grid-cell-selected-single-bg: var(--dbx-grid-cell-focus);
+  --data-grid-cell-selected-dirty-bg: var(--dbx-grid-cell-dirty-bg);
+  --data-grid-cell-selected-border: var(--primary);
+  --data-grid-cell-hover-bg: var(--dbx-grid-row-hover);
   --data-grid-cell-search-bg: rgb(72, 57, 8);
   --data-grid-cell-current-search-bg: rgb(116, 87, 0);
   --data-grid-cell-current-search-border: rgb(239, 177, 0);
-  --data-grid-row-number-default-bg: rgb(35, 37, 42);
+  --data-grid-row-number-default-bg: var(--dbx-grid-gutter-bg);
   --data-grid-row-number-new-bg: rgb(33, 45, 40);
   --data-grid-row-number-edited-bg: rgb(48, 41, 28);
   --data-grid-row-number-deleted-bg: rgb(55, 31, 32);
-  --data-grid-row-number-active-bg: rgb(25, 34, 46);
-  --data-grid-row-number-selected-bg: rgb(30, 64, 96);
+  --data-grid-row-number-active-bg: var(--dbx-grid-gutter-bg);
+  --data-grid-row-number-selected-bg: var(--dbx-grid-row-selected);
   --data-grid-scrollbar-thumb: rgb(82, 82, 91);
   --data-grid-scrollbar-thumb-hover: rgb(113, 113, 122);
   --data-grid-scrollbar-track: rgb(24, 24, 27);
@@ -13426,18 +13506,18 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
     --data-grid-row-muted-bg: color-mix(in oklab, var(--muted) 99%, var(--foreground));
     --data-grid-row-new-bg: color-mix(in oklab, var(--primary) 5%, transparent);
     --data-grid-row-deleted-bg: color-mix(in oklab, var(--destructive) 5%, transparent);
-    --data-grid-cell-dirty-bg: color-mix(in oklab, rgb(240 177 0) 10%, transparent);
+    --data-grid-cell-dirty-bg: var(--dbx-grid-cell-dirty-bg);
     --data-grid-cell-crosshair-row-bg: color-mix(in srgb, var(--primary) 34%, var(--background));
     --data-grid-cell-crosshair-col-bg: color-mix(in srgb, var(--primary) 50%, var(--background));
-    --data-grid-cell-selected-bg: color-mix(in oklab, rgb(59 130 246) 12%, var(--background));
-    --data-grid-cell-selected-single-bg: color-mix(in oklab, rgb(59 130 246) 30%, var(--background));
-    --data-grid-cell-selected-dirty-bg: color-mix(in oklab, rgb(234 181 50) 30%, color-mix(in oklab, rgb(59 130 246) 18%, var(--background)));
-    --data-grid-cell-selected-border: color-mix(in oklab, rgb(59 130 246) 75%, transparent);
-    --data-grid-cell-hover-bg: color-mix(in oklab, var(--accent) 50%, transparent);
+    --data-grid-cell-selected-bg: var(--dbx-grid-row-selected);
+    --data-grid-cell-selected-single-bg: var(--dbx-grid-cell-focus);
+    --data-grid-cell-selected-dirty-bg: var(--dbx-grid-cell-dirty-bg);
+    --data-grid-cell-selected-border: var(--primary);
+    --data-grid-cell-hover-bg: var(--dbx-grid-row-hover);
     --data-grid-row-number-new-bg: color-mix(in oklab, rgb(16 185 129) 15%, var(--background));
     --data-grid-row-number-edited-bg: color-mix(in oklab, rgb(245 158 11) 15%, var(--background));
     --data-grid-row-number-deleted-bg: color-mix(in oklab, var(--destructive) 15%, var(--background));
-    --data-grid-row-number-selected-bg: color-mix(in oklab, rgb(59 130 246) 30%, var(--background));
+    --data-grid-row-number-selected-bg: var(--dbx-grid-row-selected);
   }
   [data-grid-root].data-grid--dark,
   :global(.dark) [data-grid-root] {
@@ -14174,5 +14254,319 @@ html.dbx-legacy-webview.dark .ddl-code::-webkit-scrollbar-thumb:hover {
 .ddl-code :deep(.ddl-search-match-active) {
   background: var(--data-grid-cell-current-search-bg);
   outline: 1px solid var(--data-grid-cell-current-search-border);
+}
+
+/* ==========================================================================
+   Apple 极简网格外壳（表数据页）：查询条 / 内联查找条 / 表头 / 行 / 状态栏。
+   对象头在 ContentArea 的 DataGridObjectBar；这里只覆盖网格自身，经典路径的
+   顶栏与工具条样式保持原样。
+   ========================================================================== */
+
+/* --- 查询条（38px） ------------------------------------------------------ */
+[data-grid-root] .data-grid-topbar-shell[data-grid-chrome="apple"] {
+  height: 38px;
+  padding: 0 12px;
+  border-bottom: 0;
+  background: transparent;
+}
+
+[data-grid-root].data-grid--dark .data-grid-topbar-shell[data-grid-chrome="apple"] {
+  background: transparent !important;
+}
+
+[data-grid-root] .data-grid-topbar-shell[data-grid-chrome="apple"] .data-grid-topbar-scroll {
+  height: 100%;
+  overflow: visible;
+}
+
+[data-grid-root] .data-grid-topbar-shell[data-grid-chrome="apple"] .data-grid-topbar {
+  height: 100%;
+  align-items: center;
+  gap: 8px;
+}
+
+[data-grid-root] .data-grid-querybar-inner {
+  min-width: 0;
+}
+
+/* 查询条顺序：WHERE 字段 → 行状态胶囊 → 图标动作。DOM 顺序沿用经典布局，
+   apple 外壳只用 order 重排，不影响结果页。 */
+[data-grid-root] .data-grid-querybar-inner > [data-grid-where-pill] {
+  order: 1;
+}
+
+[data-grid-root] .data-grid-querybar-inner > .data-grid-querybar-rowfilter {
+  order: 2;
+}
+
+[data-grid-root] .data-grid-querybar-inner > .data-grid-querybar-actions {
+  order: 3;
+  gap: 2px;
+}
+
+[data-grid-root] .data-grid-querybar-icon-btn {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--dbx-text-tertiary);
+  transition:
+    background 120ms,
+    color 120ms,
+    transform 80ms;
+}
+
+[data-grid-root] .data-grid-querybar-icon-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+[data-grid-root] .data-grid-querybar-icon-btn:hover,
+[data-grid-root] .data-grid-querybar-icon-btn.is-active {
+  background: var(--accent);
+  color: var(--foreground);
+}
+
+[data-grid-root] .data-grid-querybar-icon-btn:active {
+  transform: scale(0.96);
+}
+
+/* 行状态 chip（全部行 ▾）：查询条上的次要胶囊，不再是独立灰底控件。 */
+[data-grid-root] .data-grid-querybar-rowfilter-trigger {
+  height: 24px !important;
+  padding: 0 6px !important;
+  gap: 3px !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--dbx-text-tertiary) !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+}
+
+[data-grid-root] .data-grid-querybar-rowfilter-trigger:hover,
+[data-grid-root] .data-grid-querybar-rowfilter-trigger[data-state="open"] {
+  background: var(--accent) !important;
+  color: var(--foreground) !important;
+}
+
+/* --- 内联查找条 --------------------------------------------------------- */
+[data-grid-root] .data-grid-findbar-shell {
+  display: flex;
+  height: 36px;
+  align-items: center;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--dbx-grid-hairline);
+}
+
+/* --- 表头（30px，发丝线 + 无竖线） -------------------------------------- */
+[data-grid-root] .data-grid-header-shell {
+  border-top: 0 !important;
+  border-bottom: 1px solid var(--dbx-grid-hairline-strong) !important;
+  background: var(--dbx-grid-header-bg) !important;
+}
+
+[data-grid-root] .data-grid-header-row {
+  height: 30px;
+  font-weight: 500;
+}
+
+[data-grid-root] .data-grid-header-row .data-grid-header-cell {
+  height: 30px;
+  padding: 0 10px;
+  border-right: 0 !important;
+  background: transparent !important;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+[data-grid-root] .data-grid-header-row .data-grid-header-cell:hover {
+  background: var(--dbx-grid-row-hover) !important;
+  color: var(--foreground);
+}
+
+[data-grid-root] .data-grid-header-row .data-grid-header-cell--selected {
+  background: var(--dbx-grid-row-selected) !important;
+  color: var(--foreground) !important;
+}
+
+[data-grid-root] .data-grid-header-row .data-grid-header-cell--frozen {
+  background: var(--dbx-grid-header-bg) !important;
+}
+
+[data-grid-root] .data-grid-header-row .data-grid-header-cell--frozen-separator {
+  border-right: 1px solid var(--dbx-grid-hairline-strong) !important;
+}
+
+[data-grid-root] .data-grid-header-row .data-grid-header-gutter {
+  padding: 0;
+  border-right: 1px solid var(--dbx-grid-hairline) !important;
+  background: var(--dbx-grid-header-bg) !important;
+  color: var(--muted-foreground);
+}
+
+[data-grid-root] .data-grid-header-row .data-grid-header-gutter:hover {
+  background: var(--dbx-grid-row-hover) !important;
+}
+
+/* --- 数据行 / 单元格（DOM 路径；canvas 路径由画布主题负责） --------------- */
+[data-grid-root] .data-grid-row {
+  border-bottom: 1px solid var(--dbx-grid-row-line) !important;
+}
+
+[data-grid-root] .data-grid-row:hover .data-grid-cell,
+[data-grid-root] .data-grid-row:hover .data-grid-cell:not(.cell-dirty):not(.cell-selected):not(.cell-selected--single):not(.cell-selected--sparse):not(.row-cell-selected):not(.row-cell-selected-dirty) {
+  background-color: var(--dbx-grid-row-hover) !important;
+}
+
+[data-grid-root] .data-grid-row:hover .data-grid-cell.row-cell-selected,
+[data-grid-root] .data-grid-row:hover .data-grid-cell.row-cell-selected-dirty {
+  background-color: var(--dbx-grid-row-selected) !important;
+}
+
+[data-grid-root] .data-grid-cell {
+  border-right: 0 !important;
+  padding: 0 10px;
+}
+
+[data-grid-root] .data-grid-cell--frozen-separator {
+  border-right: 1px solid var(--dbx-grid-hairline-strong) !important;
+}
+
+[data-grid-root] .data-grid-cell.row-cell-selected {
+  background-color: var(--dbx-grid-row-selected) !important;
+}
+
+[data-grid-root] .data-grid-cell.row-cell-selected-dirty,
+[data-grid-root] .data-grid-cell.cell-dirty {
+  background-color: var(--dbx-grid-cell-dirty-bg) !important;
+  box-shadow: inset 2px 0 0 var(--dbx-grid-cell-dirty-bar);
+}
+
+[data-grid-root] .data-grid-cell.cell-selected,
+[data-grid-root] .data-grid-cell.cell-selected--single {
+  background-color: var(--dbx-grid-cell-focus) !important;
+  box-shadow: inset 0 0 0 1.5px var(--primary);
+}
+
+[data-grid-root] .data-grid-cell.cell-selected-dirty {
+  background-color: var(--dbx-grid-cell-dirty-bg) !important;
+  box-shadow:
+    inset 0 0 0 1.5px var(--primary),
+    inset 2px 0 0 var(--dbx-grid-cell-dirty-bar);
+}
+
+[data-grid-root] .data-grid-row-number {
+  border-right: 1px solid var(--dbx-grid-hairline) !important;
+  background-color: var(--dbx-grid-gutter-bg) !important;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+[data-grid-root] .data-grid-row.active-row .data-grid-row-number {
+  background-color: var(--dbx-grid-gutter-bg) !important;
+}
+
+[data-grid-root] .data-grid-row .data-grid-row-number--selected {
+  background-color: var(--dbx-grid-row-selected) !important;
+  color: var(--dbx-grid-gutter-selected-fg) !important;
+}
+
+/* --- 状态栏（30px，三列：信息 / SQL / 分页） ----------------------------- */
+[data-grid-root] .data-grid-statusbar {
+  display: grid;
+  height: 30px;
+  flex: none;
+  align-items: center;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  gap: 10px;
+  padding: 0 10px 0 12px;
+  border-top: 1px solid var(--dbx-grid-hairline-strong);
+  background: var(--dbx-chrome);
+  color: var(--dbx-text-tertiary);
+  font-size: 12.5px;
+}
+
+[data-grid-root] .data-grid-statusbar--apple {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr);
+}
+
+[data-grid-root] .data-grid-statusbar-left {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+[data-grid-root] .data-grid-statusbar-count {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+[data-grid-root] .data-grid-statusbar-pending {
+  color: var(--dbx-warning, rgb(163 79 0));
+  font-weight: 500;
+}
+
+[data-grid-root] .data-grid-statusbar-sql {
+  display: flex;
+  min-width: 0;
+  justify-self: center;
+  justify-content: center;
+  width: 100%;
+}
+
+[data-grid-root] .data-grid-statusbar-sql-button {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  color: inherit;
+  font-family: var(--dbx-font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+[data-grid-root] .data-grid-statusbar-sql-button:hover {
+  background: var(--accent);
+  color: var(--muted-foreground);
+}
+
+[data-grid-root] .data-grid-statusbar-sql-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-grid-root] .data-grid-statusbar-sql-copy {
+  width: 11px;
+  height: 11px;
+  flex: none;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+
+[data-grid-root] .data-grid-statusbar-sql-button:hover .data-grid-statusbar-sql-copy {
+  opacity: 1;
+}
+
+[data-grid-root] .data-grid-statusbar-right {
+  justify-self: end;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-grid-root] .data-grid-querybar-icon-btn,
+  [data-grid-root] .data-grid-statusbar-sql-copy {
+    transition: none;
+  }
 }
 </style>

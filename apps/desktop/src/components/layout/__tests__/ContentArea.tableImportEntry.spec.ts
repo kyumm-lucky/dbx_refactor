@@ -16,16 +16,16 @@ describe("ContentArea table import entry", () => {
     // 目标表字段元数据取不回来，下一步恒为禁用（QA #hana-import 的复现路径）。
     expect(source).toContain("const canOpenTableImport = computed(");
     expect(source).toContain("supportsTableImport(activeEffectiveDatabaseType.value)");
-    // 数据标签页的导入入口在网格顶栏的「数据工具」菜单（TableDataToolboxMenu.vue）里，
+    // 表数据页的导入入口在对象头的「数据工具」子菜单（DataGridObjectBar.vue）里，
     // 能力判断从 ContentArea 传进去，菜单只负责按它显示或隐藏该项。
     expect(source).toContain(':can-import="canOpenTableImport"');
 
-    const menu = read("../../grid/TableDataToolboxMenu.vue");
+    const menu = read("../../grid/DataGridObjectBar.vue");
     const item = menu.indexOf('t("tableToolbox.importData")');
     expect(item).toBeGreaterThan(-1);
     const openTag = menu.lastIndexOf("<DropdownMenuItem", item);
     expect(openTag).toBeGreaterThan(-1);
-    expect(menu.slice(openTag, item)).toContain('v-if="props.canImport"');
+    expect(menu.slice(openTag, item)).toContain('v-if="canImport"');
   });
 
   it("keeps every entry surface consulting the same capability", () => {

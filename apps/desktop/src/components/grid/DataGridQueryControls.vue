@@ -19,29 +19,34 @@ type LocalFilterSummary = {
   hiddenValueCount: number;
 };
 
-const props = defineProps<{
-  whereInput: string;
-  columns: readonly string[];
-  conditionColumns: readonly DataGridConditionColumnOption[];
-  identifierQuote?: string;
-  historyScope: DataGridConditionHistoryScope;
-  canUseWhereSearch: boolean;
-  compact: boolean;
-  leadingBorder: boolean;
-  filterBuilderOpen: boolean;
-  filterEditorView: DataGridFilterEditorView;
-  filterButtonActive: boolean;
-  filterButtonCount: number;
-  hasLocalColumnFilters: boolean;
-  localFilterCount: number;
-  localFilterSummaries: LocalFilterSummary[];
-  rules: DataGridStructuredFilterRule[];
-  filteredColumns: string[];
-  modeOptions: Array<{ value: DataGridContextFilterMode; labelKey: string }>;
-  columnSearch: string;
-  applyOnlyBusy?: boolean;
-  applyWhere: (value?: string) => void | boolean | Promise<void | boolean>;
-}>();
+const props = withDefaults(
+  defineProps<{
+    whereInput: string;
+    columns: readonly string[];
+    conditionColumns: readonly DataGridConditionColumnOption[];
+    identifierQuote?: string;
+    historyScope: DataGridConditionHistoryScope;
+    canUseWhereSearch: boolean;
+    compact: boolean;
+    leadingBorder: boolean;
+    filterBuilderOpen: boolean;
+    filterEditorView: DataGridFilterEditorView;
+    filterButtonActive: boolean;
+    filterButtonCount: number;
+    hasLocalColumnFilters: boolean;
+    localFilterCount: number;
+    localFilterSummaries: LocalFilterSummary[];
+    rules: DataGridStructuredFilterRule[];
+    filteredColumns: string[];
+    modeOptions: Array<{ value: DataGridContextFilterMode; labelKey: string }>;
+    columnSearch: string;
+    applyOnlyBusy?: boolean;
+    /** classic：查询结果页等旧外观；apple：表数据页查询条（28px 描边 WHERE 字段）。 */
+    chrome?: "classic" | "apple";
+    applyWhere: (value?: string) => void | boolean | Promise<void | boolean>;
+  }>(),
+  { chrome: "classic" },
+);
 
 const emit = defineEmits<{
   "update:whereInput": [value: string];
@@ -107,21 +112,21 @@ watch([() => props.filterBuilderOpen, () => props.rules.map((rule) => `${rule.id
 </script>
 
 <template>
-  <div data-grid-where-pill class="relative flex flex-1 min-w-0 items-center gap-1 rounded-md border border-border/70 bg-background px-1.5 py-0.5" :class="{ 'border-l': leadingBorder }">
+  <div data-grid-where-pill class="flex flex-1 min-w-0 items-center" :class="chrome === 'apple' ? 'dbx-where-field' : ['relative gap-1 rounded-md border border-border/70 bg-background px-1.5 py-0.5', { 'border-l': leadingBorder }]">
     <template v-if="filterEditorView === 'quick'">
       <Popover :open="filterBuilderOpen" @update:open="emit('update:filterBuilderOpen', $event)">
         <PopoverTrigger as-child>
           <button
             type="button"
             data-grid-filter-button
-            class="relative flex h-5 w-5 shrink-0 items-center justify-center rounded text-xs font-medium transition-colors"
-            :class="filterButtonActive ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-accent hover:text-foreground'"
+            class="relative flex shrink-0 items-center justify-center rounded font-medium transition-colors"
+            :class="chrome === 'apple' ? ['dbx-filter-trigger', { 'is-active': filterButtonActive }] : ['h-5 w-5 text-xs', filterButtonActive ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-accent hover:text-foreground']"
             :disabled="!canUseWhereSearch"
             :aria-label="t('grid.filter')"
             @click="handleFilterButtonClick"
           >
             <Filter class="h-3 w-3" />
-            <span v-if="filterButtonCount" class="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-1 text-[9px] leading-none text-primary-foreground">{{ filterButtonCount }}</span>
+            <span v-if="filterButtonCount" class="absolute -right-1 -top-1 flex items-center justify-center rounded-full bg-primary px-1 leading-none text-primary-foreground" :class="chrome === 'apple' ? 'h-3 min-w-3 text-[8px]' : 'h-3.5 min-w-3.5 text-[9px]'">{{ filterButtonCount }}</span>
           </button>
         </PopoverTrigger>
         <PopoverContent data-filter-rules-scroll align="start" :collision-padding="8" class="max-h-[var(--reka-popover-content-available-height)] w-fit max-w-[calc(100vw-16px)] gap-2 overflow-y-auto overscroll-contain p-2.5">
@@ -179,15 +184,15 @@ watch([() => props.filterBuilderOpen, () => props.rules.map((rule) => `${rule.id
       v-else
       type="button"
       data-grid-filter-button
-      class="relative flex h-5 w-5 shrink-0 items-center justify-center rounded text-xs font-medium transition-colors"
-      :class="filterButtonActive ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-accent hover:text-foreground'"
+      class="relative flex shrink-0 items-center justify-center rounded font-medium transition-colors"
+      :class="chrome === 'apple' ? ['dbx-filter-trigger', { 'is-active': filterButtonActive }] : ['h-5 w-5 text-xs', filterButtonActive ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-accent hover:text-foreground']"
       :disabled="!canUseWhereSearch"
       :aria-label="t('grid.filter')"
       :aria-expanded="filterBuilderOpen"
       @click="handleFilterButtonClick"
     >
       <Filter class="h-3 w-3" />
-      <span v-if="filterButtonCount" class="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-1 text-[9px] leading-none text-primary-foreground">{{ filterButtonCount }}</span>
+      <span v-if="filterButtonCount" class="absolute -right-1 -top-1 flex items-center justify-center rounded-full bg-primary px-1 leading-none text-primary-foreground" :class="chrome === 'apple' ? 'h-3 min-w-3 text-[8px]' : 'h-3.5 min-w-3.5 text-[9px]'">{{ filterButtonCount }}</span>
     </button>
     <DataGridConditionEditor
       :model-value="whereInput"
@@ -195,7 +200,8 @@ watch([() => props.filterBuilderOpen, () => props.rules.map((rule) => `${rule.id
       :columns="conditionColumns"
       :identifier-quote="identifierQuote"
       :history-scope="historyScope"
-      placeholder="WHERE"
+      :appearance="chrome"
+      :placeholder="chrome === 'apple' ? '' : 'WHERE'"
       :history-empty-text="t('grid.conditionHistoryEmpty')"
       :history-no-matches-text="t('grid.conditionHistoryNoMatches')"
       :disabled="!canUseWhereSearch"
@@ -206,3 +212,55 @@ watch([() => props.filterBuilderOpen, () => props.rules.map((rule) => `${rule.id
     />
   </div>
 </template>
+
+<style scoped>
+/* Apple 外观（表数据页查询条）：28px 描边 WHERE 字段，focus 主色边 + 3px 蓝环。 */
+.dbx-where-field {
+  flex: 1 1 auto;
+  max-width: 640px;
+  height: 28px;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid var(--dbx-grid-hairline-strong);
+  border-radius: 8px;
+  background: transparent;
+  transition:
+    background-color var(--dbx-dur-fast, 120ms) ease,
+    border-color var(--dbx-dur-fast, 120ms) ease,
+    box-shadow var(--dbx-dur-fast, 120ms) ease;
+}
+
+.dbx-where-field:hover {
+  border-color: var(--border);
+}
+
+.dbx-where-field:focus-within {
+  border-color: var(--primary);
+  background: var(--background);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+/* 漏斗按钮：18×18 圆角 4、图标 13px；有筛选时主色。 */
+.dbx-where-field .dbx-filter-trigger {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  place-items: center;
+  border-radius: 4px;
+  color: var(--dbx-text-tertiary);
+}
+
+.dbx-where-field .dbx-filter-trigger svg {
+  width: 13px;
+  height: 13px;
+}
+
+.dbx-where-field .dbx-filter-trigger:hover {
+  color: var(--foreground);
+}
+
+.dbx-where-field .dbx-filter-trigger.is-active {
+  color: var(--primary);
+}
+</style>

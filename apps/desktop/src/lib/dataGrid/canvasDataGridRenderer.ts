@@ -179,8 +179,9 @@ export function resolveCanvasDataGridRowBase(
   return theme.background;
 }
 
-export function resolveCanvasDataGridRowFill(theme: Pick<DataGridPaintTheme, "cellActive" | "cellSelected">, rowBase: string, options: { isActive: boolean; isDeleted: boolean; isSelected: boolean }): string {
-  if (options.isSelected) return theme.cellSelected;
+export function resolveCanvasDataGridRowFill(theme: Pick<DataGridPaintTheme, "cellActive" | "rowSelected">, rowBase: string, options: { isActive: boolean; isDeleted: boolean; isSelected: boolean }): string {
+  // 整行选中用 Apple 的行选中浅底（主色 10%），不再是旧的不透明选中色
+  if (options.isSelected) return theme.rowSelected;
   if (options.isActive && !options.isDeleted) return theme.cellActive;
   return rowBase;
 }
@@ -488,6 +489,14 @@ export function drawCanvasDataGrid(options: DrawCanvasDataGridOptions): boolean 
     ctx.fillStyle = rowFill;
     ctx.fillRect(0, y, width, CANVAS_DATA_GRID_ROW_HEIGHT);
 
+    // 整行 hover：鼠标所在行整行浅底（Apple 极简，行号列同步）。位于十字/选中/脏格填充之前，
+    // 新建行（绿）与已删除行（红 + 半透明）保留状态底色，不让 hover 盖掉语义。
+    const rowHovered = !isScrolling && !rowSelectionVisual && !item.isDeleted && !item.isNew && hoverCell?.rowIndex === item.displayIndex;
+    if (rowHovered) {
+      ctx.fillStyle = theme.rowHover;
+      ctx.fillRect(0, y, width, CANVAS_DATA_GRID_ROW_HEIGHT);
+    }
+
     // 十字行高亮：叠在基础行色之上，但低于整行选中（rowSelectionVisual），
     // 也低于后续 drawCell 的脏格/搜索/选中格填充
     if (crosshair?.rowCrosshair && item.displayIndex === crosshair.rowIndex && !rowSelectionVisual && !item.isDeleted) {
@@ -500,34 +509,38 @@ export function drawCanvasDataGrid(options: DrawCanvasDataGridOptions): boolean 
     const rowInSelection = !rowSelectionVisual && selectionRowCoverage && dataGridFrameCoversRow(selectionFrames, item.displayIndex);
     const rowNumberFill = rowSelectionVisual
       ? theme.rowNumberSelected
-      : item.status === "draft"
-        ? theme.rowNumberDefault
-        : item.status === "new"
-          ? theme.rowNumberNew
-          : item.status === "edited"
-            ? theme.rowNumberEdited
+      : rowHovered
+        ? theme.rowHover
+        : item.status === "draft"
+          ? theme.rowNumberDefault
+          : item.status === "new"
+            ? theme.rowNumberNew
             : item.status === "deleted"
               ? theme.rowNumberDeleted
-              : rowIsActive
-                ? theme.rowNumberActive
-                : rowInSelection
-                  ? theme.cellSelected
-                  : theme.rowNumberDefault;
+              : item.status === "edited"
+                ? // Apple：编辑行行号不再整块琥珀，保持默认发丝灰底，状态由左侧琥珀点表达
+                  theme.rowNumberDefault
+                : rowIsActive
+                  ? theme.rowNumberActive
+                  : rowInSelection
+                    ? theme.cellSelected
+                    : theme.rowNumberDefault;
+    // 行选中时行号列先回到网格底色再叠选中色：网格组件样式把 --data-grid-row-number-selected-bg
+    // 映射为主色半透明的行选中色，直接在已铺过 rowFill 的行号列上再叠一次会比数据区更深。
+    if (rowSelectionVisual) {
+      ctx.fillStyle = theme.background;
+      ctx.fillRect(0, y, rowNumberWidth, CANVAS_DATA_GRID_ROW_HEIGHT);
+    }
     ctx.fillStyle = rowNumberFill;
     ctx.fillRect(0, y, rowNumberWidth, CANVAS_DATA_GRID_ROW_HEIGHT);
-    // 与 DOM 的 .data-grid-row-number--selected 对齐：选中行号左侧 3px 蓝色条
-    if (rowSelectionVisual) {
-      ctx.fillStyle = theme.cellSelectedBorder;
-      ctx.fillRect(0, y, 3, CANVAS_DATA_GRID_ROW_HEIGHT);
-    }
-    ctx.strokeStyle = theme.border;
+    ctx.strokeStyle = theme.rowLine;
     ctx.beginPath();
     ctx.moveTo(rowNumberBorderX, y);
     ctx.lineTo(rowNumberBorderX, y + CANVAS_DATA_GRID_ROW_HEIGHT);
     ctx.stroke();
 
-    // 与 DOM 对齐：选中行号文字用前景色
-    const rowNumberText = item.status === "new" ? theme.rowNumberTextNew : item.status === "edited" ? theme.rowNumberTextEdited : item.status === "deleted" ? theme.rowNumberTextDeleted : rowSelectionVisual ? theme.foreground : theme.rowNumberTextClean;
+    // 选中行行号改用系统蓝文字（Apple）；编辑行用中性色，琥珀语义交给下面的行号圆点
+    const rowNumberText = rowSelectionVisual ? theme.rowNumberSelectedText : item.status === "new" ? theme.rowNumberTextNew : item.status === "deleted" ? theme.rowNumberTextDeleted : theme.rowNumberTextClean;
     ctx.fillStyle = rowNumberText;
     ctx.font = item.status === "new" || item.status === "edited" || item.status === "draft" ? semiboldFont : normalFont;
     ctx.textAlign = "center";
@@ -536,21 +549,28 @@ export function drawCanvasDataGrid(options: DrawCanvasDataGridOptions): boolean 
     ctx.beginPath();
     ctx.rect(0, y, rowNumberWidth, CANVAS_DATA_GRID_ROW_HEIGHT);
     ctx.clip();
-    ctx.fillText(
-      resolveDataGridRowNumberLabel({
-        displayIndex: item.displayIndex,
-        sourceIndex: item.sourceIndex,
-        isDraft: item.isDraft,
-        sourceRowNumbers: rowNumberMode === "source",
-        pageOffset: infiniteScrollEnabled ? 0 : pageOffset,
-      }),
-      rowNumberTextX,
-      textY,
-    );
+    const rowNumberLabel = resolveDataGridRowNumberLabel({
+      displayIndex: item.displayIndex,
+      sourceIndex: item.sourceIndex,
+      isDraft: item.isDraft,
+      sourceRowNumbers: rowNumberMode === "source",
+      pageOffset: infiniteScrollEnabled ? 0 : pageOffset,
+    });
+    ctx.fillText(rowNumberLabel, rowNumberTextX, textY);
+    // 编辑过的行：行号左侧 5px 琥珀圆点（与原型 .row-dot 一致，取代旧的行号琥珀块）
+    if (item.status === "edited") {
+      const labelWidth = ctx.measureText(rowNumberLabel).width;
+      const dotRadius = 2.5;
+      const dotX = alignCanvasPixel(Math.max(dotRadius + 1, rowNumberTextX - labelWidth / 2 - 6 - dotRadius), scaleX);
+      ctx.fillStyle = theme.cellDirtyBar;
+      ctx.beginPath();
+      ctx.arc(dotX, textY, dotRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.restore();
     ctx.font = normalFont;
 
-    ctx.strokeStyle = theme.border;
+    ctx.strokeStyle = theme.rowLine;
     ctx.beginPath();
     ctx.moveTo(0, rowBorderY);
     ctx.lineTo(width, rowBorderY);
@@ -589,7 +609,9 @@ export function drawCanvasDataGrid(options: DrawCanvasDataGridOptions): boolean 
         ctx.fillStyle = theme.cellHover;
         ctx.fillRect(clippedX, y, cellPaintWidth, CANVAS_DATA_GRID_ROW_HEIGHT);
       }
-      if (selectedCell && !item.isDeleted && !isDirtyCell) {
+      if (selectedCell && !item.isDeleted && !isDirtyCell && !rowSelectionVisual) {
+        // 单格焦点：Apple 用 --dbx-grid-cell-focus（主色 10%）作浅底；整行已选中时不再叠一次，
+        // 否则半透明选中色会叠成约两倍深，与设计稿「选中行内的焦点格底色同行、只多一圈描边」不符
         ctx.fillStyle = theme.cellSelectedSingle;
         ctx.fillRect(clippedX, y, cellPaintWidth, CANVAS_DATA_GRID_ROW_HEIGHT);
       }
@@ -612,8 +634,14 @@ export function drawCanvasDataGrid(options: DrawCanvasDataGridOptions): boolean 
         ctx.fillStyle = currentSearchFill;
         ctx.fillRect(clippedX, y, cellPaintWidth, CANVAS_DATA_GRID_ROW_HEIGHT);
       }
+      // 脏单元格：在原有脏底/选中脏底之上叠 2px 琥珀左条（Apple 待提交标记），
+      // 放在所有底色之后，鼠标 hover / 搜索高亮不会把它盖掉
+      if (isDirtyCell) {
+        ctx.fillStyle = theme.cellDirtyBar;
+        ctx.fillRect(clippedX, y, Math.min(2, cellPaintWidth), CANVAS_DATA_GRID_ROW_HEIGHT);
+      }
 
-      ctx.strokeStyle = theme.border;
+      ctx.strokeStyle = theme.rowLine;
       ctx.beginPath();
       ctx.moveTo(clippedX, rowBorderY);
       ctx.lineTo(Math.min(width, clippedX + cellPaintWidth), rowBorderY);
@@ -683,13 +711,6 @@ export function drawCanvasDataGrid(options: DrawCanvasDataGridOptions): boolean 
       setCanvasNumericVariant(ctx, "normal");
       ctx.font = normalFont;
 
-      ctx.strokeStyle = theme.border;
-      ctx.beginPath();
-      const columnBorderX = crispCanvasLine(drawX + colWidth - 1, scaleX);
-      ctx.moveTo(columnBorderX, y);
-      ctx.lineTo(columnBorderX, y + CANVAS_DATA_GRID_ROW_HEIGHT);
-      ctx.stroke();
-
       if (selectedBorderVisual && cellPaintWidth >= 2) {
         const selectedLeftX = clippedX + 0.5;
         const selectedRightX = clippedX + cellPaintWidth - 1.5;
@@ -744,7 +765,12 @@ export function drawCanvasDataGrid(options: DrawCanvasDataGridOptions): boolean 
         ctx.fillStyle = rowFill;
         ctx.fillRect(rowNumberWidth, y, frozenWidth, CANVAS_DATA_GRID_ROW_HEIGHT);
       }
-      // 冻结区会重绘底色遮挡第一轮溢入内容，需在此重绘十字行底色保持一致
+      // 冻结区会重绘底色遮挡第一轮溢入内容，需在此重绘 hover/十字行底色保持一致
+      // （冻结区底色与行底色一致：背景 + rowFill + 整行 hover，同第一轮顺序）
+      if (rowHovered) {
+        ctx.fillStyle = theme.rowHover;
+        ctx.fillRect(rowNumberWidth, y, frozenWidth, CANVAS_DATA_GRID_ROW_HEIGHT);
+      }
       if (crosshair?.rowCrosshair && item.displayIndex === crosshair.rowIndex && !rowSelectionVisual && !item.isDeleted) {
         ctx.fillStyle = theme.cellCrosshairRow;
         ctx.fillRect(rowNumberWidth, y, frozenWidth, CANVAS_DATA_GRID_ROW_HEIGHT);
@@ -754,8 +780,8 @@ export function drawCanvasDataGrid(options: DrawCanvasDataGridOptions): boolean 
         const cellX = rowNumberWidth + (offsets[fcIdx] ?? 0);
         drawCell(fcIdx, cellX);
       }
-      // 重绘行底部边框（冻结区域部分）
-      ctx.strokeStyle = theme.border;
+      // 重绘行底线（冻结区域部分）
+      ctx.strokeStyle = theme.rowLine;
       ctx.beginPath();
       ctx.moveTo(rowNumberWidth, rowBorderY);
       ctx.lineTo(rowNumberWidth + frozenWidth, rowBorderY);
@@ -764,15 +790,14 @@ export function drawCanvasDataGrid(options: DrawCanvasDataGridOptions): boolean 
     ctx.globalAlpha = 1;
   }
 
-  // 画冻结列分隔线（与 DOM 模式和列头一致：2px 灰色右边框）
-  // DOM 的 border-right 右边缘对齐单元格右边缘，中心偏左 1px；
-  // Canvas 的 stroke 以坐标点为中心，需左移 1px 使两者对齐
+  // 画冻结列分隔线：Apple 极简只留 1px 发丝线（不再是 2px 灰色粗线）。
+  // DOM 的 border-right 落在单元格右边缘，Canvas 的 1px stroke 需画在边缘左侧一像素内
   if (frozenColumnCount > 0 && frozenColumnCount < renderedColumnWidths.length) {
     const frozenWidth = offsets[frozenColumnCount] ?? 0;
-    const separatorX = rowNumberWidth + frozenWidth - 1;
+    const separatorX = crispCanvasLine(rowNumberWidth + frozenWidth - 1, scaleX);
     ctx.save();
-    ctx.strokeStyle = "rgb(100, 116, 139)";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = theme.rowLine;
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(separatorX, 0);
     ctx.lineTo(separatorX, height);

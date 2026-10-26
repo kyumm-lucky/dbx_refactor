@@ -362,13 +362,13 @@ describe("normalizeEditorSettings", () => {
     expect(normalizeEditorSettings({ generateSqlQuoteIdentifiers: "false" } as any).generateSqlQuoteIdentifiers).toBe(true);
   });
 
-  it("enables data grid striped rows by default and permits opting out", () => {
-    expect(DEFAULT_EDITOR_SETTINGS.dataGridStripedRows).toBe(true);
-    expect(normalizeEditorSettings({}).dataGridStripedRows).toBe(true);
+  it("disables data grid striped rows by default and permits opting in", () => {
+    expect(DEFAULT_EDITOR_SETTINGS.dataGridStripedRows).toBe(false);
+    expect(normalizeEditorSettings({}).dataGridStripedRows).toBe(false);
     expect(normalizeEditorSettings({ dataGridStripedRows: true }).dataGridStripedRows).toBe(true);
     expect(normalizeEditorSettings({ dataGridStripedRows: false }).dataGridStripedRows).toBe(false);
-    expect(normalizeEditorSettings({ dataGridStripedRows: "false" } as any).dataGridStripedRows).toBe(true);
-    expect(normalizeEditorSettings({ dataGridStripedRows: null } as any).dataGridStripedRows).toBe(true);
+    expect(normalizeEditorSettings({ dataGridStripedRows: "false" } as any).dataGridStripedRows).toBe(false);
+    expect(normalizeEditorSettings({ dataGridStripedRows: null } as any).dataGridStripedRows).toBe(false);
   });
 
   it("keeps SQL-file save formatting disabled unless explicitly enabled", () => {
@@ -2069,15 +2069,15 @@ describe("settingsStore persisted settings initialization", () => {
     const store = useSettingsStore();
     await store.initEditorSettings();
 
-    expect(store.editorSettings.dataGridStripedRows).toBe(true);
+    expect(store.editorSettings.dataGridStripedRows).toBe(false);
 
-    await store.updateEditorSettingsAndPersist({ dataGridStripedRows: false });
-    expect(saveEditorSettings).toHaveBeenLastCalledWith(expect.objectContaining({ dataGridStripedRows: false }));
+    await store.updateEditorSettingsAndPersist({ dataGridStripedRows: true });
+    expect(saveEditorSettings).toHaveBeenLastCalledWith(expect.objectContaining({ dataGridStripedRows: true }));
 
     setActivePinia(createPinia());
     const restartedStore = useSettingsStore();
     await restartedStore.initEditorSettings();
-    expect(restartedStore.editorSettings.dataGridStripedRows).toBe(false);
+    expect(restartedStore.editorSettings.dataGridStripedRows).toBe(true);
   });
 
   it("loads, persists, and reloads hidden query editor line numbers", async () => {

@@ -64,15 +64,14 @@ function columnIndexPriority(kind: ColumnIndexKind): number {
   }
 }
 
-/** 索引类型对应的颜色类名（橙色=主键，红色=唯一，绿色=普通） */
+/** 索引类型对应的颜色类名（Apple 极简单色图标：主键用主题蓝，唯一/普通索引用中性灰） */
 export function columnIndexColorClass(kind: ColumnIndexKind): string {
   switch (kind) {
     case "primary":
-      return "text-orange-500";
+      return "text-primary";
     case "unique":
-      return "text-red-500";
     case "index":
-      return "text-green-500";
+      return "text-muted-foreground";
     default:
       return "";
   }

@@ -22,6 +22,8 @@ const props = withDefaults(
     suggestionDebounceMs?: number;
     disabled?: boolean;
     compact?: boolean;
+    /** classic：查询结果页等旧外观；apple：表数据页查询条外观（WHERE 10px mono 标签 + 13px UI 字体输入）。 */
+    appearance?: "classic" | "apple";
     apply?: (value: string) => void | boolean | Promise<void | boolean>;
     clear?: () => void | Promise<void>;
   }>(),
@@ -33,6 +35,7 @@ const props = withDefaults(
     historyNoMatchesText: "No matching history",
     suggestionDebounceMs: 0,
     disabled: false,
+    appearance: "classic",
   },
 );
 
@@ -651,7 +654,7 @@ defineExpose({ focus, dismiss: editor.dismiss, rememberHistory: editor.rememberH
 </script>
 
 <template>
-  <div ref="controlRef" :data-grid-condition-editor="props.kind" class="relative flex min-w-0 flex-1 items-stretch">
+  <div ref="controlRef" :data-grid-condition-editor="props.kind" class="relative flex min-w-0 flex-1 items-stretch" :class="{ 'data-grid-condition-editor--apple': props.appearance === 'apple' }">
     <div class="flex min-w-0 flex-1 items-center gap-1">
       <span class="data-grid-topbar-condition-label" :class="[props.kind === 'where' ? 'data-grid-topbar-condition-label--where' : 'data-grid-topbar-condition-label--order', { 'data-grid-topbar-condition-label--compact': props.compact }]">
         {{ props.kind === "where" ? "WHERE" : "ORDER BY" }}
@@ -692,16 +695,16 @@ defineExpose({ focus, dismiss: editor.dismiss, rememberHistory: editor.rememberH
           @keydown="onKeydown"
         />
       </div>
-      <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" :disabled="props.disabled" @mousedown.prevent @click="openHistory">
+      <button type="button" class="shrink-0 text-muted-foreground hover:text-foreground" :class="{ 'dbx-condition-icon-btn': props.appearance === 'apple' }" :disabled="props.disabled" @mousedown.prevent @click="openHistory">
         <ChevronDown class="h-3 w-3" />
       </button>
-      <button v-if="hasValue" type="button" class="shrink-0 text-muted-foreground hover:text-foreground" :disabled="props.disabled" @mousedown.prevent @click="clearCondition">
+      <button v-if="hasValue" type="button" class="shrink-0 text-muted-foreground hover:text-foreground" :class="{ 'dbx-condition-icon-btn dbx-condition-icon-btn--clear': props.appearance === 'apple' }" :disabled="props.disabled" @mousedown.prevent @click="clearCondition">
         <X class="h-3 w-3" />
       </button>
     </div>
 
     <Teleport to="body">
-      <div v-if="expanded" class="data-grid-topbar-condition-pane--expanded fixed z-[80] flex min-w-0 items-start gap-1" :style="overlayStyle">
+      <div v-if="expanded" class="data-grid-topbar-condition-pane--expanded fixed z-[80] flex min-w-0 items-start gap-1" :class="{ 'data-grid-condition-editor--apple': props.appearance === 'apple' }" :style="overlayStyle">
         <div v-if="!composing" aria-hidden="true" class="data-grid-condition-highlight data-grid-condition-highlight--expanded pointer-events-none absolute" :style="expandedHighlightStyle">
           <span v-for="(token, tokenIndex) in highlightTokens" :key="tokenIndex" :class="highlightTokenClass(token.type)">{{ token.text }}</span>
         </div>
@@ -735,10 +738,18 @@ defineExpose({ focus, dismiss: editor.dismiss, rememberHistory: editor.rememberH
             {{ props.kind === "where" ? "WHERE" : "ORDER BY" }}
           </span>
           <div class="min-w-0 flex-1" />
-          <button type="button" class="data-grid-topbar-condition-icon-control pointer-events-auto shrink-0 text-muted-foreground hover:text-foreground" :disabled="props.disabled" @mousedown.prevent @click="openHistory">
+          <button type="button" class="data-grid-topbar-condition-icon-control pointer-events-auto shrink-0 text-muted-foreground hover:text-foreground" :class="{ 'dbx-condition-icon-btn': props.appearance === 'apple' }" :disabled="props.disabled" @mousedown.prevent @click="openHistory">
             <ChevronDown class="h-3 w-3" />
           </button>
-          <button v-if="hasValue" type="button" class="data-grid-topbar-condition-icon-control pointer-events-auto shrink-0 text-muted-foreground hover:text-foreground" :disabled="props.disabled" @mousedown.prevent @click="clearCondition">
+          <button
+            v-if="hasValue"
+            type="button"
+            class="data-grid-topbar-condition-icon-control pointer-events-auto shrink-0 text-muted-foreground hover:text-foreground"
+            :class="{ 'dbx-condition-icon-btn dbx-condition-icon-btn--clear': props.appearance === 'apple' }"
+            :disabled="props.disabled"
+            @mousedown.prevent
+            @click="clearCondition"
+          >
             <X class="h-3 w-3" />
           </button>
         </div>
@@ -1027,5 +1038,71 @@ defineExpose({ focus, dismiss: editor.dismiss, rememberHistory: editor.rememberH
 
 :global(.dark .data-grid-condition-token--value) {
   color: rgb(45 212 191);
+}
+
+/* Apple 外观（表数据页查询条）：WHERE 为 10px mono 弱化标签，输入改为 13px UI 字体；
+   标签与输入层必须同字体同字号，否则透明文字的高亮层会与光标错位。 */
+.data-grid-condition-editor--apple {
+  --data-grid-condition-font-family: var(--dbx-font-ui);
+}
+
+.data-grid-condition-editor--apple .data-grid-topbar-condition-label {
+  max-width: 5rem;
+  color: var(--dbx-text-tertiary);
+  font-family: var(--dbx-font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 24px;
+}
+
+/* apple 下 WHERE 标签常驻显示（不随 compact 收起），外层 28px 字段始终留出标签位。 */
+.data-grid-condition-editor--apple .data-grid-topbar-condition-label--compact {
+  max-width: 5rem;
+  opacity: 1;
+  transform: none;
+}
+
+.data-grid-condition-editor--apple .data-grid-topbar-condition-input {
+  color: var(--foreground);
+  font-size: 13px;
+}
+
+.data-grid-condition-editor--apple .data-grid-topbar-condition-input::placeholder {
+  color: var(--dbx-text-tertiary);
+}
+
+.data-grid-condition-editor--apple .data-grid-condition-highlight {
+  font-size: 13px;
+}
+
+.data-grid-topbar-condition-pane--expanded.data-grid-condition-editor--apple {
+  --data-grid-condition-font-family: var(--dbx-font-ui);
+}
+
+/* 历史 / 清除图标按钮：18px，清除为圆形 hover 底色，图标 11–12px。 */
+.data-grid-condition-editor--apple .dbx-condition-icon-btn {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--dbx-text-tertiary);
+}
+
+.data-grid-condition-editor--apple .dbx-condition-icon-btn:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+
+.data-grid-condition-editor--apple .dbx-condition-icon-btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.data-grid-condition-editor--apple .dbx-condition-icon-btn--clear svg {
+  width: 11px;
+  height: 11px;
 }
 </style>
