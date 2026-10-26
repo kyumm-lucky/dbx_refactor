@@ -2700,11 +2700,16 @@ watch(
   { deep: true },
 );
 
+function prefetchCompletionTablesIfEnabled() {
+  if (props.prefetchCompletion) prefetchCompletionTablesIfEnabled();
+}
+
 watch(
   () => props.connectionId,
   () => {
     completion.invalidateRequests();
     refreshCompletionCache();
+    prefetchCompletionTablesIfEnabled();
     setSemanticDiagnostics([]);
     scheduleSemanticDiagnostics();
   },
@@ -2715,6 +2720,7 @@ watch(
   () => {
     completion.invalidateRequests();
     refreshCompletionCache();
+    prefetchCompletionTablesIfEnabled();
     setSemanticDiagnostics([]);
     scheduleSemanticDiagnostics();
   },
@@ -2725,6 +2731,7 @@ watch(
   () => {
     completion.invalidateRequests();
     refreshCompletionCache();
+    prefetchCompletionTablesIfEnabled();
     setSemanticDiagnostics([]);
     scheduleSemanticDiagnostics();
   },
@@ -2735,6 +2742,7 @@ watch(
   () => {
     completion.invalidateRequests();
     refreshCompletionCache();
+    prefetchCompletionTablesIfEnabled();
     setSemanticDiagnostics([]);
     scheduleSemanticDiagnostics();
   },
@@ -2749,6 +2757,8 @@ watch(
     scheduleSemanticDiagnostics();
   },
 );
+
+prefetchCompletionTablesIfEnabled();
 
 watch([() => props.clientSessionId, () => props.completionContextVersion], () => {
   completion.invalidateRequests();

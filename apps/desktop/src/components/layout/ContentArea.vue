@@ -2233,6 +2233,7 @@ defineExpose({
                 :model-value="activeTab.sql"
                 :tab-id="activeTab.id"
                 :connection-id="activeTab.connectionId"
+                :prefetch-completion="true"
                 :catalog="activeTab.catalog"
                 :database="activeTab.database"
                 :schema="activeTab.schema"
