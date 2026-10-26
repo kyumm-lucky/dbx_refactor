@@ -514,6 +514,7 @@ let previewContextRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 let editorIsActive = true;
 
 let imeCompositionActive = false;
+let imeCompositionRecovered = false;
 let pendingImeModelEmit = false;
 const postCompositionKeyGuard = createQueryEditorPostCompositionKeyGuard();
 let postCompositionKeyGuardCleanup: (() => void) | null = null;
@@ -2090,7 +2091,12 @@ const { editorIndentUnit, handleTab, handleEnter, acceptCompletionOrNextSnippetF
 });
 
 function isEditorComposing(currentView: EditorViewType): boolean {
-  return imeCompositionActive || currentView.compositionStarted || currentView.composing;
+  if (imeCompositionActive) return true;
+  // A real key with isComposing=false proves the IME stalled before sending
+  // compositionend. Ignore the stale CodeMirror flags until the next
+  // compositionstart, otherwise every shortcut stays blocked.
+  if (imeCompositionRecovered) return false;
+  return currentView.compositionStarted || currentView.composing;
 }
 
 async function flushImeComposition() {
@@ -2429,16 +2435,20 @@ const codeMirrorLifecycle = useQueryEditorCodeMirror({
             return insertDroppedTableReference(currentView, event);
           },
           blur(_event, currentView) {
+            imeCompositionActive = false;
+            imeCompositionRecovered = false;
             documentState.recordSelection(currentView);
             return false;
           },
           compositionstart() {
             imeCompositionActive = true;
+            imeCompositionRecovered = false;
             completion.invalidateRequests();
             return false;
           },
           compositionend() {
             imeCompositionActive = false;
+            imeCompositionRecovered = false;
             window.setTimeout(flushImeComposition, 0);
             return false;
           },
@@ -3111,6 +3121,11 @@ function unfoldAll(): boolean {
 function shouldBlockExecutionShortcut(event?: KeyboardEvent, currentView: EditorViewType | null = view.value): boolean {
   if (props.isExecuting) return true;
   if (event?.repeat) return true;
+  if (event && !event.isComposing && event.keyCode !== 229 && event.key !== "Process") {
+    // A stalled IME can drop compositionend; a real key proves it is over.
+    imeCompositionActive = false;
+    imeCompositionRecovered = true;
+  }
   return (currentView ? isEditorComposing(currentView) : false) || (event ? postCompositionKeyGuard.blocks(event) : false);
 }
 
