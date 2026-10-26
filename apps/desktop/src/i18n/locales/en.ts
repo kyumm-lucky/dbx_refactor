@@ -4802,6 +4802,7 @@ export default {
     copyDsn: "DSN (key=value)",
     copyDsnWithPassword: "DSN (with password)",
     copyPsqlCommand: "psql Command",
+    copyPasswordText: "Password (plain)",
     copyPasswordConfirmTitle: "Copy with Password",
     copyPasswordConfirmMessage: "The copied text will contain the stored password in plain text. Continue?",
     copyPasswordConfirmAction: "Copy",
