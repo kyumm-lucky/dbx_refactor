@@ -2752,6 +2752,7 @@ export interface QueryTab {
   };
   ddlViewer?: {
     schema?: string;
+    explicitOwner?: string;
     tableName: string;
     objectType?: ObjectSourceKind;
     formatDialect?: SqlFormatDialect;
