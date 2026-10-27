@@ -1174,7 +1174,7 @@ describe("SidebarTreeRuntimeHost expansion", () => {
 
     connectionStore.treeNodes = [connectionNode];
     connectionStore.loadDatabases = vi.fn(async () => {
-      // Loader attaches children but does not set isExpanded (e.g. sidebarExpandTreeOnConnect is false)
+      // Loader attaches children but does not auto-expand the node in this harness.
       connectionNode.children = [databaseNode];
     });
 
@@ -1267,5 +1267,60 @@ describe("SidebarTreeRuntimeHost expansion", () => {
     expect(connectionStore.treeNodes[0].isExpanded).toBe(true);
     expect(projection.value[0].isExpanded).toBe(true);
     expect(projection.value[0].children?.map((c) => c.label)).toEqual(["db1"]);
+  });
+
+  // #13579: the manual-expansion regression hit every connection type, not just
+  // SQL engines. Each loader below attaches children without auto-expanding the
+  // node (the switch is off for this harness), so the shared toggle path must
+  // expand the connection node itself.
+  it.each([
+    { dbType: "redis", loader: "loadRedisDatabases" as const, childType: "redis-db" as const },
+    { dbType: "mongodb", loader: "loadMongoDatabases" as const, childType: "mongo-db" as const },
+    { dbType: "etcd", loader: "loadEtcdRoot" as const, childType: "etcd-root" as const },
+    { dbType: "milvus", loader: "loadMilvusDatabases" as const, childType: "vector-database" as const },
+    { dbType: "elasticsearch", loader: "loadElasticsearchIndices" as const, childType: "elasticsearch-index" as const },
+  ])("expands a $dbType connection on first click (issue #13579)", async ({ dbType, loader, childType }) => {
+    const connectionId = `${dbType}-conn`;
+    const child: TreeNode = {
+      id: `${connectionId}:child`,
+      label: `${dbType} child`,
+      type: childType,
+      connectionId,
+      isExpanded: false,
+      children: [],
+    };
+    const connectionNode = reactive<TreeNode>({
+      id: connectionId,
+      label: `${dbType} connection`,
+      type: "connection",
+      connectionId,
+      isExpanded: false,
+      children: [],
+    });
+
+    connectionStore.getConfig.mockReturnValue({ db_type: dbType, name: dbType } as ReturnType<typeof connectionStore.getConfig>);
+    connectionStore.treeNodes = [connectionNode];
+    const loaderMock = connectionStore[loader] as ReturnType<typeof vi.fn>;
+    loaderMock.mockImplementation(async () => {
+      connectionNode.children = [child];
+    });
+
+    const host = ref<InstanceType<typeof SidebarTreeRuntimeHost> | null>(null);
+    const app = createApp(
+      defineComponent({
+        setup: () => () => h(SidebarTreeRuntimeHost, { ref: host, node: connectionNode, depth: 0 }),
+      }),
+    );
+    mountedApps.push(app);
+    const container = document.createElement("div");
+    document.body.append(container);
+    app.use(i18n);
+    app.mount(container);
+
+    host.value?.toggleNode(connectionNode);
+    await vi.waitFor(() => expect(connectionNode.isExpanded).toBe(true));
+
+    expect(loaderMock).toHaveBeenCalledWith(connectionId);
+    expect(connectionNode.children?.map((node) => node.label)).toEqual([`${dbType} child`]);
   });
 });
