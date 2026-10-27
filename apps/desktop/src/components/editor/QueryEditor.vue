@@ -2701,7 +2701,7 @@ watch(
 );
 
 function prefetchCompletionTablesIfEnabled() {
-  if (props.prefetchCompletion) prefetchCompletionTablesIfEnabled();
+  if (props.prefetchCompletion) void completionMetadata.prefetchCompletionTables();
 }
 
 watch(
