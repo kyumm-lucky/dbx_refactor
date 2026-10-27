@@ -326,6 +326,7 @@ const {
   isPreparingUpdate,
   checkingUpdates,
   updateInfo,
+  visibleUpdateInfo,
   updateCheckMessage,
   updateCheckFailed,
   showUpdateDialog,
@@ -5853,7 +5854,7 @@ onUnmounted(() => {
         <UpdateDialog
           v-if="showUpdateDialog"
           v-model:open="showUpdateDialog"
-          :update-info="updateInfo"
+          :update-info="visibleUpdateInfo"
           :update-check-message="updateCheckMessage"
           :checking-updates="checkingUpdates"
           :update-check-failed="updateCheckFailed"
