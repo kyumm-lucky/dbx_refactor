@@ -4752,6 +4752,10 @@ func shouldRetryOracleXMLTypeRewrite(err error) bool {
 	if err == nil {
 		return false
 	}
+	var decodeErr oracleProtocolDecodeError
+	if errors.As(err, &decodeErr) {
+		return true
+	}
 	message := err.Error()
 	return strings.Contains(message, "abnormal data representation for date") ||
 		strings.Contains(message, "TTC error: received code ")
@@ -5833,6 +5837,46 @@ func (s *server) setSchema(schema string) error {
 	}
 	_, err = db.Exec(sqlText)
 	return err
+}
+
+// repinPoisonedStatementConn replaces the statement's pinned connection once a
+// driver panic or a response decode error has poisoned it, so the fallbacks of
+// the same statement do not fail on the dead session (issues #13455, #13667).
+// The fresh connection gets the statement's CURRENT_SCHEMA back; the
+// statement's owner closes it together with the original one.
+func (s *server) repinPoisonedStatementConn() error {
+	if s.manualTx != nil || s.statementConn == nil || !oracleConnPoisoned(s.statementConn) {
+		return nil
+	}
+	db, err := s.requireDB()
+	if err != nil {
+		return err
+	}
+	conn, err := db.Conn(s.statementContext())
+	if err != nil {
+		return err
+	}
+	if s.statementSchema != "" {
+		if _, err := conn.ExecContext(s.statementContext(), "ALTER SESSION SET CURRENT_SCHEMA = "+quoteIdentifier(s.statementSchema)); err != nil {
+			_ = conn.Close()
+			return err
+		}
+	}
+	if s.repinnedStatementConn != nil {
+		_ = s.repinnedStatementConn.Close()
+	}
+	s.repinnedStatementConn = conn
+	s.statementConn = conn
+	return nil
+}
+
+// takeRepinnedStatementConn hands a connection opened by
+// repinPoisonedStatementConn to the statement's owner.
+func (s *server) takeRepinnedStatementConn() *sql.Conn {
+	conn := s.repinnedStatementConn
+	s.repinnedStatementConn = nil
+	s.statementSchema = ""
+	return conn
 }
 
 func (s *server) queryRows(sqlText string, args []any) (*sql.Rows, error) {
