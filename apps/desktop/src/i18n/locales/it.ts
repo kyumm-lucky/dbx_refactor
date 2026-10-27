@@ -7846,6 +7846,7 @@ export default withEnglishFallback({
       batchSection: "Batch",
       batchPatterns: "Pattern tabella (separati da virgola)",
       dialectAuto: "auto",
+      refreshMetadata: "Aggiorna i metadati prima del confronto",
     },
   },
   tableMultiSelect: {

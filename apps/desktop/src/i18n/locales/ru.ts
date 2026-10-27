@@ -9421,6 +9421,7 @@ export default withEnglishFallback({
       batchSection: "Пакетно",
       batchPatterns: "Шаблоны таблиц (через запятую)",
       dialectAuto: "авто",
+      refreshMetadata: "Обновлять метаданные перед сравнением",
     },
   },
   tableMultiSelect: {

@@ -7845,6 +7845,7 @@ export default withEnglishFallback({
       batchSection: "Lote",
       batchPatterns: "Padrões de tabela (separados por vírgula)",
       dialectAuto: "automático",
+      refreshMetadata: "Atualizar metadados antes da comparação",
     },
   },
   tableMultiSelect: {
