@@ -1568,8 +1568,27 @@ export function useDataGridExport(options: UseDataGridExportOptions) {
 
     await runExclusiveExport(async () => {
       try {
-        const sheets = (sheetsToExport ?? allExportResults?.value ?? []).filter((sheet) => sheet.result.columns.length > 0);
+        let sheets = (sheetsToExport ?? allExportResults?.value ?? []).filter((sheet) => sheet.result.columns.length > 0);
         if (sheets.length === 0) return;
+
+        // 与 exportMemoryResultSheetsXlsx 相同：导出全部结果集且激活结果集分页
+        // 未完整时，重跑查询拉全量，避免只导出当前页（#13726）。
+        const completedResultResults = new Set<QueryResult>();
+        if (sheetsToExport === undefined && fullExportResult && !hasCompleteLocalResult?.value) {
+          const activeIndex = sheets.findIndex((sheet) => sheet.result === options.snapshotResult?.value);
+          if (activeIndex >= 0) {
+            // 与 exportMemoryResultSheetsXlsx 相同：补全失败（含取消）时中止导出，
+            // 不静默回退到当前页，错误由外层统一 toast 报错。
+            const fullResult = await fullExportResult();
+            if (fullResult?.columns.length) {
+              sheets = sheets.map((sheet, index) => (index === activeIndex ? { ...sheet, result: fullResult } : sheet));
+              completedResultResults.add(fullResult);
+            }
+          }
+        }
+        // 补全后的激活 sheet 是重建对象，不再与 allExportResults 共享引用，但
+        // snapshotResult 引用一致性已保证其仍为当前激活结果集，故豁免成员检查。
+        const isSheetInAllExportResults = (sheet: { sheetName: string; result: QueryResult; sql?: string }) => completedResultResults.has(sheet.result) || !!allExportResults?.value?.some((origin) => origin === sheet || origin.result === sheet.result);
 
         let outputPath = exportFileName("query-results", "xlsx", { allResults: true });
         if (isTauriRuntime()) {
@@ -1587,7 +1606,7 @@ export function useDataGridExport(options: UseDataGridExportOptions) {
         const worksheets = [];
         for (const sheet of sheets) {
           const sourceRows = sheet.result.rows;
-          const rows = await materializeExportSnapshot(sheet.result, () => sheet.result.rows === sourceRows && (sheetsToExport !== undefined || !!allExportResults?.value?.includes(sheet)));
+          const rows = await materializeExportSnapshot(sheet.result, () => sheet.result.rows === sourceRows && (sheetsToExport !== undefined || isSheetInAllExportResults(sheet)));
           if (sheet.result.large_value_refs?.length || sheet.result.large_value_cells?.some((cell) => cell.value_ref)) assertSnapshotXlsxCellLengths(rows);
           worksheets.push({
             sheetName: sheet.sheetName,

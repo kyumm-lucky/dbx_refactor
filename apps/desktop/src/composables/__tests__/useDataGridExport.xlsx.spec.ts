@@ -6,10 +6,13 @@ import { useDataGridExport, type UseDataGridExportOptions } from "@/composables/
 import type { QueryResult } from "@/types/database";
 
 const mocks = vi.hoisted(() => ({
+  native: false,
   exportQueryResultsXlsx: vi.fn(),
   startQueryResultExport: vi.fn().mockResolvedValue({ exportId: "export-1", tableName: "Query Result", rowsExported: 1, totalRows: 1, status: "Done" }),
   toast: vi.fn(),
 }));
+
+vi.mock("@/lib/backend/tauriRuntime", () => ({ isTauriRuntime: () => mocks.native }));
 
 vi.mock("@/components/export/XlsxHeaderDialog.vue", () => ({
   default: {
@@ -202,5 +205,39 @@ describe("useDataGridExport XLSX headers", () => {
       }),
       expect.any(Function),
     );
+  });
+});
+
+describe("useDataGridExport paged multi-result full export completion", () => {
+  beforeEach(() => {
+    mocks.native = false;
+    vi.clearAllMocks();
+  });
+
+  function pagedOptions() {
+    const options = createOptions();
+    const active = queryResult(["id"], [[1]]);
+    options.allExportResults = computed(() => [
+      { sheetName: "Ids", result: active },
+      { sheetName: "Names", result: queryResult(["name"], [["Ada"]]) },
+    ]);
+    options.snapshotResult = computed(() => active);
+    options.hasCompleteLocalResult = computed(() => false);
+    options.fullExportResult = vi.fn(async () => {
+      throw new Error("full result fetch failed");
+    });
+    return options;
+  }
+
+  it("aborts the export when the completion fetch fails instead of writing the current page (web fallback)", async () => {
+    mocks.native = false;
+    const options = pagedOptions();
+    const state = useDataGridExport(options);
+
+    await state.exportAllResultsXlsx();
+
+    expect(options.fullExportResult).toHaveBeenCalledOnce();
+    expect(mocks.exportQueryResultsXlsx).not.toHaveBeenCalled();
+    expect(mocks.toast).toHaveBeenCalledWith("grid.exportFailed", 5000);
   });
 });
