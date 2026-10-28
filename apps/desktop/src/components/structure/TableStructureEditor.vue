@@ -6,6 +6,7 @@ import { starRocksAlterOptionsFromDdl, starRocksColumnDefinitionLocked, type Sta
 import { getColumnDefaultValuePresets } from "@/lib/table/columnDefaultPresets";
 import { applyDdlStoragePreference } from "@/lib/sql/ddlStorage";
 import { compactDdlSql } from "@/lib/sql/ddlCompact";
+import { matchesIdentifierSearch } from "@/lib/sql/identifierSearch";
 import DdlStorageToggle from "@/components/objects/DdlStorageToggle.vue";
 import StructureIndexColumnPicker from "./StructureIndexColumnPicker.vue";
 import TableColumnPasteDialog from "./TableColumnPasteDialog.vue";
@@ -2079,17 +2080,7 @@ const indexColLabels = computed(() => [
 const filteredColumnRowIds = computed(() => {
   const query = columnSearchText.value.trim().toLowerCase();
   if (!query) return new Set<string>();
-  return new Set(
-    columns.value
-      .filter((column) =>
-        [column.name, column.comment].some((value) =>
-          String(value ?? "")
-            .toLowerCase()
-            .includes(query),
-        ),
-      )
-      .map((column) => column.id),
-  );
+  return new Set(columns.value.filter((column) => columnMatchesSearch(column)).map((column) => column.id));
 });
 const columnSearchMatchCount = computed(() => (columnSearchText.value.trim() ? filteredColumnRowIds.value.size : 0));
 const filteredIndexRowIds = computed(() => {
@@ -5262,21 +5253,12 @@ function columnRowClass(column: EditableStructureColumn, index: number) {
 function columnMatchesSearch(column: EditableStructureColumn): boolean {
   const query = columnSearchText.value.trim().toLowerCase();
   if (!query) return false;
-  return [column.name, column.comment].some((value) =>
-    String(value ?? "")
-      .toLowerCase()
-      .includes(query),
-  );
+  return [column.name, column.comment].some((value) => columnFieldMatchesSearch(value));
 }
 
 function columnFieldMatchesSearch(value: string | null | undefined): boolean {
   const query = columnSearchText.value.trim().toLowerCase();
-  return (
-    !!query &&
-    String(value ?? "")
-      .toLowerCase()
-      .includes(query)
-  );
+  return !!query && matchesIdentifierSearch(String(value ?? ""), query);
 }
 
 function columnSearchFieldClass(column: EditableStructureColumn, value: string | null | undefined) {
