@@ -1211,7 +1211,7 @@ function clearContextTarget() {
 </script>
 
 <template>
-  <div class="h-full flex flex-col overflow-hidden">
+  <div class="h-full flex flex-col overflow-hidden isolate">
     <div class="h-9 flex items-center gap-1 px-2 border-b shrink-0 bg-muted/20">
       <span class="text-xs font-medium">{{ t("sqlFileTree.title") }}</span>
       <HelpTooltip :label="t('sqlFileTree.storageHelp')" side="bottom" :side-offset="4" trigger-class="h-4 w-4" content-class="max-w-[320px] whitespace-pre-line">

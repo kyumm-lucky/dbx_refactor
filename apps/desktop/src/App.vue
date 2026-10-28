@@ -5721,7 +5721,6 @@ onUnmounted(() => {
             :class="[isClassicLayout ? 'h-full relative z-30 isolate bg-background' : 'h-full relative z-30 isolate dbx-panel bg-background', isAiPanelMaximized ? 'min-w-0 flex-1' : 'min-w-[240px] max-w-full']"
             :style="isAiPanelMaximized ? {} : { width: aiPanelWidth + 'px' }"
           >
-            <div v-if="!isAiPanelMaximized" class="panel-resize-handle panel-resize-handle--left" @pointerdown="startAiPanelResize" />
             <div class="h-full min-h-0 overflow-hidden rounded-[inherit]" @mousedown="rememberAuxiliarySearchSurface('ai')">
               <AiAssistant
                 v-if="aiPanelReady"
@@ -5742,6 +5741,7 @@ onUnmounted(() => {
                 @close="closeRightSidebarPanel('ai')"
               />
             </div>
+            <div v-if="!isAiPanelMaximized" class="panel-resize-handle panel-resize-handle--left" @pointerdown="startAiPanelResize" />
           </div>
 
           <div
@@ -5750,7 +5750,6 @@ onUnmounted(() => {
             :class="[isClassicLayout ? 'h-full relative z-30 isolate bg-background' : 'h-full relative z-30 isolate dbx-panel bg-background', isHistoryPanelMaximized ? 'min-w-0 flex-1' : 'min-w-[240px] max-w-full']"
             :style="isHistoryPanelMaximized ? {} : { width: historyWidth + 'px', maxWidth: 'calc(100% - 240px)' }"
           >
-            <div v-if="!isHistoryPanelMaximized" class="panel-resize-handle panel-resize-handle--left" @pointerdown="startHistoryResize" />
             <div class="h-full min-h-0 overflow-hidden rounded-[inherit]" @mousedown="rememberAuxiliarySearchSurface('history')">
               <div data-history-panel class="h-full min-h-0">
                 <QueryHistory
@@ -5764,6 +5763,7 @@ onUnmounted(() => {
                 />
               </div>
             </div>
+            <div v-if="!isHistoryPanelMaximized" class="panel-resize-handle panel-resize-handle--left" @pointerdown="startHistoryResize" />
           </div>
 
           <div
@@ -5772,12 +5772,12 @@ onUnmounted(() => {
             :class="isClassicLayout ? 'h-full shrink-0 relative z-30 isolate bg-background' : 'h-full shrink-0 relative z-30 isolate dbx-panel bg-background'"
             :style="{ width: sqlLibraryWidth + 'px' }"
           >
-            <div class="panel-resize-handle panel-resize-handle--left" @pointerdown="startSqlLibraryResize" />
             <div class="h-full min-h-0 overflow-hidden rounded-[inherit]" @mousedown="rememberAuxiliarySearchSurface('sqlLibrary')">
               <div data-sql-library-panel class="h-full min-h-0">
                 <SqlLibraryPanel @close="closeRightSidebarPanel('sqlLibrary')" />
               </div>
             </div>
+            <div class="panel-resize-handle panel-resize-handle--left" @pointerdown="startSqlLibraryResize" />
           </div>
 
           <div
@@ -5786,10 +5786,10 @@ onUnmounted(() => {
             :class="isClassicLayout ? 'h-full shrink-0 relative z-30 isolate bg-background' : 'h-full shrink-0 relative z-30 isolate dbx-panel bg-background'"
             :style="{ width: sqlFilePanelWidth + 'px' }"
           >
-            <div class="panel-resize-handle panel-resize-handle--left" @pointerdown="startSqlFilePanelResize" />
             <div class="h-full min-h-0 overflow-hidden rounded-[inherit]">
               <SqlFilePanel :locate-request="sqlFileLocateRequest" @locate-handled="finishSqlFileLocate" @close="closeRightSidebarPanel('sqlFile')" />
             </div>
+            <div class="panel-resize-handle panel-resize-handle--left" @pointerdown="startSqlFilePanelResize" />
           </div>
           <PluginShortcutBar v-if="!isDetachedWindowContext && !isZenMode && settingsStore.editorSettings.pluginShortcuts.enabled && settingsStore.editorSettings.pluginShortcuts.position.startsWith('right-')" :position="settingsStore.editorSettings.pluginShortcuts.position" />
         </div>
