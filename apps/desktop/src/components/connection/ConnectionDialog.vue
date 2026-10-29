@@ -97,7 +97,6 @@ import {
   supportsIdleTimeout,
 } from "@/lib/connection/timeoutLimits";
 import { buildOracleTnsConnectionString, normalizeOracleTnsAdminPath, parseOracleTnsConnectionString } from "@/lib/connection/oracleTnsConnection";
-import { ORACLE_LEGACY_CHARSETS, oracleLegacyCharset, withOracleLegacyCharset } from "@/lib/connection/oracleLegacyCharset";
 import { applyConnectionDeepLinkUpdate, resolveConnectionDeepLinkUpdate } from "@/lib/connection/connectionDeepLinkUpdate";
 import {
   connectionDeepLinkServiceHydrationValue,
@@ -3129,9 +3128,6 @@ function applyRequestedPluginProvider(target: PluginCenterFocus | null | undefin
 }
 
 function switchOceanbaseMode(mode: "mysql" | "oracle") {
-  const port = form.value.port;
-  const sourceProfile = oceanbaseSubMode.value === "mysql" ? "oceanbase" : "oceanbase-oracle";
-  const preservePort = port !== driverProfiles[sourceProfile].port;
   oceanbaseSubMode.value = mode;
   if (mode === "mysql") {
     applyProfile("oceanbase", false);
@@ -3139,7 +3135,6 @@ function switchOceanbaseMode(mode: "mysql" | "oracle") {
     applyProfile("oceanbase-oracle", false);
     selectedType.value = "oceanbase";
   }
-  if (preservePort) form.value.port = port;
   resetTestState();
 }
 
@@ -3216,7 +3211,6 @@ watch(
         // Show the index the backend actually connects with; legacy dirty values
         // (e.g. redis-cli flags in the field) are healed when the form is saved.
         database: config.db_type === "redis" ? normalizeRedisDatabaseValue(config.database) || "" : config.database,
-        default_schema: config.default_schema,
         color: config.color || "",
         transport_layers: transportLayersForConfig(legacyConfig),
         connect_timeout_secs: config.connect_timeout_inherit === true ? settingsStore.editorSettings.globalConnectTimeoutSecs : config.connect_timeout_secs || 10,
@@ -3243,7 +3237,6 @@ watch(
         redis_cluster_nodes: config.redis_cluster_nodes || "",
         redis_key_separator: config.redis_key_separator ?? ":",
         redis_scan_page_size: config.redis_scan_page_size ?? REDIS_SCAN_PAGE_SIZE_DEFAULT,
-        redis_database_aliases: config.redis_database_aliases ? { ...config.redis_database_aliases } : undefined,
         redis_key_templates: normalizeRedisKeyTemplates(config.redis_key_templates),
         redis_key_filter: config.redis_key_filter ?? "",
         redis_key_grouping: config.redis_key_grouping,
@@ -3637,13 +3630,6 @@ function persistOracleOciClientPath() {
  * global default for reuse.
  */
 const OCI_NLS_LANG_FOLLOW_GLOBAL = "__follow_global__";
-const ORACLE_LEGACY_CHARSET_DISABLED = "__disabled__";
-const oracleLegacyCharsetSelection = computed(() => oracleLegacyCharset(form.value.url_params) || ORACLE_LEGACY_CHARSET_DISABLED);
-function onOracleLegacyCharsetSelected(value: unknown) {
-  const charset = typeof value === "string" && value !== ORACLE_LEGACY_CHARSET_DISABLED ? value : "";
-  form.value.url_params = withOracleLegacyCharset(form.value.url_params, charset);
-  resetTestState();
-}
 const ORACLE_NLS_LANG_OPTIONS = [
   "AMERICAN_AMERICA.AL32UTF8",
   "AMERICAN_AMERICA.UTF8",
@@ -3981,12 +3967,7 @@ const tlsCapableDatabaseTypes = new Set<DatabaseType>([
 const supportsTlsToggle = computed(() => tlsCapableDatabaseTypes.has(form.value.db_type) || supportsMysqlTlsTab(form.value.db_type, selectedType.value));
 const supportsCaCertificatePath = computed(() => form.value.db_type === "clickhouse" || form.value.db_type === "victoriametrics");
 const supportsGenericUrlParams = computed(() => form.value.db_type !== "manticoresearch" && form.value.db_type !== "hbase" && form.value.db_type !== "nebula");
-const genericUrlParamsHints = computed(() => {
-  const hints: string[] = [];
-  if (["mysql", "doris", "starrocks"].includes(form.value.db_type)) hints.push(t("connection.localInfilePathHint"));
-  if (form.value.db_type === "mysql") hints.push(t("connection.sessionVariablesHint"));
-  return hints;
-});
+const showGenericUrlParamsHint = computed(() => form.value.db_type === "mysql" || form.value.db_type === "doris" || form.value.db_type === "starrocks");
 const bareMysqlProfiles = new Set(["doris", "selectdb", "oceanbase"]);
 const supportsMysqlTlsOptions = computed(() => mysqlTlsOptionsSupported(form.value.db_type, selectedType.value));
 const supportsMysqlCleartextPasswordAuth = computed(() => form.value.db_type === "mysql" && !bareMysqlProfiles.has(selectedType.value));
@@ -9843,7 +9824,6 @@ function openExternalUrl(url: string) {
                       <Label :class="[connectionLabelClass, 'connection-url-params-label']">{{ t("connection.urlParams") }}</Label>
                       <div class="col-span-3 space-y-1.5">
                         <Input
-                          id="connection-url-params"
                           v-model="form.url_params"
                           :placeholder="
                             form.db_type === 'mysql'
@@ -9871,6 +9851,12 @@ function openExternalUrl(url: string) {
                                                   : 'sslmode=prefer'
                           "
                         />
+                        <p v-if="showGenericUrlParamsHint" class="text-xs leading-5 text-muted-foreground">
+                          {{ t("connection.localInfilePathHint") }}
+                        </p>
+                        <p v-if="form.db_type === 'mysql'" class="text-xs leading-5 text-muted-foreground">
+                          {{ t("connection.sessionVariablesHint") }}
+                        </p>
                       </div>
                     </div>
 
@@ -10671,54 +10657,52 @@ function openExternalUrl(url: string) {
                     </p>
                   </div>
                 </div>
-                <section class="connection-advanced-section grid content-start gap-4 rounded-lg border p-4">
-                  <h3 class="text-base font-bold">{{ t("connection.advancedConnectionBehavior") }}</h3>
-                  <div class="grid grid-cols-4 items-center gap-4">
-                    <Label :class="connectionLabelSmallClass">{{ t("connection.connectTimeout") }}</Label>
-                    <div class="col-span-3 grid grid-cols-2 gap-2">
-                      <div class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 rounded border px-2 py-1.5 sm:flex" :class="form.connect_timeout_inherit === true ? 'border-primary/60 bg-background' : 'border-border bg-muted/30 text-muted-foreground'">
-                        <input id="connect-timeout-global" v-model="form.connect_timeout_inherit" type="radio" name="connect-timeout-scope" :value="true" class="h-3.5 w-3.5 shrink-0 accent-primary" />
-                        <div class="flex min-w-0 flex-1 items-center gap-1">
-                          <label for="connect-timeout-global" class="min-w-0 cursor-pointer truncate text-xs" :title="t('connection.useGlobalQueryTimeout')">{{ t("connection.useGlobalQueryTimeout") }}</label>
-                          <HelpTooltip :label="t('connection.globalConnectTimeoutHint')" content-class="max-w-[280px]">
-                            {{ t("connection.globalConnectTimeoutHint") }}
-                          </HelpTooltip>
-                        </div>
-                        <Input
-                          v-model.number="editGlobalConnectTimeoutSecs"
-                          type="number"
-                          min="1"
-                          :max="MAX_CONNECT_TIMEOUT_SECS"
-                          step="1"
-                          class="col-span-2 h-7 w-full shrink-0 sm:col-span-1 sm:w-20"
-                          :disabled="form.connect_timeout_inherit !== true"
-                          @input="clampConnectTimeoutInput($event, 'global')"
-                        />
+                <div class="grid grid-cols-4 items-center gap-4">
+                  <Label :class="connectionLabelSmallClass">{{ t("connection.connectTimeout") }}</Label>
+                  <div class="col-span-3 grid grid-cols-2 gap-2">
+                    <div class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 rounded border px-2 py-1.5 sm:flex" :class="form.connect_timeout_inherit === true ? 'border-primary/60 bg-background' : 'border-border bg-muted/30 text-muted-foreground'">
+                      <input id="connect-timeout-global" v-model="form.connect_timeout_inherit" type="radio" name="connect-timeout-scope" :value="true" class="h-3.5 w-3.5 shrink-0 accent-primary" />
+                      <div class="flex min-w-0 flex-1 items-center gap-1">
+                        <label for="connect-timeout-global" class="min-w-0 cursor-pointer truncate text-xs" :title="t('connection.useGlobalQueryTimeout')">{{ t("connection.useGlobalQueryTimeout") }}</label>
+                        <HelpTooltip :label="t('connection.globalConnectTimeoutHint')" content-class="max-w-[280px]">
+                          {{ t("connection.globalConnectTimeoutHint") }}
+                        </HelpTooltip>
                       </div>
-                      <div class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 rounded border px-2 py-1.5 sm:flex" :class="form.connect_timeout_inherit !== true ? 'border-primary/60 bg-background' : 'border-border bg-muted/30 text-muted-foreground'">
-                        <input id="connect-timeout-connection" v-model="form.connect_timeout_inherit" type="radio" name="connect-timeout-scope" :value="false" class="h-3.5 w-3.5 shrink-0 accent-primary" />
-                        <label for="connect-timeout-connection" class="min-w-0 flex-1 cursor-pointer truncate text-xs" :title="t('connection.useConnectionQueryTimeout')">{{ t("connection.useConnectionQueryTimeout") }}</label>
-                        <Input
-                          v-model.number="form.connect_timeout_secs"
-                          type="number"
-                          min="1"
-                          :max="MAX_CONNECT_TIMEOUT_SECS"
-                          step="1"
-                          class="col-span-2 h-7 w-full shrink-0 sm:col-span-1 sm:w-20"
-                          :disabled="form.connect_timeout_inherit === true"
-                          @input="clampConnectTimeoutInput($event, 'connection')"
-                        />
-                      </div>
+                      <Input
+                        v-model.number="editGlobalConnectTimeoutSecs"
+                        type="number"
+                        min="1"
+                        :max="MAX_CONNECT_TIMEOUT_SECS"
+                        step="1"
+                        class="col-span-2 h-7 w-full shrink-0 sm:col-span-1 sm:w-20"
+                        :disabled="form.connect_timeout_inherit !== true"
+                        @input="clampConnectTimeoutInput($event, 'global')"
+                      />
+                    </div>
+                    <div class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 rounded border px-2 py-1.5 sm:flex" :class="form.connect_timeout_inherit !== true ? 'border-primary/60 bg-background' : 'border-border bg-muted/30 text-muted-foreground'">
+                      <input id="connect-timeout-connection" v-model="form.connect_timeout_inherit" type="radio" name="connect-timeout-scope" :value="false" class="h-3.5 w-3.5 shrink-0 accent-primary" />
+                      <label for="connect-timeout-connection" class="min-w-0 flex-1 cursor-pointer truncate text-xs" :title="t('connection.useConnectionQueryTimeout')">{{ t("connection.useConnectionQueryTimeout") }}</label>
+                      <Input
+                        v-model.number="form.connect_timeout_secs"
+                        type="number"
+                        min="1"
+                        :max="MAX_CONNECT_TIMEOUT_SECS"
+                        step="1"
+                        class="col-span-2 h-7 w-full shrink-0 sm:col-span-1 sm:w-20"
+                        :disabled="form.connect_timeout_inherit === true"
+                        @input="clampConnectTimeoutInput($event, 'connection')"
+                      />
                     </div>
                   </div>
-                  <div v-if="form.db_type === 'etcd'" class="grid grid-cols-4 items-start gap-4">
-                    <Label :class="connectionLabelSmallPaddedClass">{{ t("connection.etcdGrpcMaxInbound") }}</Label>
-                    <div class="col-span-3 space-y-1">
-                      <Input v-model.number="etcdGrpcMaxInboundMessageSizeMiB" type="number" :min="ETCD_GRPC_MAX_INBOUND_MIN_MIB" :max="ETCD_GRPC_MAX_INBOUND_MAX_MIB" step="1" />
-                      <p class="text-xs leading-5 text-muted-foreground">{{ t("connection.etcdGrpcMaxInboundHint") }}</p>
-                    </div>
+                </div>
+                <div v-if="form.db_type === 'etcd'" class="grid grid-cols-4 items-start gap-4">
+                  <Label :class="connectionLabelSmallPaddedClass">{{ t("connection.etcdGrpcMaxInbound") }}</Label>
+                  <div class="col-span-3 space-y-1">
+                    <Input v-model.number="etcdGrpcMaxInboundMessageSizeMiB" type="number" :min="ETCD_GRPC_MAX_INBOUND_MIN_MIB" :max="ETCD_GRPC_MAX_INBOUND_MAX_MIB" step="1" />
+                    <p class="text-xs leading-5 text-muted-foreground">{{ t("connection.etcdGrpcMaxInboundHint") }}</p>
                   </div>
-                  <!-- query_timeout_secs only feeds the database query pipeline
+                </div>
+                <!-- query_timeout_secs only feeds the database query pipeline
                      (dataGrid/queryStore); plugin connections like SSH never
                      consume it, so the generic radio would only suggest a
                      budget the provider cannot honor. -->
@@ -10854,12 +10838,24 @@ function openExternalUrl(url: string) {
                           <Label class="text-xs font-medium">{{ t(productionScopeResourceLabelKey) }}</Label>
                           <span class="text-xs text-muted-foreground">{{ productionDatabaseSummary }}</span>
                         </div>
-                        <Input v-model.number="editGlobalQueryTimeoutSecs" type="number" min="0" :max="MAX_QUERY_TIMEOUT_SECS" step="1" class="col-span-2 h-7 w-full shrink-0 sm:col-span-1 sm:w-20" :disabled="form.query_timeout_inherit !== true" @input="clampQueryTimeoutInput($event, 'global')" />
+                        <Button type="button" variant="outline" size="sm" class="justify-start" :disabled="isTesting || isSaving || isLoadingProductionDatabases || !hasRequiredConnectionTarget" @click="openProductionDatabasesPicker">
+                          <Loader2 v-if="isLoadingProductionDatabases" class="mr-1.5 h-4 w-4 animate-spin" />
+                          <ListFilter v-else class="mr-1.5 h-4 w-4" />
+                          {{ t(productionScopePickerLabelKey) }}
+                        </Button>
                       </div>
-                      <div class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 rounded border px-2 py-1.5 sm:flex" :class="form.query_timeout_inherit !== true ? 'border-primary/60 bg-background' : 'border-border bg-muted/30 text-muted-foreground'">
-                        <input id="query-timeout-connection" v-model="form.query_timeout_inherit" type="radio" name="query-timeout-scope" :value="false" class="h-3.5 w-3.5 shrink-0 accent-primary" />
-                        <label for="query-timeout-connection" class="min-w-0 flex-1 cursor-pointer truncate text-xs" :title="t('connection.useConnectionQueryTimeout')">{{ t("connection.useConnectionQueryTimeout") }}</label>
-                        <Input v-model.number="form.query_timeout_secs" type="number" min="0" :max="MAX_QUERY_TIMEOUT_SECS" step="1" class="col-span-2 h-7 w-full shrink-0 sm:col-span-1 sm:w-20" :disabled="form.query_timeout_inherit === true" @input="clampQueryTimeoutInput($event, 'connection')" />
+                      <div class="grid gap-1.5 pt-1">
+                        <Label for="production-badge-scope" class="text-xs font-medium">{{ t("production.badgeScope") }}</Label>
+                        <Select :model-value="form.production_badge_scope || 'database'" @update:model-value="form.production_badge_scope = $event as ProductionBadgeScope">
+                          <SelectTrigger id="production-badge-scope" class="h-8" :aria-label="t('production.badgeScope')"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="connection">{{ t("production.badgeScopeConnection") }}</SelectItem>
+                            <SelectItem value="database">{{ t("production.badgeScopeDatabase") }}</SelectItem>
+                            <SelectItem value="table">{{ t("production.badgeScopeTable") }}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p class="text-xs leading-5 text-muted-foreground">{{ t(`production.badgeScopeHint${form.production_badge_scope === "connection" ? "Connection" : form.production_badge_scope === "table" ? "Table" : "Database"}`) }}</p>
+                        <p class="text-xs leading-5 text-muted-foreground">{{ t("production.badgeScopeSafetyHint") }}</p>
                       </div>
                     </template>
                   </div>
@@ -10887,213 +10883,9 @@ function openExternalUrl(url: string) {
                       <Input id="redis-value-preview-limit-input" v-model.number="editRedisValuePreviewLimitKiB" type="number" :min="REDIS_VALUE_PREVIEW_LIMIT_KIB_MIN" :max="REDIS_VALUE_PREVIEW_LIMIT_KIB_MAX" step="1" class="h-8 w-32 text-xs" />
                       <span class="text-xs text-muted-foreground">KiB</span>
                     </div>
+                    <p class="text-xs text-muted-foreground">{{ t("settings.redisValuePreviewLimitDescription") }}</p>
                   </div>
-                  <div v-show="supportsIdleTimeoutSetting" class="grid grid-cols-4 items-start gap-4">
-                    <Label :class="connectionLabelSmallPaddedClass">{{ t("connection.idleTimeout") }}</Label>
-                    <div class="col-span-3 space-y-1">
-                      <Input v-model.number="form.idle_timeout_secs" type="number" min="0" :max="MAX_IDLE_TIMEOUT_SECS" step="1" @input="clampIdleTimeoutInput($event)" />
-                      <p class="text-xs leading-5 text-muted-foreground">{{ t("connection.idleTimeoutHint") }}</p>
-                    </div>
-                  </div>
-                  <div v-show="supportsManualTransactionTimeoutSetting" class="grid grid-cols-4 items-start gap-4">
-                    <Label :class="connectionLabelSmallPaddedClass">{{ t("connection.manualTransactionTimeout") }}</Label>
-                    <div class="col-span-3 space-y-1">
-                      <Input v-model.number="form.manual_transaction_timeout_secs" type="number" :min="MIN_MANUAL_TRANSACTION_TIMEOUT_SECS" :max="MAX_MANUAL_TRANSACTION_TIMEOUT_SECS" step="1" />
-                      <p class="text-xs leading-5 text-muted-foreground">{{ t("connection.manualTransactionTimeoutHint", { min: MIN_MANUAL_TRANSACTION_TIMEOUT_SECS, max: MAX_MANUAL_TRANSACTION_TIMEOUT_SECS }) }}</p>
-                    </div>
-                  </div>
-                  <!-- 空闲自动断开由后端在连接池层面实现，所有方言均适用，故不做方言门控：
-                     即使上面的「空闲超时」被 v-show 隐藏，这里也要展示。 -->
-                  <div class="grid grid-cols-4 items-start gap-4">
-                    <Label :class="connectionLabelSmallPaddedClass">
-                      <span class="inline-flex items-center gap-1">{{ t("connection.idleDisconnect") }} <HelpTooltip :label="t('connection.idleDisconnectHint')" content-class="max-w-[280px]" /></span>
-                    </Label>
-                    <div class="col-span-3 space-y-1">
-                      <div class="flex items-center gap-2">
-                        <Switch v-model="idleDisconnectEnabled" />
-                        <Input v-model.number="form.idle_disconnect_secs" type="number" min="1" :max="MAX_IDLE_DISCONNECT_SECS" step="1" class="flex-1" :disabled="!idleDisconnectEnabled" @input="clampIdleDisconnectInput($event)" />
-                      </div>
-                      <p v-if="idleDisconnectKeepaliveWarning" class="rounded-md border border-amber-500/30 bg-amber-500/5 px-2 py-1 text-xs leading-5 text-amber-700 dark:text-amber-400">
-                        {{ t("connection.idleDisconnectKeepaliveWarning") }}
-                      </p>
-                    </div>
-                  </div>
-                  <div class="grid grid-cols-4 items-center gap-4">
-                    <Label :class="connectionLabelSmallClass">{{ t("connection.keepaliveInterval") }}</Label>
-                    <div class="col-span-3 flex items-center gap-2">
-                      <Switch v-model="keepaliveEnabled" />
-                      <Input v-model.number="form.keepalive_interval_secs" type="number" min="1" max="3600" step="1" class="flex-1" :disabled="!keepaliveEnabled" />
-                    </div>
-                  </div>
-                </section>
-                <section class="connection-advanced-section grid content-start gap-4 rounded-lg border p-4">
-                  <h3 class="text-base font-bold">{{ t("connection.advancedOperationProtection") }}</h3>
-                  <div class="grid grid-cols-4 items-center gap-4">
-                    <Label :class="connectionLabelSmallClass">
-                      <span class="inline-flex items-center gap-1">{{ t("connection.readOnly") }} <HelpTooltip :label="t('connection.readOnlyExplanation')" /></span>
-                    </Label>
-                    <label class="col-span-3 flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" v-model="form.read_only" class="mr-0" />
-                      <span class="text-xs text-muted-foreground">{{ t("connection.readOnlyHint") }}</span>
-                    </label>
-                  </div>
-                  <div v-if="!isPluginConnection" class="grid grid-cols-4 items-start gap-4 rounded-[6px] border border-red-500/25 bg-red-500/[0.035] px-3 py-2.5">
-                    <Label :class="[connectionLabelSmallClass, 'pt-0.5 text-red-700 dark:text-red-300']">
-                      <span class="inline-flex items-center justify-end gap-1"><ShieldAlert class="h-3.5 w-3.5" />PROD <HelpTooltip :label="t('production.explanation')" trigger-class="text-red-700/70 dark:text-red-300/70" /></span>
-                    </Label>
-                    <div class="col-span-3 grid gap-2">
-                      <div class="flex items-center justify-between gap-3">
-                        <Label class="text-sm font-medium">{{ t("production.enable") }}</Label>
-                        <Switch :model-value="productionProtectionEnabled" @update:model-value="setProductionProtectionEnabled" />
-                      </div>
-                      <p v-if="!productionProtectionEnabled" class="text-xs leading-5 text-muted-foreground">{{ t(productionDisabledDescriptionKey) }}</p>
-                      <template v-else>
-                        <Label class="text-xs font-medium">{{ t("production.scope") }}</Label>
-                        <Tabs v-model="productionScope" class="w-full">
-                          <TabsList class="grid h-8 w-full grid-cols-2">
-                            <TabsTrigger value="connection" class="text-xs">{{ t(productionScopeAllLabelKey) }}</TabsTrigger>
-                            <TabsTrigger value="databases" class="text-xs" :disabled="!canSelectProductionDatabases" :title="canSelectProductionDatabases ? undefined : t('production.singleDatabaseScopeHint')">{{ t(productionScopeSelectedLabelKey) }}</TabsTrigger>
-                          </TabsList>
-                        </Tabs>
-                        <p class="text-xs leading-5 text-muted-foreground">{{ productionScope === "connection" ? t(productionConnectionDescriptionKey) : t(productionScopeDescriptionKey) }}</p>
-                        <div v-if="productionScope === 'databases'" class="grid gap-1.5">
-                          <div class="flex items-center justify-between gap-3">
-                            <Label class="text-xs font-medium">{{ t(productionScopeResourceLabelKey) }}</Label>
-                            <span class="text-xs text-muted-foreground">{{ productionDatabaseSummary }}</span>
-                          </div>
-                          <Button type="button" variant="outline" size="sm" class="justify-start" :disabled="isTesting || isSaving || isLoadingProductionDatabases || !hasRequiredConnectionTarget" @click="openProductionDatabasesPicker">
-                            <Loader2 v-if="isLoadingProductionDatabases" class="mr-1.5 h-4 w-4 animate-spin" />
-                            <ListFilter v-else class="mr-1.5 h-4 w-4" />
-                            {{ t(productionScopePickerLabelKey) }}
-                          </Button>
-                        </div>
-                        <div class="grid gap-1.5 pt-1">
-                          <Label for="production-badge-scope" class="text-xs font-medium">{{ t("production.badgeScope") }}</Label>
-                          <Select :model-value="form.production_badge_scope || 'database'" @update:model-value="form.production_badge_scope = $event as ProductionBadgeScope">
-                            <SelectTrigger id="production-badge-scope" class="h-8" :aria-label="t('production.badgeScope')"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="connection">{{ t("production.badgeScopeConnection") }}</SelectItem>
-                              <SelectItem value="database">{{ t("production.badgeScopeDatabase") }}</SelectItem>
-                              <SelectItem value="table">{{ t("production.badgeScopeTable") }}</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <p class="text-xs leading-5 text-muted-foreground">{{ t(`production.badgeScopeHint${form.production_badge_scope === "connection" ? "Connection" : form.production_badge_scope === "table" ? "Table" : "Database"}`) }}</p>
-                          <p class="text-xs leading-5 text-muted-foreground">{{ t("production.badgeScopeSafetyHint") }}</p>
-                        </div>
-                      </template>
-                    </div>
-                  </div>
-                  <div v-if="form.db_type === 'oracle'" class="grid grid-cols-4 items-center gap-4">
-                    <Label :class="connectionLabelSmallClass">
-                      <span class="inline-flex items-center gap-1">SYSDBA <HelpTooltip :label="t('connection.oracleSysdbaHint')" content-class="max-w-[320px]" /></span>
-                    </Label>
-                    <label class="col-span-3 flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" v-model="form.sysdba" class="mr-0" :disabled="isOracleSysUser(form)" />
-                      <span class="text-sm text-muted-foreground">{{ t("connection.oracleSysdbaEnable") }}</span>
-                    </label>
-                  </div>
-                </section>
-                <section
-                  v-if="supportsDoltSystemTables || isSchemaAware(form.db_type) || supportsOracleDatabaseLinks(form.db_type) || sidebarVisibilitySettings.length > 0 || supportsAutomaticTableLoading || form.db_type === 'redis'"
-                  class="connection-advanced-section grid content-start gap-4 rounded-lg border p-4"
-                >
-                  <h3 class="text-base font-bold">{{ t("connection.advancedObjectBrowsing") }}</h3>
-                  <div v-if="supportsDoltSystemTables" class="grid grid-cols-4 items-center gap-4">
-                    <Label :class="connectionLabelSmallClass">{{ t("connection.doltShowSystemTables") }}</Label>
-                    <label class="col-span-3 flex items-center gap-2 cursor-pointer">
-                      <input v-model="showDoltSystemTables" type="checkbox" class="mr-0" />
-                      <span class="text-xs text-muted-foreground">{{ t("connection.doltShowSystemTablesHint") }}</span>
-                    </label>
-                  </div>
-                  <div v-if="isSchemaAware(form.db_type)" class="grid grid-cols-4 items-center gap-4">
-                    <Label :class="connectionLabelSmallClass">{{ t("connection.showSystemSchemas") }}</Label>
-                    <label class="col-span-3 flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" v-model="form.show_system_schemas" class="mr-0" />
-                      <span class="text-xs text-muted-foreground">{{ t("connection.showSystemSchemasHint") }}</span>
-                    </label>
-                  </div>
-                  <div v-if="supportsOracleDatabaseLinks(form.db_type)" class="grid grid-cols-4 items-center gap-4">
-                    <Label :class="connectionLabelSmallClass">{{ t("connection.showDatabaseLinks") }}</Label>
-                    <label class="col-span-3 flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" v-model="form.show_database_links" class="mr-0" />
-                      <span class="text-xs text-muted-foreground">{{ t("connection.showDatabaseLinksHint") }}</span>
-                    </label>
-                  </div>
-                  <div v-for="setting in sidebarVisibilitySettings" :key="setting.key" class="grid grid-cols-4 items-center gap-4">
-                    <Label :for="`sidebar-${setting.key}`" :class="connectionLabelSmallClass">{{ t(setting.label) }}</Label>
-                    <label class="col-span-3 flex items-center gap-2 cursor-pointer">
-                      <input :id="`sidebar-${setting.key}`" type="checkbox" v-model="form[setting.key]" :aria-label="t(setting.label)" class="mr-0" />
-                      <span class="text-xs text-muted-foreground">{{ t(setting.hint) }}</span>
-                    </label>
-                  </div>
-                  <div v-if="supportsAutomaticTableLoading" class="grid grid-cols-4 items-start gap-4">
-                    <Label :class="connectionLabelSmallPaddedClass">{{ t("connection.tableLoading") }}</Label>
-                    <div class="col-span-3 grid gap-1.5">
-                      <label class="flex cursor-pointer items-center gap-2">
-                        <Switch v-model="form.sidebar_auto_load_all_tables" />
-                        <span class="text-sm font-medium">{{ t("connection.autoLoadAllTables") }}</span>
-                      </label>
-                      <p class="text-xs leading-5 text-muted-foreground">{{ t("connection.autoLoadAllTablesHint") }}</p>
-                    </div>
-                  </div>
-                  <!-- Documentation notes are a relational-only feature, so this
-                     follows the same isSchemaAware gate as the row above. -->
-                  <div v-if="isSchemaAware(form.db_type)" class="grid grid-cols-4 items-start gap-4">
-                    <Label :class="connectionLabelTopClass">{{ t("connection.docsNotesPath") }}</Label>
-                    <div class="col-span-3 space-y-1">
-                      <Input v-model="form.docs_notes_path" :placeholder="t('connection.docsNotesPathPlaceholder')" spellcheck="false" />
-                      <p class="text-xs text-muted-foreground">
-                        {{ t("connection.docsNotesPathHint") }}
-                      </p>
-                    </div>
-                  </div>
-                  <div v-show="form.db_type === 'redis'" class="grid grid-cols-4 items-center gap-4">
-                    <Label :class="connectionLabelSmallClass">{{ t("settings.redisScanPageSize") }}</Label>
-                    <div class="col-span-3 flex flex-col gap-1">
-                      <Select :model-value="String(form.redis_scan_page_size ?? REDIS_SCAN_PAGE_SIZE_DEFAULT)" @update:model-value="form.redis_scan_page_size = Number($event)">
-                        <SelectTrigger>
-                          <SelectValue :placeholder="t('settings.redisScanPageSize')" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem v-for="size in REDIS_SCAN_PAGE_SIZE_OPTIONS" :key="size" :value="String(size)">
-                            {{ t("settings.redisScanPageSizeOption", { count: size }) }}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p class="text-xs text-muted-foreground">{{ t("settings.redisScanPageSizeDescription") }}</p>
-                    </div>
-                  </div>
-                  <div v-if="form.db_type === 'redis'" class="grid grid-cols-4 items-start gap-4">
-                    <Label for="redis-value-preview-limit-input" :class="connectionLabelTopClass">{{ t("settings.redisValuePreviewLimit") }}</Label>
-                    <div class="col-span-3 space-y-1">
-                      <div class="flex items-center gap-2">
-                        <Input id="redis-value-preview-limit-input" v-model.number="editRedisValuePreviewLimitKiB" type="number" :min="REDIS_VALUE_PREVIEW_LIMIT_KIB_MIN" :max="REDIS_VALUE_PREVIEW_LIMIT_KIB_MAX" step="1" class="h-8 w-32 text-xs" />
-                        <span class="text-sm text-muted-foreground">KiB</span>
-                      </div>
-                      <p class="text-xs text-muted-foreground">{{ t("settings.redisValuePreviewLimitDescription") }}</p>
-                    </div>
-                  </div>
-                </section>
-                <section v-if="form.db_type === 'oracle'" class="connection-advanced-section grid content-start gap-4 rounded-lg border p-4">
-                  <h3 class="text-base font-bold">{{ t("connection.advancedCompatibility") }}</h3>
-                  <div class="grid grid-cols-4 items-start gap-4">
-                    <Label :class="connectionLabelSmallPaddedClass">
-                      <span class="inline-flex items-center gap-1">{{ t("connection.oracleLegacyCharset") }} <HelpTooltip :label="t('connection.oracleLegacyCharsetHint')" /></span>
-                    </Label>
-                    <div class="col-span-3 space-y-1">
-                      <Select :model-value="oracleLegacyCharsetSelection" @update:model-value="onOracleLegacyCharsetSelected">
-                        <SelectTrigger class="w-full" :aria-label="t('connection.oracleLegacyCharset')">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem :value="ORACLE_LEGACY_CHARSET_DISABLED">{{ t("connection.oracleLegacyCharsetDisabled") }}</SelectItem>
-                          <SelectItem v-for="charset in ORACLE_LEGACY_CHARSETS" :key="charset" :value="charset">{{ charset }}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p v-if="oracleLegacyCharsetSelection !== ORACLE_LEGACY_CHARSET_DISABLED" class="text-xs text-muted-foreground">{{ t("connection.oracleLegacyCharsetHint") }}</p>
-                    </div>
-                  </div>
-                </section>
+                </div>
               </div>
             </TabsContent>
 
@@ -11933,15 +11725,6 @@ html.dbx-legacy-webview.dark .connection-transport-layer-option--selected:hover 
 
 .connection-dialog-content[data-wide="true"] .grid.grid-cols-4 {
   grid-template-columns: minmax(5.5rem, 0.7fr) repeat(3, minmax(0, 1fr));
-}
-
-/* Group padding reduces the label space; keep short labels on one line. */
-.connection-dialog-content .connection-advanced-section > .grid.grid-cols-4 {
-  grid-template-columns: minmax(7.5rem, 1fr) repeat(3, minmax(0, 1fr));
-}
-
-.connection-advanced-section > .grid > [data-slot="label"] {
-  text-wrap: balance;
 }
 
 .connection-dialog-content[data-wide="true"] .connection-form-body {

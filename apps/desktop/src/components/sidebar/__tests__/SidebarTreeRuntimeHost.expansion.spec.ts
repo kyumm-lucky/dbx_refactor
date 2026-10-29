@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { createApp, defineComponent, h, nextTick, provide, ref, type App } from "vue";
+import { createApp, defineComponent, h, nextTick, provide, reactive, ref, type App } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import i18n from "@/i18n";
 import type { TreeNode } from "@/types/database";
@@ -35,6 +35,21 @@ const connectionStore = {
     node.isExpanded = true;
   }),
   loadXuguTablespaces: vi.fn(async (node: TreeNode) => {
+    node.isExpanded = true;
+  }),
+  loadRedisDatabases: vi.fn(async (node: TreeNode) => {
+    node.isExpanded = true;
+  }),
+  loadMongoDatabases: vi.fn(async (node: TreeNode) => {
+    node.isExpanded = true;
+  }),
+  loadEtcdRoot: vi.fn(async (node: TreeNode) => {
+    node.isExpanded = true;
+  }),
+  loadMilvusDatabases: vi.fn(async (node: TreeNode) => {
+    node.isExpanded = true;
+  }),
+  loadElasticsearchIndices: vi.fn(async (node: TreeNode) => {
     node.isExpanded = true;
   }),
 };

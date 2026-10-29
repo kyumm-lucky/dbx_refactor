@@ -64,14 +64,6 @@ const severityBadgeClasses: Record<SeverityTone, string> = {
     </div>
     <div v-else ref="messageContentsRef" class="overflow-hidden">
       <div v-for="(message, index) in messages" :key="index" class="flex items-start gap-2 border-b px-3 py-2 text-xs last:border-b-0">
-        <Badge variant="secondary" class="mt-px shrink-0 font-mono text-xs uppercase" :class="severityBadgeClasses[severityTone(message.severity)]">
-          {{ message.severity }}
-        </Badge>
-        <div class="min-w-0 flex-1">
-          <div class="font-mono text-xs whitespace-pre-wrap break-words text-foreground">{{ message.message }}</div>
-          <div v-if="message.detail" class="mt-0.5 font-mono text-xs whitespace-pre-wrap break-words text-muted-foreground">{{ message.detail }}</div>
-          <div v-if="message.hint" class="mt-0.5 font-mono text-xs whitespace-pre-wrap break-words text-muted-foreground">{{ message.hint }}</div>
-          <div v-if="message.code" class="mt-0.5 font-mono text-xs text-muted-foreground">{{ t("queryMessages.code", { code: message.code }) }}</div>
         <Badge variant="secondary" class="mt-px shrink-0 select-none font-mono text-[10px] uppercase" :class="severityBadgeClasses[severityTone(message.severity)]">
           {{ message.severity }}
         </Badge>

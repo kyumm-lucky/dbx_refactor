@@ -1728,10 +1728,6 @@ function expandSidebarNodePath(nodePath: TreeNode[]): void {
   }
 }
 
-async function locateActiveTabInSidebar() {
-  await locateTabInSidebar(activeTab.value, "smart");
-}
-
 async function locateTabInSidebar(tab: QueryTab | undefined | null, align: SidebarNodeScrollAlign = "center") {
   try {
     await locateTabInSidebarTarget(tab, align);

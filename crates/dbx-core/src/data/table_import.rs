@@ -4901,7 +4901,6 @@ fn build_import_insert_batches_with_plan(
         primary_key_columns,
         date_time_format,
         hard_sql_bytes,
-        start_row_offset,
     )
 }
 
@@ -4918,7 +4917,6 @@ fn build_import_insert_batches_with_plan_and_identifier_quote(
     primary_key_columns: &[String],
     date_time_format: Option<&str>,
     hard_sql_bytes: Option<usize>,
-    start_row_offset: usize,
 ) -> Result<Vec<ImportSqlBatch>, String> {
     if rows.is_empty() {
         return Ok(Vec::new());
@@ -12911,7 +12909,6 @@ mod tests {
                 source_column: column.clone(),
                 target_column: column.clone(),
                 target_data_type: None,
-                generator: None,
             })
             .collect::<Vec<_>>();
         let target_column_types =
@@ -12933,7 +12930,6 @@ mod tests {
                 &[],
                 None,
                 None,
-                0,
             )
             .unwrap()
             .into_iter()

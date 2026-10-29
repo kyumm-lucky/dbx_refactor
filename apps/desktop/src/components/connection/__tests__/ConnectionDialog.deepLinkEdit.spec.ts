@@ -5,7 +5,6 @@ import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "@/i18n";
 import type { ConnectionConfig } from "@/types/database";
-import { CONNECTION_PROFILES } from "@/types/generated/connectionProfiles";
 import { parseConnectionDeepLink, parseConnectionDeepLinkUpdate } from "@/lib/connection/connectionDeepLink";
 
 const visibleTab = vi.hoisted(() => ({ value: "connection" }));
@@ -187,7 +186,7 @@ async function settle() {
   for (let i = 0; i < 8; i++) await nextTick();
 }
 
-async function mountDialog(config: ConnectionConfig, url = "", initiallyOpen = true) {
+async function mountDialog(config: ConnectionConfig, url: string, initiallyOpen = true) {
   const props = reactive({ open: initiallyOpen, editConfig: config, updatePrefill: url ? parseConnectionDeepLinkUpdate(url) : null });
   store.getConfig.mockReturnValue(config);
   const container = document.createElement("div");
@@ -251,147 +250,7 @@ afterEach(() => {
   actualStoreHolder.value = null;
 });
 
-describe.each([
-  { mode: "without edits", rename: false },
-  { mode: "after renaming", rename: true },
-])("ConnectionDialog saved connection settings $mode", ({ rename }) => {
-  it.each([
-    {
-      setting: "Redis database aliases",
-      config: savedConnection({ db_type: "redis", driver_profile: "redis", driver_label: "Redis", port: 6379, database: "0", redis_database_aliases: { "3": "orders", "7": "cache" } }),
-      expected: { redis_database_aliases: { "3": "orders", "7": "cache" } },
-    },
-    {
-      setting: "the default schema",
-      config: savedConnection({ db_type: "postgres", driver_profile: "postgres", driver_label: "PostgreSQL", port: 5432, default_schema: "archive" }),
-      expected: { default_schema: "archive" },
-    },
-  ])("preserves $setting when saving", async ({ config, expected }) => {
-    const originalName = config.name;
-    await mountDialog(config);
-    if (rename) {
-      const nameInput = [...document.querySelectorAll("input")].find((input) => input.value === originalName);
-      expect(nameInput).toBeTruthy();
-      nameInput!.value = "Renamed connection";
-      nameInput!.dispatchEvent(new Event("input", { bubbles: true }));
-      await settle();
-    }
-
-    const save = [...document.querySelectorAll("button")].find((button) => button.textContent?.trim() === "Save");
-    expect(save).toBeTruthy();
-    save!.click();
-    await vi.waitFor(() => expect(store.updateConnection).toHaveBeenCalledOnce());
-
-    expect(store.updateConnection).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...expected,
-        id: config.id,
-        name: rename ? "Renamed connection" : originalName,
-        password: config.password,
-      }),
-    );
-    expect(config).toEqual(expect.objectContaining({ ...expected, name: originalName }));
-    expect(store.addConnection).not.toHaveBeenCalled();
-  });
-});
-
 describe("ConnectionDialog deep-link edit confirmation", () => {
-  it("saves a new OceanBase connection with its explicitly entered port after switching mode", async () => {
-    backend.listInstalledAgentsLocal.mockResolvedValue([{ db_type: "oceanbase-oracle", installed: true }]);
-    await mountNewDialog();
-    const category = [...document.querySelectorAll("button")].find((button) => button.textContent?.trim() === i18n.global.t("connection.databaseCategoryDomestic"));
-    expect(category).toBeTruthy();
-    category!.click();
-    await settle();
-    const option = document.querySelector<HTMLButtonElement>('[title="OceanBase"]');
-    expect(option).toBeTruthy();
-    option!.click();
-    await settle();
-    option!.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
-    await settle();
-    const port = document.querySelector<HTMLInputElement>('input[type="number"].col-span-1');
-    expect(port?.value).toBe("2883");
-    port!.value = "2881";
-    port!.dispatchEvent(new Event("input", { bubbles: true }));
-    await settle();
-    const mode = [...document.querySelectorAll("button")].find((button) => button.textContent?.trim() === i18n.global.t("connection.oceanbaseOracleMode"));
-    mode!.click();
-    await settle();
-    const save = [...document.querySelectorAll("button")].find((button) => button.textContent?.trim() === i18n.global.t("connection.saveAndConnect"));
-    expect(save).toBeTruthy();
-    save!.click();
-    await settle();
-    expect(store.addConnection).toHaveBeenCalledWith(expect.objectContaining({ db_type: "oceanbase-oracle", driver_profile: "oceanbase-oracle", port: 2881 }), null);
-  });
-
-  it.each([false, true])("follows each OceanBase profile default in both directions (Oracle source: %s)", async (oracle) => {
-    const mysqlPort = CONNECTION_PROFILES.oceanbase.port;
-    const oraclePort = CONNECTION_PROFILES["oceanbase-oracle"].port;
-    try {
-      Object.defineProperty(CONNECTION_PROFILES.oceanbase, "port", { value: 12881, configurable: true });
-      Object.defineProperty(CONNECTION_PROFILES["oceanbase-oracle"], "port", { value: 12883, configurable: true });
-      await mountDialog(savedConnection({ db_type: oracle ? "oceanbase-oracle" : "mysql", driver_profile: oracle ? "oceanbase-oracle" : "oceanbase", port: oracle ? 12883 : 12881 }), "");
-      for (const targetOracle of [!oracle, oracle]) {
-        const portInput = document.querySelector<HTMLInputElement>('input[type="number"].col-span-1')!;
-        for (const value of ["12889", String(targetOracle ? 12881 : 12883)]) {
-          portInput.value = value;
-          portInput.dispatchEvent(new Event("input", { bubbles: true }));
-          await settle();
-        }
-        const key = targetOracle ? "connection.oceanbaseOracleMode" : "connection.oceanbaseMySQLMode";
-        const mode = [...document.querySelectorAll("button")].find((button) => button.textContent?.trim() === i18n.global.t(key));
-        mode!.click();
-        await settle();
-        expect(document.querySelector<HTMLInputElement>('input[type="number"].col-span-1')?.value).toBe(String(targetOracle ? 12883 : 12881));
-      }
-      const customPort = document.querySelector<HTMLInputElement>('input[type="number"].col-span-1')!;
-      customPort.value = "12889";
-      customPort.dispatchEvent(new Event("input", { bubbles: true }));
-      await settle();
-      for (const targetOracle of [!oracle, oracle]) {
-        const key = targetOracle ? "connection.oceanbaseOracleMode" : "connection.oceanbaseMySQLMode";
-        [...document.querySelectorAll("button")].find((button) => button.textContent?.trim() === i18n.global.t(key))!.click();
-        await settle();
-        expect(document.querySelector<HTMLInputElement>('input[type="number"].col-span-1')?.value).toBe("12889");
-      }
-    } finally {
-      Object.defineProperty(CONNECTION_PROFILES.oceanbase, "port", { value: mysqlPort, configurable: true });
-      Object.defineProperty(CONNECTION_PROFILES["oceanbase-oracle"], "port", { value: oraclePort, configurable: true });
-    }
-  });
-
-  it.each([
-    { port: 2881, oracle: false },
-    { port: 12883, oracle: false },
-    { port: 2883, oracle: false },
-    { port: 2881, oracle: true },
-    { port: 12883, oracle: true },
-  ])("retains OceanBase port $port (Oracle source: $oracle) across compatibility mode switches and save", async ({ port, oracle }) => {
-    backend.listInstalledAgentsLocal.mockResolvedValue([{ db_type: "oceanbase-oracle", installed: true }]);
-    await mountDialog(savedConnection({ db_type: oracle ? "oceanbase-oracle" : "mysql", driver_profile: oracle ? "oceanbase-oracle" : "oceanbase", driver_label: "OceanBase", port: 2883 }), "");
-    const portInput = document.querySelector<HTMLInputElement>('input[type="number"].col-span-1');
-    expect(portInput).toBeTruthy();
-    portInput!.value = String(port);
-    portInput!.dispatchEvent(new Event("input", { bubbles: true }));
-    await settle();
-    const clickMode = async (key: "connection.oceanbaseOracleMode" | "connection.oceanbaseMySQLMode") => {
-      const button = [...document.querySelectorAll("button")].find((button) => button.textContent?.trim() === i18n.global.t(key));
-      expect(button).toBeTruthy();
-      button!.click();
-      await settle();
-      const portInput = document.querySelector<HTMLInputElement>('input[type="number"].col-span-1');
-      expect(portInput?.value).toBe(String(port));
-    };
-    await clickMode("connection.oceanbaseOracleMode");
-    await clickMode("connection.oceanbaseOracleMode");
-    await clickMode("connection.oceanbaseMySQLMode");
-    await clickMode("connection.oceanbaseOracleMode");
-    const save = [...document.querySelectorAll("button")].find((button) => button.textContent?.trim() === "Save");
-    save!.click();
-    await settle();
-    expect(store.updateConnection).toHaveBeenCalledWith(expect.objectContaining({ db_type: "oceanbase-oracle", driver_profile: "oceanbase-oracle", port, username: "SYS", url_params: "", host: "old.example.test", password: "old-password" }));
-  });
-
   it("preserves a protected generic JDBC target when only its name changes", async () => {
     const saved = savedConnection({
       db_type: "jdbc",
@@ -790,7 +649,7 @@ describe("ConnectionDialog deep-link edit confirmation", () => {
   });
 
   it("hydrates a later-opened update without clearing omitted database or schema filters", async () => {
-    const saved = savedConnection({ db_type: "postgres", driver_profile: "postgres", driver_label: "PostgreSQL", url_params: "sslmode=require", visible_schemas: ["approved_schema"], default_schema: "archive" });
+    const saved = savedConnection({ db_type: "postgres", driver_profile: "postgres", driver_label: "PostgreSQL", url_params: "sslmode=require", visible_schemas: ["approved_schema"] });
     const props = await mountDialog(saved, "dbx://connection/new?id=saved-production&user=new-user&password=new-password", false);
     props.open = true;
     await settle();
@@ -813,7 +672,6 @@ describe("ConnectionDialog deep-link edit confirmation", () => {
         password: "new-password",
         visible_databases: ["orders"],
         visible_schemas: ["approved_schema"],
-        default_schema: "archive",
       }),
     );
     expect(store.addConnection).not.toHaveBeenCalled();
