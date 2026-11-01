@@ -459,15 +459,14 @@ type ToolbarMenuItem = LightDropdownItem & { action: () => void };
 function buildToolbarMenuItems(includeVisiblePrimaryItems: boolean): ToolbarMenuItem[] {
   const items: ToolbarMenuItem[] = [];
 
-  if (includeVisiblePrimaryItems || !toolbarItems.value.dataTransfer) {
-    items.push({
-      value: "transfer",
-      label: t("transfer.dataTransfer"),
-      icon: ArrowLeftRight,
-      action: () => emit("open-transfer"),
-      disabled: !props.hasConnections,
-    });
-  }
+  // 数据传输与插件中心不占工具栏主位置，固定收在「更多」菜单里。
+  items.push({
+    value: "transfer",
+    label: t("transfer.dataTransfer"),
+    icon: ArrowLeftRight,
+    action: () => emit("open-transfer"),
+    disabled: !props.hasConnections,
+  });
   if (includeVisiblePrimaryItems || !toolbarItems.value.driverManager) {
     items.push({
       value: "driver-store",
@@ -477,9 +476,7 @@ function buildToolbarMenuItems(includeVisiblePrimaryItems: boolean): ToolbarMenu
       disabled: false,
     });
   }
-  if (includeVisiblePrimaryItems || !toolbarItems.value.pluginCenter) {
-    items.push({ value: "plugin-center", label: t("toolbar.pluginCenter"), icon: PlugZap, action: () => emit("open-plugin-center"), disabled: false });
-  }
+  items.push({ value: "plugin-center", label: t("toolbar.pluginCenter"), icon: PlugZap, action: () => emit("open-plugin-center"), disabled: false });
   if (toolbarItems.value.sqlFile) {
     items.push({
       value: "sql-file",
@@ -597,23 +594,14 @@ const toolbarStyle = computed(() => {
     </Button>
 
     <template v-if="!toolbarCollapsed">
-      <Button v-if="toolbarItems.dataTransfer" variant="ghost" size="sm" :class="toolbarTextButtonClass" @click="emit('open-transfer')" :disabled="!hasConnections">
-        <ArrowLeftRight class="h-3.5 w-3.5" />
-        <span :class="toolbarTextLabelClass">{{ t("transfer.dataTransfer") }}</span>
-      </Button>
-
       <Button v-if="toolbarItems.driverManager" variant="ghost" size="sm" :class="[toolbarTextButtonClass, { 'bg-accent': showDriverStore }]" @click="emit('open-driver-store')">
         <Package class="h-3.5 w-3.5" />
         <span :class="toolbarTextLabelClass">{{ t("toolbar.driverManager") }}</span>
         <!-- 小圆点仅提示"有可更新驱动"，具体数量交给对话框内标签页红点展示，避免工具栏长期挂红数字。 -->
         <span v-if="agentDriverUpdateCount > 0" class="ml-0.5 inline-block h-2 w-2 rounded-full bg-red-500" :aria-label="t('toolbar.updatableDriverCount')" :title="t('toolbar.updatableDriverCount')" />
       </Button>
-      <div v-if="toolbarItems.pluginCenter || showPluginCenterShortcuts" ref="pluginCenterGroup" class="flex shrink-0 items-center rounded-md" :class="{ 'bg-accent': showPluginCenter }">
-        <Button v-if="toolbarItems.pluginCenter" variant="ghost" size="sm" :class="[toolbarTextButtonClass, { 'rounded-r-none': showPluginCenterShortcuts }]" @click="emit('open-plugin-center')">
-          <PlugZap class="h-3.5 w-3.5" />
-          <span :class="toolbarTextLabelClass">{{ t("toolbar.pluginCenter") }}</span>
-        </Button>
-        <PluginShortcutToolbar v-if="showPluginCenterShortcuts" dropdown-only :menu-anchor="pluginCenterGroup" @layout-change="scheduleToolbarLayout" />
+      <div v-if="showPluginCenterShortcuts" ref="pluginCenterGroup" class="flex shrink-0 items-center rounded-md" :class="{ 'bg-accent': showPluginCenter }">
+        <PluginShortcutToolbar dropdown-only :menu-anchor="pluginCenterGroup" @layout-change="scheduleToolbarLayout" />
       </div>
 
       <LightDropdown

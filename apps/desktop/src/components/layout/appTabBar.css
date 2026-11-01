@@ -628,9 +628,9 @@
   right: -1px;
 }
 
-/* Settings and Driver Manager are rendered directly in the section instead
- * of inside a tab-group-entry wrapper. Their classic h-full class must size
- * to one wrapped row, not to the full multi-row section. */
+/* Settings and Driver Manager are rendered directly in the section instead of
+ * inside a tab-group-entry wrapper. In the classic wrap layout their h-full
+ * class must size to one wrapped row, not to the full multi-row section. */
 .app-tab-scroll.wrap-mode.classic-wrap .tab-section--horizontal > .app-tab-pill {
   height: var(--dbx-tab-h) !important;
   min-height: var(--dbx-tab-h) !important;
@@ -641,9 +641,10 @@
   min-height: var(--dbx-tab-h);
 }
 
+/* 现代布局下这些 pill 自带 h-7（与普通标签同高），不能再压成 --dbx-tab-h：
+ * 23px 会让设置 / 驱动管理在多行平铺时比同行的普通标签矮一截。只保留行首
+ * 对齐，高度交给 pill 自身的 h-7。 */
 .app-tab-scroll.wrap-mode:not(.classic-wrap) .tab-section--horizontal > .app-tab-pill {
-  height: var(--dbx-tab-h) !important;
-  min-height: var(--dbx-tab-h) !important;
   align-self: flex-start;
 }
 
@@ -1361,6 +1362,14 @@ html.dbx-legacy-webview .vertical-tab-layout .app-tab-pill:not(.tab-group-tab)[d
 .app-tab-bar.classic-tab-layout:not(.vertical-tab-layout) .tab-group-entry {
   height: auto;
   align-self: center;
+}
+
+/* 经典紧凑布局的标签块原本紧贴排列，只靠右上缘 0.5px 细线分隔，相邻标签读起来
+ * 像连成一条色带。这里补一个列间距，让每个标签成为独立块（与分离式布局的 4px
+ * 保持一致）。分组模式下标签要拼出连续的组色条，多行平铺另有自己的行间距，
+ * 两种情况都不受这条规则影响。 */
+.app-tab-bar.classic-tab-layout:not(.vertical-tab-layout):not(:has(.wrap-mode))[data-group-mode="none"] .tab-section--horizontal {
+  column-gap: 4px;
 }
 
 .app-tab-bar:not(.vertical-tab-layout):not(:has(.wrap-mode))[data-has-max-tab-width="true"] .tab-group-entry[data-tab-group-id] > .tab-group-tab {

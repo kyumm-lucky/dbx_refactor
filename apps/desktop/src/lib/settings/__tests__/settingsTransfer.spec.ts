@@ -234,7 +234,7 @@ describe("settingsTransfer", () => {
   });
 
   it("rejects toolbar items whose known keys are not booleans", () => {
-    const result = parseSettingsTransferFile(fileWith({ toolbarItems: { dataTransfer: "yes" } }));
+    const result = parseSettingsTransferFile(fileWith({ toolbarItems: { driverManager: "yes" } }));
     expect(result.ok).toBe(false);
     if (!result.ok) return;
     expect(result.error.detail).toContain("toolbarItems");

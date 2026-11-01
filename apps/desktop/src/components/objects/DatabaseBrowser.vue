@@ -582,7 +582,7 @@ defineExpose({ focusSearch, refresh });
             <ArrowDown class="h-3.5 w-3.5" />
             {{ t("objects.sortBy") }}
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
+          <DropdownMenuSubContent side="left" :side-offset="2">
             <DropdownMenuItem v-for="key in sortKeyOptions" :key="key" @select="toggleSort(key)">
               <Check v-if="sortKey === key" class="h-3.5 w-3.5" />
               {{ columnLabel(key) }}
@@ -609,7 +609,7 @@ defineExpose({ focusSearch, refresh });
         </DropdownMenuItem>
         <DropdownMenuSub v-if="isCompactView">
           <DropdownMenuSubTrigger>{{ t("objects.compactCardWidth") }}</DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
+          <DropdownMenuSubContent side="left" :side-offset="2">
             <DropdownMenuItem v-for="width in OBJECT_BROWSER_COMPACT_WIDTHS" :key="width" @select="setCompactCardWidth(width)">
               <Check v-if="compactCardWidth === width" class="h-3.5 w-3.5" />
               {{ width }}px

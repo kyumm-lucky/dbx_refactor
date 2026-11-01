@@ -352,7 +352,7 @@ describe("settings search", () => {
 
     expect(definitions).toHaveLength(TOOLBAR_VISIBILITY_ITEMS.length);
     expect(definitions.map((definition) => definition.id)).toEqual(TOOLBAR_VISIBILITY_ITEMS.map((item) => `appearance-toolbar-${item.key}`));
-    expect(definitions).toContainEqual({ id: "appearance-toolbar-dataTransfer", category: "appearance", titleKey: "transfer.dataTransfer", targetId: "appearance" });
+    expect(definitions).toContainEqual({ id: "appearance-toolbar-driverManager", category: "appearance", titleKey: "toolbar.driverManager", targetId: "appearance" });
     expect(definitions).toContainEqual({ id: "appearance-toolbar-ai", category: "appearance", title: "AI", targetId: "appearance" });
     expect(definitions).toContainEqual({ id: "appearance-toolbar-alwaysOnTop", category: "appearance", titleKey: "toolbar.alwaysOnTop", targetId: "appearance", visible: expect.any(Function) });
   });

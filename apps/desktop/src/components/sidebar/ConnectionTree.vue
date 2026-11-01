@@ -2841,7 +2841,7 @@ defineExpose({
             autocapitalize="off"
             autocorrect="off"
             spellcheck="false"
-            class="w-full h-[26px] pl-7 pr-[4.75rem] text-xs rounded-md bg-muted/60 focus:outline-none focus:ring-1 focus:ring-ring"
+            class="w-full h-[26px] pl-7 pr-[4.75rem] text-xs rounded-md border border-input bg-muted/60 focus:outline-none focus:ring-1 focus:ring-ring"
             :class="regexMode && compileSearchRegex(searchQuery).invalid ? 'ring-1 ring-destructive focus:ring-destructive' : ''"
             :aria-invalid="regexMode && compileSearchRegex(searchQuery).invalid ? 'true' : 'false'"
             :placeholder="t('grid.search')"

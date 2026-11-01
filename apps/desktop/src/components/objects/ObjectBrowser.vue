@@ -893,20 +893,26 @@ const selectableRows = computed(() => nameFilteredRows.value);
 const OBJECT_GRID_MIN_CARD_WIDTH = 160; // former `minmax(160px, 1fr)` floor
 const OBJECT_GRID_GAP = 12; // 0.75rem, former grid gap (both axes)
 const OBJECT_COMPACT_GAP = 4;
+// 紧凑卡片改为两行：第一行图标 + 名称（约 16px），第二行类型 / 行数 / 大小（约 13px），
+// 加上 py-1（8px）与行间距（2px），总高 44px。单行时名称被挤到只剩十来个字符。
+const OBJECT_COMPACT_ROW_H = 44;
 // Card height is dataset-stable: if any object has timestamps/comments, every card
 // reserves those slots (even when empty) so borders stay level across a row.
 // objectGridRowHeight adapts to the dataset instead of always using the worst case.
-//   Base: p-3 top+bottom(24) + icon h-11(44) + name(18) + type/bytes(18) + gap-1×2(8) = 112
-//   + optional timestamp row: text-xs(15) + gap-1(4) = 19
-//   + optional comment row:   text-xs(15) + gap-1(4) = 19
+//   Base: p-3 top+bottom(24) + icon h-11(44) + name(18) + type/bytes(24) + gap-1×2(8) = 118
+//   + optional timestamp row: min-h-5(20) + gap-1(4) = 24
+//   + optional comment row:   leading-5(20) + gap-1(4) = 24
+// The type/bytes row carries py-0.5 badges (and an optional validity badge), so it
+// stands taller than plain 18px text; under-counting it used to make the flex column
+// shrink the name row, and its `truncate` clipped the table name away.
 // If the card gains a new metadata row, add a matching constant and include it below.
-const OBJECT_GRID_CARD_BASE_H = 112;
-const OBJECT_GRID_CARD_TIMESTAMP_H = 19;
-const OBJECT_GRID_CARD_COMMENT_H = 19;
+const OBJECT_GRID_CARD_BASE_H = 118;
+const OBJECT_GRID_CARD_TIMESTAMP_H = 24;
+const OBJECT_GRID_CARD_COMMENT_H = 24;
 const OBJECT_GRID_CARD_SAFETY = 6; // buffer for sub-pixel font differences
 
 const objectGridRowHeight = computed(() => {
-  if (isCompactView.value) return 28 + OBJECT_COMPACT_GAP;
+  if (isCompactView.value) return OBJECT_COMPACT_ROW_H + OBJECT_COMPACT_GAP;
   let cardH = OBJECT_GRID_CARD_BASE_H;
   if (hasCreatedAt.value || hasUpdatedAt.value) cardH += OBJECT_GRID_CARD_TIMESTAMP_H;
   if (hasAnyComment.value) cardH += OBJECT_GRID_CARD_COMMENT_H;
@@ -5396,7 +5402,7 @@ function getObjectBrowserMenuItems(item: ObjectBrowserRow): ContextMenuItem[] {
             <ArrowDown class="h-3.5 w-3.5" />
             {{ t("objects.sortBy") }}
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
+          <DropdownMenuSubContent side="left" :side-offset="2">
             <DropdownMenuItem v-for="key in sortKeyOptions" :key="key" @select="onSortKeyChange(key)">
               <Check v-if="sortKey === key" class="h-3.5 w-3.5" />
               {{ sortKeyLabel(key) }}
@@ -5423,7 +5429,7 @@ function getObjectBrowserMenuItems(item: ObjectBrowserRow): ContextMenuItem[] {
         </DropdownMenuItem>
         <DropdownMenuSub v-if="isCompactView">
           <DropdownMenuSubTrigger>{{ t("objects.compactCardWidth") }}</DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
+          <DropdownMenuSubContent side="left" :side-offset="2">
             <DropdownMenuItem v-for="width in OBJECT_BROWSER_COMPACT_WIDTHS" :key="width" @select="setCompactCardWidth(width)">
               <Check v-if="compactCardWidth === width" class="h-3.5 w-3.5" />
               {{ width }}px
@@ -5714,7 +5720,7 @@ function getObjectBrowserMenuItems(item: ObjectBrowserRow): ContextMenuItem[] {
                       <component :is="iconFor(item)" class="h-6 w-6" :class="iconClass(item.type)" />
                       <CircleX v-if="item.valid === false" data-invalid-object-indicator="true" class="pointer-events-none absolute -right-0.5 -bottom-0.5 h-4 w-4 rounded-full bg-background text-destructive stroke-[3]" aria-hidden="true" />
                     </div>
-                    <span class="w-full truncate text-sm font-medium leading-tight text-foreground">{{ item.displayName }}</span>
+                    <span class="w-full shrink-0 truncate text-sm font-medium leading-tight text-foreground">{{ item.displayName }}</span>
                     <div class="flex items-center gap-1.5">
                       <span class="text-xs text-muted-foreground">{{ typeLabel(item) }}</span>
                       <span v-if="item.valid != null" class="rounded border px-1 py-px text-xs font-medium" :class="item.valid ? 'border-emerald-500/30 text-emerald-600' : 'border-destructive/30 text-destructive'">
@@ -5740,7 +5746,7 @@ function getObjectBrowserMenuItems(item: ObjectBrowserRow): ContextMenuItem[] {
                   <div
                     v-else
                     data-object-compact-card
-                    class="flex h-full min-w-0 cursor-default items-center gap-1 rounded border px-1.5 text-xs text-foreground transition-colors"
+                    class="flex h-full min-w-0 cursor-default flex-col justify-center gap-0.5 rounded border px-1.5 py-1 text-xs text-foreground transition-colors"
                     :class="{
                       'border-primary bg-accent shadow-sm': isOpen || sourceRow?.id === item.id || sidePanelRow?.id === item.id || selectedRowId === item.id || selectedTableIds.has(item.id),
                       'bg-card hover:border-primary/40 hover:bg-accent/40': !isOpen && sourceRow?.id !== item.id && sidePanelRow?.id !== item.id && selectedRowId !== item.id && !selectedTableIds.has(item.id),
@@ -5749,12 +5755,19 @@ function getObjectBrowserMenuItems(item: ObjectBrowserRow): ContextMenuItem[] {
                     @click="onRowClick(item, $event)"
                     @contextmenu="onContextMenu"
                   >
-                    <button v-if="showCheckboxColumn" class="mr-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground" type="button" @click.stop="toggleTableSelection(item)">
-                      <CheckSquare v-if="selectedTableIds.has(item.id)" class="h-3.5 w-3.5 text-primary" />
-                      <Square v-else class="h-3.5 w-3.5" />
-                    </button>
-                    <component :is="iconFor(item)" class="h-3.5 w-3.5 shrink-0" :class="iconClass(item.type)" aria-hidden="true" />
-                    <span class="min-w-0 truncate font-medium">{{ item.displayName }}</span>
+                    <div class="flex min-w-0 items-center gap-1">
+                      <button v-if="showCheckboxColumn" class="mr-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground" type="button" @click.stop="toggleTableSelection(item)">
+                        <CheckSquare v-if="selectedTableIds.has(item.id)" class="h-3.5 w-3.5 text-primary" />
+                        <Square v-else class="h-3.5 w-3.5" />
+                      </button>
+                      <component :is="iconFor(item)" class="h-3.5 w-3.5 shrink-0" :class="iconClass(item.type)" aria-hidden="true" />
+                      <span class="min-w-0 truncate font-medium">{{ item.displayName }}</span>
+                    </div>
+                    <div class="flex min-w-0 items-center gap-1 overflow-hidden pl-[18px] text-[11px] leading-none text-muted-foreground">
+                      <span class="shrink-0">{{ typeLabel(item) }}</span>
+                      <span v-if="showObjectRowStats && item.estimatedRows != null && item.estimatedRows > 0" class="shrink-0 tabular-nums">{{ formatObjectBrowserCount(item.estimatedRows) }}</span>
+                      <span v-if="showObjectSizeStats && item.totalBytes != null && item.totalBytes > 0" class="min-w-0 truncate tabular-nums">{{ formatObjectBrowserBytes(item.totalBytes) }}</span>
+                    </div>
                   </div>
                 </CustomContextMenu>
               </div>

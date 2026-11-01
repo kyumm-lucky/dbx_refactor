@@ -1284,9 +1284,7 @@ export interface EditorSettings {
 
 export interface ToolbarItems {
   immediateSync: boolean;
-  dataTransfer: boolean;
   driverManager: boolean;
-  pluginCenter: boolean;
   sqlFile: boolean;
   schemaDiff: boolean;
   dataCompare: boolean;
@@ -1306,9 +1304,7 @@ export interface ToolbarItems {
 
 export const DEFAULT_TOOLBAR_ITEMS: ToolbarItems = {
   immediateSync: false,
-  dataTransfer: true,
   driverManager: true,
-  pluginCenter: true,
   sqlFile: true,
   schemaDiff: true,
   dataCompare: true,
@@ -1630,7 +1626,7 @@ export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
   pluginGraphicsEngineIds: [],
   toolbarItems: { ...DEFAULT_TOOLBAR_ITEMS },
   objectBrowserShowCheckbox: false,
-  objectBrowserViewMode: "list",
+  objectBrowserViewMode: "compact",
   objectBrowserCompactWidth: DEFAULT_OBJECT_BROWSER_COMPACT_WIDTH,
   objectBrowserAutoOpenDetailPanel: true,
   sqlVariableSubstitutionEnabled: true,
@@ -2018,9 +2014,7 @@ function normalizeToolbarItems(items: Partial<ToolbarItems> | undefined): Toolba
   if (!items || typeof items !== "object") return { ...defaults };
   return {
     immediateSync: items.immediateSync ?? defaults.immediateSync,
-    dataTransfer: items.dataTransfer ?? defaults.dataTransfer,
     driverManager: items.driverManager ?? defaults.driverManager,
-    pluginCenter: items.pluginCenter ?? defaults.pluginCenter,
     sqlFile: items.sqlFile ?? defaults.sqlFile,
     schemaDiff: items.schemaDiff ?? defaults.schemaDiff,
     dataCompare: items.dataCompare ?? defaults.dataCompare,
