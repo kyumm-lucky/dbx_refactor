@@ -14779,4 +14779,337 @@ mod tests {
             }]
         );
     }
+
+    #[test]
+    fn xugu_import_insert_batches_preserve_backslashes_and_json_text() {
+        let columns = vec!["V".to_string(), "L".to_string(), "J".to_string()];
+        let types = vec![
+            ("V".to_string(), "VARCHAR(500)".to_string()),
+            ("L".to_string(), "CLOB".to_string()),
+            ("J".to_string(), "JSON".to_string()),
+        ];
+        let mappings = columns
+            .iter()
+            .map(|name| TableImportColumnMapping {
+                source_column: name.clone(),
+                target_column: name.clone(),
+                target_data_type: None,
+            })
+            .collect::<Vec<_>>();
+        let text = "中文\\path\\o'clock\\\nnext\tline";
+        let document = r#"{"path":"C:\\tmp\\file","line":"a\nb","quote":"\"O'Brien\""}"#;
+        let data = ParsedImportFile {
+            columns,
+            rows: vec![
+                vec![serde_json::json!(text), serde_json::json!(text), serde_json::json!(document)],
+                vec![serde_json::json!(""), serde_json::Value::Null, serde_json::Value::Null],
+            ],
+            total_rows: 2,
+            effective_encoding: None,
+        };
+        let batches =
+            build_import_insert_batches(&data, &mappings, &types, "ESCAPE_TEST", "APP", &DatabaseType::Xugu, 500)
+                .unwrap();
+        assert_eq!(batches.len(), 1);
+        assert_eq!(batches[0].row_count, 2);
+        assert_eq!(
+            batches[0].sql,
+            format!(
+                "INSERT INTO \"APP\".\"ESCAPE_TEST\" (\"V\", \"L\", \"J\") VALUES\n({}, {}, {})\n('', NULL, NULL)",
+                crate::transfer::quote_string_literal(text),
+                crate::transfer::quote_string_literal(text),
+                crate::transfer::quote_string_literal(document)
+            )
+        );
+    }
+
+    #[test]
+    fn table_import_generator_parses_supported_keys() {
+        assert_eq!(TableImportGenerator::parse("uuid"), Some(TableImportGenerator::Uuid));
+        assert_eq!(TableImportGenerator::parse("uuid_v4"), Some(TableImportGenerator::Uuid));
+        assert_eq!(TableImportGenerator::parse("uuid_simple"), Some(TableImportGenerator::UuidSimple));
+        assert_eq!(TableImportGenerator::parse("uuidNoHyphens"), Some(TableImportGenerator::UuidSimple));
+        assert_eq!(TableImportGenerator::parse("current_timestamp"), Some(TableImportGenerator::CurrentTimestamp));
+        assert_eq!(TableImportGenerator::parse("now"), Some(TableImportGenerator::CurrentTimestamp));
+        assert_eq!(TableImportGenerator::parse("current_date"), Some(TableImportGenerator::CurrentDate));
+        assert_eq!(TableImportGenerator::parse("sequence"), Some(TableImportGenerator::Sequence));
+        assert_eq!(TableImportGenerator::parse("auto_increment"), Some(TableImportGenerator::Sequence));
+        assert_eq!(TableImportGenerator::parse("unknown_gen"), None);
+    }
+
+    #[test]
+    fn import_plan_compiles_with_generator_without_source_column() {
+        let columns = vec!["name".to_string()];
+        let mappings = vec![
+            TableImportColumnMapping {
+                source_column: "".to_string(),
+                target_column: "id".to_string(),
+                target_data_type: None,
+                generator: Some("uuid".to_string()),
+            },
+            TableImportColumnMapping {
+                source_column: "name".to_string(),
+                target_column: "name".to_string(),
+                target_data_type: None,
+            },
+            TableImportColumnMapping {
+                source_column: "".to_string(),
+                target_column: "created_at".to_string(),
+                target_data_type: None,
+                generator: Some("current_timestamp".to_string()),
+            },
+            TableImportColumnMapping {
+                source_column: "".to_string(),
+                target_column: "seq".to_string(),
+                target_data_type: None,
+                generator: Some("sequence".to_string()),
+            },
+        ];
+
+        let plan = compile_import_plan(&columns, &mappings, &[]).unwrap();
+        assert_eq!(plan.target_columns, vec!["id", "name", "created_at", "seq"]);
+        assert_eq!(
+            plan.column_sources,
+            vec![
+                ImportColumnSource::Generator(TableImportGenerator::Uuid),
+                ImportColumnSource::SourceIndex(0),
+                ImportColumnSource::Generator(TableImportGenerator::CurrentTimestamp),
+                ImportColumnSource::Generator(TableImportGenerator::Sequence),
+            ]
+        );
+
+        let rows = vec![vec![serde_json::json!("Alice")], vec![serde_json::json!("Bob")]];
+        let batches = build_import_insert_batches_with_plan(
+            &rows,
+            &plan,
+            "users",
+            "public",
+            &DatabaseType::Postgres,
+            false,
+            TableImportConflictPolicy::Error,
+            &[],
+            None,
+            None,
+            0,
+        )
+        .unwrap();
+
+        assert_eq!(batches.len(), 1);
+        assert_eq!(batches[0].row_count, 2);
+        let sql = &batches[0].sql;
+        assert!(sql.contains("INSERT INTO \"public\".\"users\" (\"id\", \"name\", \"created_at\", \"seq\") VALUES"));
+        assert!(sql.contains("'Alice'"));
+        assert!(sql.contains("'Bob'"));
+        assert!(sql.contains("CURRENT_TIMESTAMP"));
+    }
+
+    #[test]
+    fn import_create_table_plan_infers_types_for_generators() {
+        let data = ParsedImportFile {
+            columns: vec!["username".to_string()],
+            rows: vec![vec![serde_json::json!("alice")]],
+            total_rows: 1,
+            effective_encoding: None,
+        };
+        let mappings = vec![
+            TableImportColumnMapping {
+                source_column: "".to_string(),
+                target_column: "id".to_string(),
+                target_data_type: None,
+                generator: Some("uuid".to_string()),
+            },
+            TableImportColumnMapping {
+                source_column: "username".to_string(),
+                target_column: "username".to_string(),
+                target_data_type: None,
+            },
+            TableImportColumnMapping {
+                source_column: "".to_string(),
+                target_column: "created_at".to_string(),
+                target_data_type: None,
+                generator: Some("current_timestamp".to_string()),
+            },
+        ];
+
+        let plan = build_import_create_table_plan(&data, &mappings, "accounts", "", &DatabaseType::Mysql).unwrap();
+        assert_eq!(
+            plan.columns,
+            vec![
+                ImportCreateTableColumn { name: "id".to_string(), data_type: "TEXT".to_string() },
+                ImportCreateTableColumn { name: "username".to_string(), data_type: "TEXT".to_string() },
+                ImportCreateTableColumn { name: "created_at".to_string(), data_type: "DATETIME".to_string() },
+            ]
+        );
+    }
+
+    #[test]
+    fn import_sequence_generator_continues_monotonically_across_insert_batches() {
+        let plan = CompiledImportPlan::from_columns_and_sources(
+            vec!["seq".to_string(), "name".to_string()],
+            vec![ImportColumnSource::Generator(TableImportGenerator::Sequence), ImportColumnSource::SourceIndex(0)],
+            vec![Some("integer".to_string()), Some("text".to_string())],
+        );
+
+        let chunk1 = vec![vec![serde_json::json!("Ada")], vec![serde_json::json!("Grace")]];
+        let chunk2 = vec![vec![serde_json::json!("Linus")], vec![serde_json::json!("Margaret")]];
+
+        let batch1 = build_import_insert_batches_with_plan(
+            &chunk1,
+            &plan,
+            "coders",
+            "public",
+            &DatabaseType::Postgres,
+            false,
+            TableImportConflictPolicy::Error,
+            &[],
+            None,
+            None,
+            0,
+        )
+        .unwrap();
+
+        let batch2 = build_import_insert_batches_with_plan(
+            &chunk2,
+            &plan,
+            "coders",
+            "public",
+            &DatabaseType::Postgres,
+            false,
+            TableImportConflictPolicy::Error,
+            &[],
+            None,
+            None,
+            2,
+        )
+        .unwrap();
+
+        assert_eq!(batch1.len(), 1);
+        assert_eq!(batch2.len(), 1);
+        assert!(batch1[0].sql.contains("(1, 'Ada')"), "sql: {}", batch1[0].sql);
+        assert!(batch1[0].sql.contains("(2, 'Grace')"), "sql: {}", batch1[0].sql);
+        assert!(batch2[0].sql.contains("(3, 'Linus')"), "sql: {}", batch2[0].sql);
+        assert!(batch2[0].sql.contains("(4, 'Margaret')"), "sql: {}", batch2[0].sql);
+    }
+
+    #[test]
+    fn import_sequence_generator_multi_row_postgres_copy() {
+        let plan = CompiledImportPlan::from_columns_and_sources(
+            vec!["seq".to_string(), "name".to_string()],
+            vec![ImportColumnSource::Generator(TableImportGenerator::Sequence), ImportColumnSource::SourceIndex(0)],
+            vec![Some("integer".to_string()), Some("text".to_string())],
+        );
+
+        let rows =
+            vec![vec![serde_json::json!("first")], vec![serde_json::json!("second")], vec![serde_json::json!("third")]];
+
+        let (_, data) = build_postgres_copy_text_batch(&rows, &plan, "items", "public", None).unwrap();
+        let text = String::from_utf8(data).unwrap();
+        assert_eq!(text, "1\tfirst\n2\tsecond\n3\tthird\n");
+
+        // Test offset continuity with build_postgres_copy_text_row
+        let row_offset_2 = build_postgres_copy_text_row(&rows[0], &plan, None, 4).unwrap();
+        assert_eq!(String::from_utf8(row_offset_2).unwrap(), "4\tfirst\n");
+    }
+
+    #[test]
+    fn import_multiple_sequence_columns_in_same_row_do_not_interleave() {
+        let plan = CompiledImportPlan::from_columns_and_sources(
+            vec!["seq_a".to_string(), "seq_b".to_string(), "val".to_string()],
+            vec![
+                ImportColumnSource::Generator(TableImportGenerator::Sequence),
+                ImportColumnSource::Generator(TableImportGenerator::Sequence),
+                ImportColumnSource::SourceIndex(0),
+            ],
+            vec![Some("integer".to_string()), Some("integer".to_string()), Some("text".to_string())],
+        );
+
+        let rows = vec![vec![serde_json::json!("alpha")], vec![serde_json::json!("beta")]];
+        let batches = build_import_insert_batches_with_plan(
+            &rows,
+            &plan,
+            "dual_seq",
+            "",
+            &DatabaseType::Mysql,
+            false,
+            TableImportConflictPolicy::Error,
+            &[],
+            None,
+            None,
+            0,
+        )
+        .unwrap();
+
+        assert_eq!(batches.len(), 1);
+        assert!(batches[0].sql.contains("(1, 1, 'alpha')"), "sql: {}", batches[0].sql);
+        assert!(batches[0].sql.contains("(2, 2, 'beta')"), "sql: {}", batches[0].sql);
+    }
+
+    #[test]
+    fn import_sqlserver_bulk_sequence_generator_with_offset() {
+        let plan = CompiledImportPlan::from_columns_and_sources(
+            vec!["seq".to_string(), "name".to_string()],
+            vec![ImportColumnSource::Generator(TableImportGenerator::Sequence), ImportColumnSource::SourceIndex(0)],
+            vec![Some("integer".to_string()), Some("nvarchar(100)".to_string())],
+        );
+
+        let row1 = vec![serde_json::json!("item1")];
+        let row2 = vec![serde_json::json!("item2")];
+
+        // start_row_offset = 0: row_index 0 -> seq 1; row_index 1 -> seq 2
+        let text1 = sqlserver_bulk_text_row(&row1, &plan, None, 0, SQLSERVER_BULK_ROW_MEMORY_BYTES).unwrap();
+        let text2 = sqlserver_bulk_text_row(&row2, &plan, None, 1, SQLSERVER_BULK_ROW_MEMORY_BYTES).unwrap();
+        assert_eq!(text1, vec![Some("1".to_string()), Some("item1".to_string())]);
+        assert_eq!(text2, vec![Some("2".to_string()), Some("item2".to_string())]);
+
+        // start_row_offset = 5: row_index 5 + 0 = 5 -> seq 6
+        let text_offset = sqlserver_bulk_text_row(&row1, &plan, None, 5, SQLSERVER_BULK_ROW_MEMORY_BYTES).unwrap();
+        assert_eq!(text_offset, vec![Some("6".to_string()), Some("item1".to_string())]);
+    }
+
+    #[test]
+    fn build_import_insert_batches_sequence_continuous_across_chunks() {
+        let data = ParsedImportFile {
+            columns: vec!["name".to_string()],
+            rows: vec![
+                vec![serde_json::json!("a")],
+                vec![serde_json::json!("b")],
+                vec![serde_json::json!("c")],
+                vec![serde_json::json!("d")],
+            ],
+            total_rows: 4,
+            effective_encoding: None,
+        };
+        let mappings = vec![
+            TableImportColumnMapping {
+                source_column: "".to_string(),
+                target_column: "seq".to_string(),
+                target_data_type: Some("integer".to_string()),
+                generator: Some("sequence".to_string()),
+            },
+            TableImportColumnMapping {
+                source_column: "name".to_string(),
+                target_column: "name".to_string(),
+                target_data_type: None,
+            },
+        ];
+
+        let batches = build_import_insert_batches(
+            &data,
+            &mappings,
+            &[("seq".to_string(), "integer".to_string()), ("name".to_string(), "text".to_string())],
+            "items",
+            "",
+            &DatabaseType::Mysql,
+            2,
+        )
+        .unwrap();
+
+        assert_eq!(batches.len(), 2);
+        assert_eq!(batches[0].row_count, 2);
+        assert_eq!(batches[1].row_count, 2);
+        assert!(batches[0].sql.contains("(1, 'a')"), "batch 0: {}", batches[0].sql);
+        assert!(batches[0].sql.contains("(2, 'b')"), "batch 0: {}", batches[0].sql);
+        assert!(batches[1].sql.contains("(3, 'c')"), "batch 1: {}", batches[1].sql);
+        assert!(batches[1].sql.contains("(4, 'd')"), "batch 1: {}", batches[1].sql);
+    }
 }
